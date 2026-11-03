@@ -11,7 +11,15 @@ vi.mock("./AppServices", () => ({
 }));
 
 describe("AppShell branding and mobile navigation", () => {
-  it("shows the DJ3 Engineering logo in the sidebar", () => {
+  it("opens and closes the mobile navigation drawer", () => {
+    render(<MemoryRouter><AppShell><p>Konten</p></AppShell></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Buka menu navigasi" }));
+    expect(screen.getByRole("navigation", { name: "Navigasi utama mobile" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tutup menu navigasi" }));
+    expect(screen.queryByRole("navigation", { name: "Navigasi utama mobile" })).not.toBeInTheDocument();
+  });
+
+    it("shows the DJ3 Engineering logo in the sidebar", () => {
     render(<MemoryRouter><AppShell><p>Konten</p></AppShell></MemoryRouter>);
     expect(screen.getByRole("img", { name: "DJ3 Engineering" })).toHaveAttribute("src", "/dj3-engineering-logo.png");
   });
