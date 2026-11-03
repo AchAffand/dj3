@@ -13,6 +13,7 @@ function setup() {
     name: "Rumah Contoh",
     updatedAt: "2026-10-01T00:00:00.000Z",
     modelCount: 2,
+    createdBy: "Admin DJ3",
   }];
   const repository = { listProjects: vi.fn(async () => projects) } as unknown as ReturnType<typeof createSupabaseRepository>;
   function Location() {
@@ -39,6 +40,11 @@ function setup() {
 
 describe("ProjectsPage", () => {
   afterEach(() => cleanup());
+
+  it("shows the user who created the saved project", async () => {
+    setup();
+    expect(await screen.findByText("Dibuat oleh Admin DJ3")).toBeInTheDocument();
+  });
 
   it("opens the selected saved project for editing", async () => {
     const user = setup();
