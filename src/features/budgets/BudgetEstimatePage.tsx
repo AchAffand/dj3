@@ -127,7 +127,6 @@ export function BudgetEstimatePage() {
     finally { setSaving(false); }
   };
   const categories = [...new Set(detail.components.map((item) => item.category))];
-  const setMode = (mode: "prices" | "mappings" | "items") => navigate(`/master-harga/${catalogSlug}?mode=${mode}`);
   const saveMapping = async (item: { key: string; name: string; unit: string }, componentId: string | null) => {
     if (!repository) return;
     setSaving(true); setMessage(null);
