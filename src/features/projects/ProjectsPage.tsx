@@ -10,7 +10,8 @@ export function ProjectsPage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);\n  const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadProjects = useCallback(async () => {
     if (!repository) return;
@@ -25,7 +26,15 @@ export function ProjectsPage() {
     }
   }, [repository]);
 
-  useEffect(() => { void loadProjects(); }, [loadProjects]);\n\n  const filteredProjects = useMemo(() => {\n    const query = searchQuery.trim().toLocaleLowerCase("id-ID");\n    if (!query) return projects;\n    return projects.filter((project) =>\n      [project.name, project.createdBy].some((value) => value.toLocaleLowerCase("id-ID").includes(query)),\n    );\n  }, [projects, searchQuery]);
+  useEffect(() => { void loadProjects(); }, [loadProjects]);
+
+  const filteredProjects = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase("id-ID");
+    if (!query) return projects;
+    return projects.filter((project) =>
+      [project.name, project.createdBy].some((value) => value.toLocaleLowerCase("id-ID").includes(query)),
+    );
+  }, [projects, searchQuery]);
 
   if (loading) return <AppPageState title="Memuat proyek" detail="Daftar proyek sedang disiapkan." />;
   if (error) return <AppPageState title="Proyek belum dapat dimuat" detail={error} tone="error" actionLabel="Coba lagi" onAction={() => void loadProjects()} />;
