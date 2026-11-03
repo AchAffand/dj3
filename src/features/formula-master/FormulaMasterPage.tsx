@@ -414,7 +414,7 @@ export function FormulaMasterPage() {
           <div className="formula-save-row">
             <span>{expression.length}/500 karakter</span>
             <button className="primary-button" type="button" onClick={() => void saveFormula()} disabled={!isCatalogAdmin || !formulaReadyToSave || saving}>
-              {saving ? "Menyimpan…" : "Simpan versi baru"}
+              {saving ? <><span className="button-spinner" />Menyimpan…</> : "Simpan versi baru"}
             </button>
           </div>
           {selectedMaterial?.sourceFormula && (
@@ -489,7 +489,7 @@ export function FormulaMasterPage() {
             <label className="form-field"><span>NAMA MODEL</span><input value={newModelName} onChange={(event) => setNewModelName(event.target.value)} maxLength={80} required /></label>
             {!newModelCodeValid && <div className="formula-feedback invalid" role="status">Isi kelompok dan nama model. Kode saran memakai pola xx00, materialnya xx01, dan kode dibuat otomatis.</div>}
             {createError && <div className="notice-banner error" role="alert">{createError}</div>}
-            <div className="formula-modal-actions"><button className="secondary-button" type="button" onClick={() => setShowModelForm(false)}>Batal</button><button className="primary-button" type="submit" disabled={creating || !newModelCodeValid}>{creating ? "Menyimpan…" : "Tambah model"}</button></div>
+            <div className="formula-modal-actions"><button className="secondary-button" type="button" onClick={() => setShowModelForm(false)}>Batal</button><button className="primary-button" type="submit" disabled={creating || !newModelCodeValid}>{creating ? <><span className="button-spinner" />Menyimpan…</> : "Tambah model"}</button></div>
           </form>
         </section>
       </div>}
@@ -504,7 +504,7 @@ export function FormulaMasterPage() {
             <label className="form-field"><span>RUMUS QTY · OPSIONAL</span><textarea className="formula-input" rows={3} maxLength={500} value={newMaterialExpression} onChange={(event) => setNewMaterialExpression(event.target.value)} placeholder="Boleh dikosongkan dan dilengkapi nanti" /></label>
             <div className={`formula-feedback ${!newMaterialCodeValid || (newMaterialExpression.trim() && !newMaterialCandidate?.validation.valid) ? "invalid" : "valid"}`} role="status">{!newMaterialCodeValid ? "Kode material harus berada dalam rentang kode xx01–xx99 dan belum digunakan." : !newMaterialExpression.trim() ? "Material bisa disimpan sekarang; rumus dapat ditambahkan nanti." : newMaterialCandidate?.validation.valid ? `Rumus valid · contoh hasil ${formatQuantity(newMaterialCandidate.preview?.quantity ?? 0)} ${newMaterialUnit}` : newMaterialCandidate && !newMaterialCandidate.validation.valid ? newMaterialCandidate.validation.error : "Rumus belum valid."}</div>
             {createError && <div className="notice-banner error" role="alert">{createError}</div>}
-            <div className="formula-modal-actions"><button className="secondary-button" type="button" onClick={() => setShowMaterialForm(false)}>Batal</button><button className="primary-button" type="submit" disabled={creating || !newMaterialCodeValid || Boolean(newMaterialExpression.trim() && !newMaterialCandidate?.validation.valid)}>{creating ? "Menyimpan…" : "Tambah material"}</button></div>
+            <div className="formula-modal-actions"><button className="secondary-button" type="button" onClick={() => setShowMaterialForm(false)}>Batal</button><button className="primary-button" type="submit" disabled={creating || !newMaterialCodeValid || Boolean(newMaterialExpression.trim() && !newMaterialCandidate?.validation.valid)}>{creating ? <><span className="button-spinner" />Menyimpan…</> : "Tambah material"}</button></div>
           </form>
         </section>
       </div>}
@@ -517,7 +517,7 @@ export function FormulaMasterPage() {
             <label className="form-field"><span>SATUAN</span><input value={materialDraftUnit} onChange={(event) => setMaterialDraftUnit(event.target.value)} maxLength={20} required /></label>
             <p className="history-empty">Kode dipertahankan agar rumus, riwayat, dan proyek lama tetap terhubung. Untuk mengubah perhitungan, pilih material ini lalu ubah rumus di editor.</p>
             {materialDetailsError && <div className="notice-banner error" role="alert">{materialDetailsError}</div>}
-            <div className="formula-modal-actions"><button className="secondary-button" type="button" onClick={() => setShowEditMaterialForm(false)}>Batal</button><button className="primary-button" type="submit" disabled={savingMaterialDetails || !materialDraftName.trim() || !materialDraftUnit.trim()}>{savingMaterialDetails ? "Menyimpan…" : "Simpan perubahan"}</button></div>
+            <div className="formula-modal-actions"><button className="secondary-button" type="button" onClick={() => setShowEditMaterialForm(false)}>Batal</button><button className="primary-button" type="submit" disabled={savingMaterialDetails || !materialDraftName.trim() || !materialDraftUnit.trim()}>{savingMaterialDetails ? <><span className="button-spinner" />Menyimpan…</> : "Simpan perubahan"}</button></div>
           </form>
         </section>
       </div>}

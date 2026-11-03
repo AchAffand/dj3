@@ -13,7 +13,7 @@ export function AppPageState({
 }) {
   return (
     <section className={`page-state ${tone}`} role={tone === "error" ? "alert" : "status"}>
-      <span className="page-state-mark" aria-hidden="true">{tone === "error" ? "!" : "·"}</span>
+      <span className="page-state-mark" aria-hidden="true">{tone === "error" ? "!" : <span className="page-state-spinner" />}</span>
       <h1>{title}</h1>
       <p>{detail}</p>
       {actionLabel && onAction && <button className="secondary-button" onClick={onAction} type="button">{actionLabel}</button>}
