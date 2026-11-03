@@ -124,7 +124,7 @@ export function SettingsPage() {
           </label>
         </div>
         <div className="settings-form-actions">
-          <button className="primary-button" type="submit" disabled={saving || !usernameOk || !passwordOk}>{saving ? "Menyimpan…" : "Tambah user"}</button>
+          <button className="primary-button" type="submit" disabled={saving || !usernameOk || !passwordOk}>{saving ? <><span className="button-spinner" />Menyimpan…</> : "Tambah user"}</button>
         </div>
       </form>
 
@@ -153,7 +153,7 @@ export function SettingsPage() {
             <p>User ini tidak akan bisa masuk lagi. <strong>Semua proyek dan perkiraan harga miliknya ikut terhapus permanen.</strong></p>
             <div className="formula-modal-actions formula-confirm-actions">
               <button className="secondary-button" type="button" disabled={deleting} onClick={() => setPendingDelete(null)}>Batal</button>
-              <button className="secondary-button formula-danger-button" type="button" disabled={deleting} onClick={() => void confirmDelete()}>{deleting ? "Menghapus…" : "Ya, hapus user"}</button>
+              <button className="secondary-button formula-danger-button" type="button" disabled={deleting} onClick={() => void confirmDelete()}>{deleting ? <><span className="button-spinner" />Menghapus…</> : "Ya, hapus user"}</button>
             </div>
           </div>
         </div>
