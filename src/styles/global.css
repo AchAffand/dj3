@@ -1093,3 +1093,86 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .formula-search { width: 100%; min-height: 46px; }
   .formula-search-results { width: 100%; max-height: 260px; }
 }
+
+
+/* Kalkulator Kusen model search */
+.calculator-model-search-panel {
+  position: relative;
+  z-index: 6;
+  margin: 0 0 14px;
+}
+.calculator-model-search {
+  display: flex;
+  width: min(100%, 560px);
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #E4E4E4;
+  border-radius: 9px;
+  background: #FFF;
+  transition: border-color .15s, box-shadow .15s;
+}
+.calculator-model-search:focus-within {
+  border-color: #888;
+  box-shadow: 0 0 0 3px #F0F0F0;
+}
+.calculator-model-search-icon { color: #777; font-size: 22px; line-height: 1; }
+.calculator-model-search input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #252525;
+  font: inherit;
+  font-size: 12px;
+}
+.calculator-model-search input::placeholder { color: #A0A0A0; }
+.calculator-model-search input::-webkit-search-cancel-button { display: none; }
+.calculator-model-search-clear {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: #F2F2F2;
+  color: #666;
+  cursor: pointer;
+  font-size: 18px;
+}
+.calculator-model-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(100%, 560px);
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid #E5E5E5;
+  border-radius: 10px;
+  background: #FFF;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 13%);
+}
+.calculator-model-search-result {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  padding: 11px 13px;
+  border: 0;
+  background: #FFF;
+  color: #333;
+  cursor: pointer;
+  text-align: left;
+}
+.calculator-model-search-result + .calculator-model-search-result { border-top: 1px solid #F0F0F0; }
+.calculator-model-search-result:hover, .calculator-model-search-result:focus-visible { outline: 0; background: #F5F5F5; }
+.calculator-model-search-result strong { font-size: 11px; }
+.calculator-model-search-result span { color: #858585; font-size: 10px; }
+.calculator-model-search-empty { margin: 0; padding: 15px; color: #888; font-size: 11px; }
+@media (max-width: 520px) {
+  .calculator-model-search { width: 100%; min-height: 46px; }
+  .calculator-model-search-results { width: 100%; max-height: 260px; }
+}
