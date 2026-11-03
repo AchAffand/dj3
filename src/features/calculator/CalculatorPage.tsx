@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Project } from "../../domain/projects/types";
+import { modelGroupLabel } from "../../domain/catalog/types";
 import { calculateModel } from "../../domain/formulas/calculateModel";
 import { AppPageState } from "../../app/AppPageState";
 import { formatRupiah } from "../../app/format";
@@ -45,6 +46,15 @@ export function CalculatorPage() {
   const [loadingProject, setLoadingProject] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [modelSearch, setModelSearch] = useState("");
+  const modelSearchResults = useMemo(() => {
+    const query = modelSearch.trim().toLocaleLowerCase("id-ID");
+    if (!query) return [];
+    return models.filter((model) =>
+      [String(model.code), model.name, modelGroupLabel(model.groupCode, model.groupName)]
+        .some((value) => value.toLocaleLowerCase("id-ID").includes(query)),
+    ).slice(0, 12);
+  }, [modelSearch, models]);
 
   useEffect(() => {
     if (loadingCatalog || !repository || !projectService || catalogError) return;
@@ -205,7 +215,28 @@ export function CalculatorPage() {
       <div className="calculator-layout">
         <section className="calculator-left-column">
           <div className="section-title-row"><div><p className="eyebrow">DAFTAR MODEL</p><h2>Model kusen</h2></div><span className="section-counter">{draft.lines.length} baris</span></div>
-          {draft.lines.length ? (
+          <div className="calculator-model-search-panel">
+            <label className="calculator-model-search">
+              <span className="calculator-model-search-icon" aria-hidden="true">⌕</span>
+              <input
+                type="search"
+                aria-label="Cari model kusen"
+                placeholder="Cari kode atau nama model kusen..."
+                value={modelSearch}
+                onChange={(event) => setModelSearch(event.target.value)}
+              />
+              {modelSearch && <button className="calculator-model-search-clear" type="button" aria-label="Hapus pencarian" onClick={() => setModelSearch("")}>×</button>}
+            </label>
+            {modelSearch.trim() && <div className="calculator-model-search-results" role="listbox" aria-label="Hasil pencarian model kusen">
+              {modelSearchResults.length ? modelSearchResults.map((model) => (
+                <button className="calculator-model-search-result" type="button" role="option" aria-selected="false" key={model.code} onClick={() => addModelLine(model.code)}>
+                  <strong>{model.code} · {model.name}</strong>
+                  <span>{modelGroupLabel(model.groupCode, model.groupName)} · Tambahkan ke perhitungan</span>
+                </button>
+              )) : <p className="calculator-model-search-empty">Model kusen tidak ditemukan.</p>}
+            </div>}
+          </div>
+                    {draft.lines.length ? (
             <ModelLineEditor
               lines={draft.lines}
               models={models}
