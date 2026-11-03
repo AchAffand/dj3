@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
       <main className="main-area">
         <header className="topbar">
-          <div className="breadcrumb"><span>DJ3</span><b>/</b><strong>Ruang kerja</strong></div>
+          <div className="topbar-left"><button className="mobile-menu-toggle" type="button" aria-label={mobileMenuOpen ? "Tutup menu navigasi" : "Buka menu navigasi"} aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)}><span /><span /><span /></button><div className="breadcrumb"><span>DJ3</span><b>/</b><strong>Ruang kerja</strong></div></div>
           <div className="topbar-right"><span className="connection-dot" /> <span className="topbar-email">{user?.email}</span><button className="sign-out-button" onClick={() => void signOut()} type="button">Keluar</button></div>
         </header>
         <div className="content-area">{children}</div>
