@@ -170,8 +170,11 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .footnote-icon { display: grid; width: 15px; height: 15px; flex: 0 0 auto; place-items: center; border: 1px solid #B5B5B5; border-radius: 50%; color: #7D7D7D; font-size: 9px; font-weight: 700; }
 .page-state { display: grid; min-height: 360px; align-content: center; justify-items: center; padding: 30px; text-align: center; }
 .page-state-mark { display: grid; width: 46px; height: 46px; margin-bottom: 15px; place-items: center; border: 1px solid #E8E8E8; border-radius: 14px; background: #FFF; color: var(--green); font-size: 18px; font-weight: 700; box-shadow: 0 5px 18px rgb(0 0 0 / 5%); }
-.page-state-spinner { width: 22px; height: 22px; border: 2px solid #E7E7E7; border-top-color: #222; border-right-color: #777; border-radius: 50%; animation: dj3-loader-spin .8s cubic-bezier(.55,.15,.35,.85) infinite; }\n@keyframes dj3-loader-spin { to { transform: rotate(360deg); } }
-@keyframes dj3-toast-out { to { opacity: 0; transform: translateY(8px); visibility: hidden; pointer-events: none; } }\n.page-state:not(.error) h1 { animation: dj3-loading-pulse 1.8s ease-in-out infinite; }\n@keyframes dj3-loading-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .58; } }
+.page-state-spinner { width: 22px; height: 22px; border: 2px solid #E7E7E7; border-top-color: #222; border-right-color: #777; border-radius: 50%; animation: dj3-loader-spin .8s cubic-bezier(.55,.15,.35,.85) infinite; }
+@keyframes dj3-loader-spin { to { transform: rotate(360deg); } }
+@keyframes dj3-toast-out { to { opacity: 0; transform: translateY(8px); visibility: hidden; pointer-events: none; } }
+.page-state:not(.error) h1 { animation: dj3-loading-pulse 1.8s ease-in-out infinite; }
+@keyframes dj3-loading-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .58; } }
 .page-state.error .page-state-mark { background: #F4F4F4; color: #575757; }
 .page-state h1 { font-size: 20px; letter-spacing: -.025em; }
 .page-state p { max-width: 480px; margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
