@@ -46,6 +46,36 @@ describe("ProjectsPage", () => {
     expect(await screen.findByText("Dibuat oleh Admin DJ3")).toBeInTheDocument();
   });
 
+  it("shows project numbers in list order", async () => {
+    setup([
+      { id: "project-1", name: "Rumah Contoh", updatedAt: "2026-10-01T00:00:00.000Z", modelCount: 2, createdBy: "Admin DJ3" },
+      { id: "project-2", name: "Gudang", updatedAt: "2026-10-02T00:00:00.000Z", modelCount: 1, createdBy: "Admin DJ3" },
+    ]);
+    expect(await screen.findByLabelText("Urutan 1")).toHaveTextContent("1");
+    expect(screen.getByLabelText("Urutan 2")).toHaveTextContent("2");
+  });
+
+  it("filters projects by name and creator", async () => {
+    const user = setup([
+      { id: "project-1", name: "Rumah Contoh", updatedAt: "2026-10-01T00:00:00.000Z", modelCount: 2, createdBy: "Admin DJ3" },
+      { id: "project-2", name: "Gudang", updatedAt: "2026-10-02T00:00:00.000Z", modelCount: 1, createdBy: "Budi" },
+    ]);
+    const search = await screen.findByRole("searchbox", { name: "Cari proyek" });
+    await user.type(search, "gudang");
+    expect(screen.getByText("Gudang")).toBeInTheDocument();
+    expect(screen.queryByText("Rumah Contoh")).not.toBeInTheDocument();
+    await user.clear(search);
+    await user.type(search, "budi");
+    expect(screen.getByText("Gudang")).toBeInTheDocument();
+    expect(screen.queryByText("Rumah Contoh")).not.toBeInTheDocument();
+  });
+
+  it("shows a clear empty state when no project matches", async () => {
+    const user = setup();
+    await user.type(await screen.findByRole("searchbox", { name: "Cari proyek" }), "tidak ada");
+    expect(screen.getByText("Proyek tidak ditemukan")).toBeInTheDocument();
+  });
+
   it("opens the selected saved project for editing", async () => {
     const user = setup();
     await user.click(await screen.findByRole("button", { name: "Edit Rumah Contoh" }));
