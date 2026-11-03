@@ -3,10 +3,12 @@ import type { DoorModel } from "../domain/catalog/types";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../domain/budgets/types";
 import { supabase } from "../integrations/supabase/client";
 import { createSupabaseRepository } from "../integrations/supabase/repository";
+import { createUserAdminClient, type UserAdminClient } from "../integrations/supabase/userAdmin";
 import { useAuth } from "../auth/AuthProvider";
 
 export type AppServicesValue = {
   repository: ReturnType<typeof createSupabaseRepository> | null;
+  userAdmin?: UserAdminClient | null;
   catalog: ReadonlyMap<number, DoorModel>;
   loadingCatalog: boolean;
   catalogError: string | null;
@@ -32,6 +34,10 @@ function ConnectedServicesProvider({ children }: { children: ReactNode }) {
   const { status: authStatus } = useAuth();
   const repository = useMemo(
     () => supabase ? createSupabaseRepository(supabase) : null,
+    [],
+  );
+  const userAdmin = useMemo(
+    () => supabase ? createUserAdminClient(supabase) : null,
     [],
   );
   const [catalog, setCatalog] = useState<ReadonlyMap<number, DoorModel>>(() => new Map());
@@ -90,7 +96,7 @@ function ConnectedServicesProvider({ children }: { children: ReactNode }) {
   }, [authStatus, reloadCatalog, reloadBudgets]);
 
   return (
-    <ServicesContext.Provider value={{ repository, catalog, loadingCatalog, catalogError, isCatalogAdmin, budgetCatalogs, budgetDetails, loadingBudgets, budgetError, reloadBudgets, reloadCatalog }}>
+    <ServicesContext.Provider value={{ repository, userAdmin, catalog, loadingCatalog, catalogError, isCatalogAdmin, budgetCatalogs, budgetDetails, loadingBudgets, budgetError, reloadBudgets, reloadCatalog }}>
       {children}
     </ServicesContext.Provider>
   );

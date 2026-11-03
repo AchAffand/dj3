@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../integrations/supabase/client";
+import { loginIdentifierToEmail } from "./username";
 
 type AuthStatus = "loading" | "unconfigured" | "signed-out" | "signed-in";
 type AuthContextValue = {
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) return "Koneksi Supabase belum diatur.";
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: loginIdentifierToEmail(email), password });
     return error?.message ?? null;
   }, []);
 

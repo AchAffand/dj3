@@ -31,8 +31,8 @@ export function SignInPage() {
         <h1>Selamat datang</h1>
         <p className="auth-description">Masuk untuk melanjutkan perhitungan dan membuka proyek tersimpan.</p>
         <form onSubmit={handleSubmit} className="auth-form">
-          <label htmlFor="email">Email</label>
-          <input id="email" type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} />
+          <label htmlFor="username">Nama pengguna</label>
+          <input id="username" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required value={email} onChange={(event) => setEmail(event.target.value)} />
           <label htmlFor="password">Kata sandi</label>
           <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
           {error && <div className="auth-error" role="alert">{error}</div>}

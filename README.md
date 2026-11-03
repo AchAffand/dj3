@@ -48,6 +48,23 @@ Untuk menghubungkan proyek Supabase hosted:
 
 `supabase db reset` ditujukan untuk database lokal karena menghapus dan membangun ulang skema lokal. Untuk database hosted yang masih kosong, gunakan `supabase db push --include-seed` satu kali setelah memeriksa project ref; untuk pembaruan berikutnya gunakan `supabase db push` tanpa seed.
 
+## Menu Pengaturan · kelola user
+
+Menu **Pengaturan** (`/pengaturan`) hanya tampil untuk admin (akun di tabel `catalog_admins`). Admin dapat melihat daftar akun, menambah user dengan **nama pengguna + kata sandi** (tanpa email), dan menghapus user.
+
+- Supabase Auth mewajibkan email, jadi nama pengguna dipetakan ke email internal `<nama>@dj3.local`. Email itu tidak pernah dikirimi surat dan tidak ditampilkan. Akun lama yang masuk dengan email asli tetap bisa login: kolom login menerima nama pengguna atau email.
+- Menambah/menghapus akun butuh hak `service_role`, jadi dikerjakan oleh Edge Function `supabase/functions/manage-users`. Function memeriksa JWT pemanggil dan memastikan ia admin sebelum bertindak. Kunci `service_role` tidak pernah masuk ke browser.
+- Akun sendiri dan akun admin tidak dapat dihapus dari menu ini, supaya admin tidak terkunci.
+- Menghapus user ikut menghapus semua proyek dan perkiraan harga miliknya (`on delete cascade`). Dialog konfirmasi menampilkan peringatan ini.
+
+Penerapan ke Supabase hosted (belum dilakukan otomatis; jalankan setelah memeriksa project ref):
+
+```powershell
+supabase functions deploy manage-users --project-ref <project-ref>
+```
+
+Tidak ada migrasi database baru. Setelah deploy, cek bahwa email `@dj3.local` diterima oleh Auth hosted dengan membuat satu user uji dari menu, lalu coba login dengan user itu. Panjang kata sandi minimal di function adalah 8 karakter.
+
 ## Katalog dan rumus
 
 Katalog aplikasi saat ini memuat 100 model dan 1.081 item material pada kelompok 10000 (pintu), 30000 (pintu jendela), dan 40000 (pintu sliding). Sheet master sumber tidak memuat kelompok 20000; data jendela dari workbook terpisah belum diimpor. Baris kaca gabungan tanpa rumus pada model 30600–33500 selain 31400, Floorhinge 31100, dan PT 30 kode 34308 telah dikeluarkan; model 34300 memakai PT 40 kode 34310 dengan rumus `daunPintu`. Model 31400 sengaja tetap memiliki 12 item tanpa rumus. Kelompok 40000 juga sengaja belum dilengkapi: 21 model dengan 255 baris material tanpa rumus. Total 22 model saat ini berstatus belum lengkap; hasil tanpa rumus tidak dianggap nol.

@@ -7,7 +7,8 @@ import { useAppServices } from "./AppServices";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
-  const { budgetCatalogs = [] } = useAppServices();
+  const { budgetCatalogs = [], isCatalogAdmin } = useAppServices();
+  const visibleFeatures = featureRegistry.filter((feature) => !feature.adminOnly || isCatalogAdmin);
   return (
     <div className="app-frame">
       <aside className="sidebar">
@@ -16,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </a>
         <div className="sidebar-label">RUANG KERJA</div>
         <nav className="main-navigation" aria-label="Navigasi utama">
-          {featureRegistry.map((feature) => feature.id === "budget-master" ? (
+          {visibleFeatures.map((feature) => feature.id === "budget-master" ? (
             <div className="nav-group" key={feature.id}>
               <NavLink aria-label={feature.label} title={feature.label} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to={feature.path}>
                 <span className="nav-icon" aria-hidden="true">{feature.icon}</span><span>{feature.label}</span>
