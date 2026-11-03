@@ -51,8 +51,21 @@ describe("SettingsPage", () => {
     expect(submit).toBeEnabled();
     await user.click(submit);
 
-    await waitFor(() => expect(createUser).toHaveBeenCalledWith({ username: "siti", password: "rahasia123", displayName: "" }));
+    await waitFor(() => expect(createUser).toHaveBeenCalledWith({ username: "siti", password: "rahasia123", displayName: "", role: "user" }));
     await waitFor(() => expect(listUsers).toHaveBeenCalledTimes(2));
+  });
+
+  it("creates an admin account when the admin role is chosen", async () => {
+    const user = userEvent.setup();
+    const createUser = vi.fn(async () => {});
+    renderPage({ listUsers: vi.fn(async () => [owner]), createUser, deleteUser: vi.fn() });
+    await screen.findByText("1 akun");
+    await user.type(screen.getByLabelText("Nama pengguna"), "admin2");
+    await user.type(screen.getByLabelText("Kata sandi"), "rahasia123");
+    await user.selectOptions(screen.getByLabelText("Peran"), "admin");
+    await user.click(screen.getByRole("button", { name: "Tambah user" }));
+    await waitFor(() => expect(createUser).toHaveBeenCalledWith({ username: "admin2", password: "rahasia123", displayName: "", role: "admin" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Admin admin2 berhasil ditambahkan.");
   });
 
   it("shows the server error when creating a user fails", async () => {

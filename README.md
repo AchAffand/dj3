@@ -50,11 +50,11 @@ Untuk menghubungkan proyek Supabase hosted:
 
 ## Menu Pengaturan · kelola user
 
-Menu **Pengaturan** (`/pengaturan`) hanya tampil untuk admin (akun di tabel `catalog_admins`). Admin dapat melihat daftar akun, menambah user dengan **nama pengguna + kata sandi** (tanpa email), dan menghapus user.
+Menu **Pengaturan** (`/pengaturan`) hanya tampil untuk admin (akun di tabel `catalog_admins`). Admin dapat melihat daftar akun, menambah akun dengan **nama pengguna + kata sandi** (tanpa email) berperan **User** atau **Admin**, dan menghapus user. Akun Admin baru langsung masuk ke `catalog_admins` dan bisa menambah admin lain.
 
 - Supabase Auth mewajibkan email, jadi nama pengguna dipetakan ke email internal `<nama>@dj3.local`. Email itu tidak pernah dikirimi surat dan tidak ditampilkan. Akun lama yang masuk dengan email asli tetap bisa login: kolom login menerima nama pengguna atau email.
 - Menambah/menghapus akun butuh hak `service_role`, jadi dikerjakan oleh Edge Function `supabase/functions/manage-users`. Function memeriksa JWT pemanggil dan memastikan ia admin sebelum bertindak. Kunci `service_role` tidak pernah masuk ke browser.
-- Akun sendiri dan akun admin tidak dapat dihapus dari menu ini, supaya admin tidak terkunci.
+- Akun sendiri dan akun admin tidak dapat dihapus dari menu ini, supaya admin tidak terkunci. Mencabut atau menghapus admin lewat SQL Editor Supabase (`delete from public.catalog_admins where user_id = ...`).
 - Menghapus user ikut menghapus semua proyek dan perkiraan harga miliknya (`on delete cascade`). Dialog konfirmasi menampilkan peringatan ini.
 
 Penerapan ke Supabase hosted (belum dilakukan otomatis; jalankan setelah memeriksa project ref):
