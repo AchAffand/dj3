@@ -232,14 +232,34 @@ export function createSupabaseRepository(client: SupabaseClient) {
     async listProjects(): Promise<ProjectSummary[]> {
       const { data, error } = await client
         .from("projects")
-        .select("id,name,updated_at,project_model_lines(model_code,model_count)")
+        .select("id,name,user_id,updated_at,project_model_lines(model_code,model_count)")
         .order("updated_at", { ascending: false });
       throwIfError(error);
-      return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => ({
+      const rows = (data ?? []) as unknown as Record<string, unknown>[];
+      const userIds = [...new Set(rows.map((row) => String(row.user_id ?? "")).filter(Boolean))];
+      const profilesById = new Map<string, string>();
+      if (userIds.length) {
+        const { data: profiles, error: profilesError } = await client
+          .from("profiles")
+          .select("id,display_name,email")
+          .in("id", userIds);
+        throwIfError(profilesError);
+        for (const profile of (profiles ?? []) as unknown as Record<string, unknown>[]) {
+          const id = String(profile.id);
+          const label = typeof profile.display_name === "string" && profile.display_name.trim()
+            ? profile.display_name.trim()
+            : typeof profile.email === "string" && profile.email.trim()
+              ? profile.email.trim()
+              : "Pengguna";
+          profilesById.set(id, label);
+        }
+      }
+      return rows.map((row) => ({
         id: String(row.id),
         name: String(row.name),
         updatedAt: String(row.updated_at),
         modelCount: ((row.project_model_lines as unknown[]) ?? []).length,
+        createdBy: profilesById.get(String(row.user_id ?? "")) ?? "Pengguna",
       }));
     },
 
