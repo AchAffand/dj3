@@ -276,6 +276,7 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .budget-catalog-card h2, .budget-price-group h2, .budget-line-group h2 { margin: 0; font-size: 15px; letter-spacing: -.02em; }
 .budget-catalog-card p:not(.eyebrow) { color: var(--muted); font-size: 10px; }
 .budget-card-actions, .budget-estimate-toolbar > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.budget-card-actions > button { box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; padding: 0 12px; border-radius: 7px; font-size: 10px; white-space: nowrap; }
 .budget-section-title { align-items: center; margin-top: 32px; }
 .budget-section-title .eyebrow { margin-bottom: 5px; }
 .budget-empty { margin-top: 10px; }
