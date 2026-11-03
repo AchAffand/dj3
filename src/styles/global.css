@@ -790,3 +790,45 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
     width: calc(100vw - 24px);
   }
 }
+
+
+/* Keep the add-item action reachable while browsing long catalog tables. */
+.budget-items-list { padding-bottom: 88px; }
+.budget-add-item-floating {
+  position: fixed;
+  z-index: 9;
+  right: max(28px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 19px;
+  border: 1px solid #171717;
+  border-radius: 999px;
+  background: #171717;
+  color: #FFF;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 22%);
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.budget-add-item-floating:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: #333;
+  box-shadow: 0 11px 30px rgb(0 0 0 / 25%);
+}
+.budget-add-item-floating > span { font-size: 18px; line-height: 1; }
+.budget-add-item-floating:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 520px) {
+  .budget-add-item-floating {
+    right: 16px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .budget-add-item-floating { transition: none; }
+}
