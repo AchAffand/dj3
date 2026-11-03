@@ -10,6 +10,7 @@ import { createSupabaseRepository } from "../../integrations/supabase/repository
 function setup(projects: ProjectSummary[] = [{
     id: "project-1",
     name: "Rumah Contoh",
+    createdAt: "2026-09-25T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",
     modelCount: 2,
     createdBy: "Admin DJ3",
@@ -43,12 +44,13 @@ describe("ProjectsPage", () => {
   it("shows the user who created the saved project", async () => {
     setup();
     expect(await screen.findByText("Dibuat oleh Admin DJ3")).toBeInTheDocument();
+    expect(screen.getByText(/Dibuat 25 Sep 2026/)).toBeInTheDocument();
   });
 
   it("shows project numbers in list order", async () => {
     setup([
-      { id: "project-1", name: "Rumah Contoh", updatedAt: "2026-10-01T00:00:00.000Z", modelCount: 2, createdBy: "Admin DJ3" },
-      { id: "project-2", name: "Gudang", updatedAt: "2026-10-02T00:00:00.000Z", modelCount: 1, createdBy: "Admin DJ3" },
+      { id: "project-1", name: "Rumah Contoh", createdAt: "2026-09-25T00:00:00.000Z", updatedAt: "2026-10-01T00:00:00.000Z", modelCount: 2, createdBy: "Admin DJ3" },
+      { id: "project-2", name: "Gudang", createdAt: "2026-09-26T00:00:00.000Z", updatedAt: "2026-10-02T00:00:00.000Z", modelCount: 1, createdBy: "Admin DJ3" },
     ]);
     expect(await screen.findByLabelText("Urutan 1")).toHaveTextContent("1");
     expect(screen.getByLabelText("Urutan 2")).toHaveTextContent("2");
@@ -56,8 +58,8 @@ describe("ProjectsPage", () => {
 
   it("filters projects by name and creator", async () => {
     const user = setup([
-      { id: "project-1", name: "Rumah Contoh", updatedAt: "2026-10-01T00:00:00.000Z", modelCount: 2, createdBy: "Admin DJ3" },
-      { id: "project-2", name: "Gudang", updatedAt: "2026-10-02T00:00:00.000Z", modelCount: 1, createdBy: "Budi" },
+      { id: "project-1", name: "Rumah Contoh", createdAt: "2026-09-25T00:00:00.000Z", updatedAt: "2026-10-01T00:00:00.000Z", modelCount: 2, createdBy: "Admin DJ3" },
+      { id: "project-2", name: "Gudang", createdAt: "2026-09-26T00:00:00.000Z", updatedAt: "2026-10-02T00:00:00.000Z", modelCount: 1, createdBy: "Budi" },
     ]);
     const search = await screen.findByRole("searchbox", { name: "Cari proyek" });
     await user.type(search, "gudang");

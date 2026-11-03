@@ -232,7 +232,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     async listProjects(): Promise<ProjectSummary[]> {
       const { data, error } = await client
         .from("projects")
-        .select("id,name,user_id,updated_at,project_model_lines(model_code,model_count)")
+        .select("id,name,user_id,created_at,updated_at,project_model_lines(model_code,model_count)")
         .order("updated_at", { ascending: false });
       throwIfError(error);
       const rows = (data ?? []) as unknown as Record<string, unknown>[];
@@ -257,6 +257,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
       return rows.map((row) => ({
         id: String(row.id),
         name: String(row.name),
+        createdAt: typeof row.created_at === "string" ? row.created_at : "",
         updatedAt: String(row.updated_at),
         modelCount: ((row.project_model_lines as unknown[]) ?? []).length,
         createdBy: profilesById.get(String(row.user_id ?? "")) ?? "Pengguna",

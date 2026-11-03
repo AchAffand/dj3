@@ -122,6 +122,7 @@ describe("Supabase repository", () => {
       id: "project-1",
       name: "Rumah Contoh",
       user_id: "user-1",
+      created_at: "2026-09-25T00:00:00.000Z",
       updated_at: "2026-10-01T00:00:00.000Z",
       project_model_lines: [{ model_code: 10100, model_count: 2 }],
     }];
@@ -140,7 +141,7 @@ describe("Supabase repository", () => {
       auth: { getUser: vi.fn(() => Promise.resolve({ data: { user: { id: "user-1" } }, error: null })) },
     } as unknown as SupabaseClient;
     const projects = await createSupabaseRepository(client).listProjects();
-    expect(projects[0]).toMatchObject({ id: "project-1", createdBy: "Admin DJ3", modelCount: 1 });
+    expect(projects[0]).toMatchObject({ id: "project-1", createdBy: "Admin DJ3", createdAt: "2026-09-25T00:00:00.000Z", modelCount: 1 });
     expect(client.from).toHaveBeenNthCalledWith(1, "projects");
     expect(client.from).toHaveBeenNthCalledWith(2, "profiles");
     expect(profileQuery.in).toHaveBeenCalledWith("id", ["user-1"]);

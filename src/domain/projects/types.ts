@@ -51,7 +51,7 @@ export type ProjectInput = {
 };
 
 export type Project = ProjectInput & { id: string; createdAt?: string; updatedAt?: string };
-export type ProjectSummary = { id: string; name: string; updatedAt: string; modelCount: number; createdBy: string };
+export type ProjectSummary = { id: string; name: string; createdAt: string; updatedAt: string; modelCount: number; createdBy: string };
 
 export type FormulaChange = { materialCode: number; expression: string };
 export type FormulaVersionRecord = {

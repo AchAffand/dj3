@@ -65,6 +65,7 @@ export function FormulaMasterPage() {
   const { repository, catalog, loadingCatalog, catalogError, isCatalogAdmin, reloadCatalog } = useAppServices();
   const models = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
   const [modelCode, setModelCode] = useState<number | null>(null);
+  const [formulaSearch, setFormulaSearch] = useState("");
   const [materialCode, setMaterialCode] = useState<number | null>(null);
   const [expression, setExpression] = useState("");
   const [versions, setVersions] = useState<FormulaVersionRecord[]>([]);
@@ -90,6 +91,25 @@ export function FormulaMasterPage() {
   const [newMaterialExpression, setNewMaterialExpression] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const formulaSearchResults = useMemo(() => {
+    const query = formulaSearch.trim().toLocaleLowerCase("id-ID");
+    if (!query) return [];
+    return models.flatMap((model) => {
+      const matchedMaterials = model.materials.filter((material) =>
+        [material.name, String(material.code)].some((value) => value.toLocaleLowerCase("id-ID").includes(query)),
+      );
+      const modelMatches = [String(model.code), model.name, modelGroupLabel(model.groupCode, model.groupName)]
+        .some((value) => value.toLocaleLowerCase("id-ID").includes(query));
+      return modelMatches || matchedMaterials.length ? [{ model, matchedMaterials }] : [];
+    });
+  }, [formulaSearch, models]);
+
+  function selectFormulaSearchResult(model: DoorModel, materialCodeToSelect?: number) {
+    setModelCode(model.code);
+    setMaterialCode(materialCodeToSelect ?? model.materials[0]?.code ?? null);
+    setFormulaSearch("");
+  }
 
   const selectedModel = modelCode === null ? undefined : catalog.get(modelCode);
   const selectedMaterial = selectedModel?.materials.find((item) => item.code === materialCode);
@@ -359,6 +379,35 @@ export function FormulaMasterPage() {
             }}>Tambah model</button>
           </> : <span className="read-only-pill">Hanya lihat</span>}
         </div>
+      </div>
+
+      <div className="formula-search-panel">
+        <label className="formula-search">
+          <span className="formula-search-icon" aria-hidden="true">⌕</span>
+          <input
+            type="search"
+            aria-label="Cari model atau material"
+            placeholder="Cari kode, nama model, atau material..."
+            value={formulaSearch}
+            onChange={(event) => setFormulaSearch(event.target.value)}
+          />
+          {formulaSearch && <button className="formula-search-clear" type="button" aria-label="Hapus pencarian" onClick={() => setFormulaSearch("")}>×</button>}
+        </label>
+        {formulaSearch.trim() && <div className="formula-search-results" role="listbox" aria-label="Hasil pencarian master rumus">
+          {formulaSearchResults.length ? formulaSearchResults.map(({ model, matchedMaterials }) => (
+            <div className="formula-search-result-group" key={model.code}>
+              {matchedMaterials.length ? matchedMaterials.map((material) => (
+                <button className="formula-search-result" type="button" role="option" aria-selected={modelCode === model.code && materialCode === material.code} key={material.code} onClick={() => selectFormulaSearchResult(model, material.code)}>
+                  <strong>{model.code} · {model.name}</strong>
+                  <span>{material.name} · {material.code} · {material.unit}</span>
+                </button>
+              )) : <button className="formula-search-result" type="button" role="option" aria-selected={modelCode === model.code} onClick={() => selectFormulaSearchResult(model)}>
+                <strong>{model.code} · {model.name}</strong>
+                <span>{modelGroupLabel(model.groupCode, model.groupName)} · pilih model</span>
+              </button>}
+            </div>
+          )) : <p className="formula-search-empty">Model atau material tidak ditemukan.</p>}
+        </div>}
       </div>
 
       <div className="formula-layout">
