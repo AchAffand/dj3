@@ -141,5 +141,5 @@ select extensions.lives_ok(
   'original owner can still edit its own project'
 );
 
-select * from extensions.finish();
+select json_agg(tap_line) as tap_results from extensions.finish() as tap_line;
 rollback;
