@@ -53,7 +53,7 @@ export function ProjectsPage() {
           {projects.map((project) => (
             <article className="project-list-row" key={project.id}>
               <span className="project-list-icon" aria-hidden="true">↗</span>
-              <span className="project-list-main"><strong>{project.name}</strong><small>{project.modelCount} model kusen</small></span>
+              <span className="project-list-main"><strong>{project.name}</strong><small>{project.modelCount} model kusen</small><small className="project-list-owner">Dibuat oleh {project.createdBy}</small></span>
               <span className="project-list-date">Diperbarui {formatDate(project.updatedAt)}</span>
               <div className="project-list-actions">
                 <button className="secondary-button" type="button" aria-label={`Edit ${project.name}`} onClick={() => navigate(`/calculator?project=${encodeURIComponent(project.id)}`)}>Edit</button>
