@@ -31,6 +31,16 @@ insert into public.materials(code, name, unit)
 values (990021, 'Test material 021', 'unit')
 on conflict (code) do nothing;
 
+-- A known project id lets the cross-user tests exercise the actual row without
+-- depending on a session-local custom GUC or trying to discover it through RLS.
+insert into public.projects(id, user_id, name, location, floor)
+values (
+  '00000000-0000-0000-0000-000000000301',
+  '00000000-0000-0000-0000-000000000103',
+  'Project 021 shared fixture', 'Initial location', 'Initial floor'
+)
+on conflict (id) do nothing;
+
 -- The role used by PostgREST must have the SQL privileges as well as RLS policy.
 select extensions.ok(has_table_privilege('authenticated', 'public.project_line_price_snapshots', 'INSERT'), 'authenticated has INSERT privilege on snapshots');
 select extensions.ok(has_table_privilege('authenticated', 'public.project_line_price_snapshots', 'UPDATE'), 'authenticated has UPDATE privilege on snapshots');
@@ -66,12 +76,12 @@ set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000102';
 set local "request.jwt.claim.role" = 'authenticated';
 
 select extensions.is(
-  (select count(*)::integer from public.projects where id=current_setting('test.project_021_id')::uuid),
+  (select count(*)::integer from public.projects where id='00000000-0000-0000-0000-000000000301'::uuid),
   0, 'another regular user cannot see a project by its known id'
 );
 select extensions.throws_ok(
   $$ select public.save_project_with_budget_prices(
-    current_setting('test.project_021_id')::uuid, 'Unauthorized overwrite', '', '', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb
+    '00000000-0000-0000-0000-000000000301'::uuid, 'Unauthorized overwrite', '', '', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb
   ) $$,
   '42501', null, 'another regular user cannot overwrite a project by known id'
 );
@@ -84,37 +94,37 @@ set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000101';
 set local "request.jwt.claim.role" = 'authenticated';
 
 select extensions.is(
-  (select count(*)::integer from public.projects where id=current_setting('test.project_021_id')::uuid),
+  (select count(*)::integer from public.projects where id='00000000-0000-0000-0000-000000000301'::uuid),
   1, 'catalog admin can see another user project'
 );
 select extensions.lives_ok(
   $$ select public.save_project_with_budget_prices(
-    current_setting('test.project_021_id')::uuid, 'Project 021 admin edit', 'Admin location', 'Floor 2', '[]'::jsonb, '[]'::jsonb,
+    '00000000-0000-0000-0000-000000000301'::uuid, 'Project 021 admin edit', 'Admin location', 'Floor 2', '[]'::jsonb, '[]'::jsonb,
     '[{"material_code":990021,"catalog_id":"00000000-0000-0000-0000-000000000201","variant_id":"00000000-0000-0000-0000-000000000202","name_snapshot":"Admin snapshot","unit_snapshot":"unit","unit_price":250.00}]'::jsonb
   ) $$,
   'catalog admin can edit project and replace its snapshot'
 );
 select extensions.is(
-  (select user_id from public.projects where id=current_setting('test.project_021_id')::uuid),
+  (select user_id from public.projects where id='00000000-0000-0000-0000-000000000301'::uuid),
   '00000000-0000-0000-0000-000000000103'::uuid,
   'admin edit preserves original project owner'
 );
 select extensions.is(
-  (select floor from public.projects where id=current_setting('test.project_021_id')::uuid),
+  (select floor from public.projects where id='00000000-0000-0000-0000-000000000301'::uuid),
   'Floor 2', 'admin edit saves project metadata'
 );
 select extensions.is(
-  (select unit_price from public.project_line_price_snapshots where project_id=current_setting('test.project_021_id')::uuid and material_code=990021),
+  (select unit_price from public.project_line_price_snapshots where project_id='00000000-0000-0000-0000-000000000301'::uuid and material_code=990021),
   250.00::numeric, 'admin can replace the stored snapshot price'
 );
 
 -- Admin has no project-header delete privilege through RLS, but may edit child rows.
 with deleted as (
-  delete from public.projects where id=current_setting('test.project_021_id')::uuid returning id
+  delete from public.projects where id='00000000-0000-0000-0000-000000000301'::uuid returning id
 )
 select extensions.is((select count(*)::integer from deleted), 0, 'catalog admin cannot delete a project header');
 select extensions.is(
-  (select count(*)::integer from public.projects where id=current_setting('test.project_021_id')::uuid),
+  (select count(*)::integer from public.projects where id='00000000-0000-0000-0000-000000000301'::uuid),
   1, 'project remains after admin delete attempt'
 );
 
@@ -126,7 +136,7 @@ set local "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000103';
 set local "request.jwt.claim.role" = 'authenticated';
 select extensions.lives_ok(
   $$ select public.save_project_with_budget_prices(
-    current_setting('test.project_021_id')::uuid, 'Project 021 owner edit', 'Owner location', 'Floor 3', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb
+    '00000000-0000-0000-0000-000000000301'::uuid, 'Project 021 owner edit', 'Owner location', 'Floor 3', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb
   ) $$,
   'original owner can still edit its own project'
 );
