@@ -78,7 +78,7 @@ export function ProjectsPage() {
               {filteredProjects.map((project, index) => (
                 <article className="project-list-row" key={project.id}>
                   <span className="project-list-icon" aria-label={`Urutan ${index + 1}`}>{index + 1}</span>
-                  <span className="project-list-main"><strong>{project.name}</strong><small>{project.modelCount} model kusen</small><small className="project-list-owner">Dibuat oleh {project.createdBy}</small></span>
+                  <span className="project-list-main"><strong>{project.name}</strong><small>{project.modelCount} model kusen</small><small className="project-list-owner"><span>Dibuat oleh {project.createdBy}</span>{project.createdAt && <span className="project-created-date"> · Dibuat {formatDate(project.createdAt)}</span>}</small></span>
                   <span className="project-list-date">Diperbarui {formatDate(project.updatedAt)}</span>
                   <div className="project-list-actions">
                     <button className="secondary-button" type="button" aria-label={`Edit ${project.name}`} onClick={() => navigate(`/calculator?project=${encodeURIComponent(project.id)}`)}>Edit</button>
