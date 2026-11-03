@@ -250,7 +250,7 @@ export function CalculatorPage() {
           ) : (
             <div className="empty-models"><strong>Belum ada model</strong><p>Tambahkan setidaknya satu model pintu untuk mulai menghitung.</p></div>
           )}
-          <button className="add-model-button" type="button" onClick={addModelLine} disabled={!models.length}><span>＋</span> Tambah model</button>
+          <button className="add-model-button" type="button" onClick={() => addModelLine()} disabled={!models.length}><span>＋</span> Tambah model</button>
         </section>
 
         <aside className="calculator-right-column">
