@@ -7,14 +7,13 @@ import { ProjectsPage } from "./ProjectsPage";
 import type { ProjectSummary } from "../../domain/projects/types";
 import { createSupabaseRepository } from "../../integrations/supabase/repository";
 
-function setup() {
-  const projects: ProjectSummary[] = [{
+function setup(projects: ProjectSummary[] = [{
     id: "project-1",
     name: "Rumah Contoh",
     updatedAt: "2026-10-01T00:00:00.000Z",
     modelCount: 2,
     createdBy: "Admin DJ3",
-  }];
+  }]) {
   const repository = { listProjects: vi.fn(async () => projects) } as unknown as ReturnType<typeof createSupabaseRepository>;
   function Location() {
     const location = useLocation();
