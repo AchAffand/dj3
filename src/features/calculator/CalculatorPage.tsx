@@ -237,7 +237,7 @@ export function CalculatorPage() {
               )) : <p className="calculator-model-search-empty">Model kusen tidak ditemukan.</p>}
             </div>}
           </div>
-                    {draft.lines.length ? (
+          {draft.lines.length ? (
             <ModelLineEditor
               lines={draft.lines}
               models={models}
