@@ -188,7 +188,7 @@ export function CalculatorPage() {
           <p className="page-description">Susun model, masukkan dimensi, lalu lihat kebutuhan bahan dan estimasi biayanya.</p>
         </div>
         <button className="primary-button save-project-button" type="button" onClick={() => void saveCurrentProject()} disabled={saving || !draft.name.trim() || !draft.lines.length}>
-          <span aria-hidden="true">↥</span>{saving ? "Menyimpan…" : "Simpan proyek"}
+          <span aria-hidden="true">↥</span>{saving ? <><span className="button-spinner" />Menyimpan…</> : "Simpan proyek"}
         </button>
       </div>
 
