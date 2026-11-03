@@ -117,6 +117,35 @@ describe("Supabase repository", () => {
     expect(query.maybeSingle).toHaveBeenCalledOnce();
   });
 
+  it("includes the creator profile in the saved project list", async () => {
+    const projectRows = [{
+      id: "project-1",
+      name: "Rumah Contoh",
+      user_id: "user-1",
+      updated_at: "2026-10-01T00:00:00.000Z",
+      project_model_lines: [{ model_code: 10100, model_count: 2 }],
+    }];
+    const profileRows = [{ id: "user-1", display_name: "Admin DJ3", email: "admin@dj3.local" }];
+    const projectQuery = {
+      select: vi.fn(() => projectQuery),
+      order: vi.fn(() => Promise.resolve({ data: projectRows, error: null })),
+    };
+    const profileQuery = {
+      select: vi.fn(() => profileQuery),
+      in: vi.fn(() => Promise.resolve({ data: profileRows, error: null })),
+    };
+    const client = {
+      from: vi.fn((table: string) => table === "profiles" ? profileQuery : projectQuery),
+      rpc: vi.fn(() => Promise.resolve({ data: "project-1", error: null })),
+      auth: { getUser: vi.fn(() => Promise.resolve({ data: { user: { id: "user-1" } }, error: null })) },
+    } as unknown as SupabaseClient;
+    const projects = await createSupabaseRepository(client).listProjects();
+    expect(projects[0]).toMatchObject({ id: "project-1", createdBy: "Admin DJ3", modelCount: 1 });
+    expect(client.from).toHaveBeenNthCalledWith(1, "projects");
+    expect(client.from).toHaveBeenNthCalledWith(2, "profiles");
+    expect(profileQuery.in).toHaveBeenCalledWith("id", ["user-1"]);
+  });
+
   it("saves stable project model and material codes through the atomic database function", async () => {
     const { client } = makeClient();
     const repository = createSupabaseRepository(client);
