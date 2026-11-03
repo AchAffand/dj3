@@ -84,6 +84,8 @@ Deno.serve(async (request: Request) => {
     const username = String(payload.username ?? "").trim().toLowerCase();
     const password = String(payload.password ?? "");
     const displayName = String(payload.displayName ?? "").trim().slice(0, 60);
+    const role = payload.role ?? "user";
+    if (role !== "user" && role !== "admin") return json({ error: "Peran tidak valid." }, 400);
     if (!USERNAME_PATTERN.test(username)) {
       return json({ error: "Nama pengguna harus 3-32 karakter: huruf kecil, angka, titik, strip, atau garis bawah." }, 400);
     }
@@ -100,7 +102,15 @@ Deno.serve(async (request: Request) => {
       const exists = /already|registered|exists/i.test(error?.message ?? "");
       return json({ error: exists ? "Nama pengguna sudah dipakai." : "User tidak dapat dibuat." }, exists ? 409 : 500);
     }
-    return json({ user: { id: data.user.id, username } }, 201);
+    if (role === "admin") {
+      const { error: grantError } = await admin.from("catalog_admins").insert({ user_id: data.user.id });
+      if (grantError) {
+        // Jangan tinggalkan akun setengah jadi: batalkan akun yang baru dibuat.
+        await admin.auth.admin.deleteUser(data.user.id);
+        return json({ error: "Akun admin tidak dapat dibuat." }, 500);
+      }
+    }
+    return json({ user: { id: data.user.id, username, role } }, 201);
   }
 
   if (action === "delete") {

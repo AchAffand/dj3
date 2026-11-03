@@ -3,9 +3,14 @@ import { AppPageState } from "../../app/AppPageState";
 import { useAppServices } from "../../app/AppServices";
 import { formatDate } from "../../app/format";
 import { isValidUsername, normalizeUsername } from "../../auth/username";
-import type { ManagedUser } from "../../integrations/supabase/userAdmin";
+import type { ManagedUser, UserRole } from "../../integrations/supabase/userAdmin";
 
-const emptyForm = { username: "", displayName: "", password: "" };
+const emptyForm: { username: string; displayName: string; password: string; role: UserRole } = {
+  username: "",
+  displayName: "",
+  password: "",
+  role: "user",
+};
 
 export function SettingsPage() {
   const { userAdmin, isCatalogAdmin, loadingCatalog } = useAppServices();
@@ -52,9 +57,9 @@ export function SettingsPage() {
     setMessage(null);
     try {
       const username = normalizeUsername(form.username);
-      await userAdmin.createUser({ username, password: form.password, displayName: form.displayName.trim() });
+      await userAdmin.createUser({ username, password: form.password, displayName: form.displayName.trim(), role: form.role });
       setForm(emptyForm);
-      setMessage({ tone: "ok", text: `User ${username} berhasil ditambahkan.` });
+      setMessage({ tone: "ok", text: `${form.role === "admin" ? "Admin" : "User"} ${username} berhasil ditambahkan.` });
       setUsers(await userAdmin.listUsers());
     } catch (cause) {
       setMessage({ tone: "error", text: cause instanceof Error ? cause.message : "User tidak dapat ditambahkan." });
@@ -108,6 +113,14 @@ export function SettingsPage() {
             <span>KATA SANDI</span>
             <input aria-label="Kata sandi" type="password" autoComplete="new-password" maxLength={72} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
             <small>Minimal 8 karakter.</small>
+          </label>
+          <label className="settings-field">
+            <span>PERAN</span>
+            <select aria-label="Peran" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })}>
+              <option value="user">User · hitung dan kelola proyeknya sendiri</option>
+              <option value="admin">Admin · bisa ubah rumus, harga, dan kelola user</option>
+            </select>
+            {form.role === "admin" && <small>Admin punya akses penuh, termasuk menambah admin lain. Akun admin tidak bisa dihapus dari menu ini.</small>}
           </label>
         </div>
         <div className="settings-form-actions">

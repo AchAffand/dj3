@@ -10,10 +10,13 @@ export type ManagedUser = {
   lastSignInAt: string | null;
 };
 
+export type UserRole = "user" | "admin";
+
 export type NewUserInput = {
   username: string;
   password: string;
   displayName: string;
+  role: UserRole;
 };
 
 export type UserAdminClient = {
