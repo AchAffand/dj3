@@ -153,9 +153,10 @@ export function CalculatorPage() {
     }));
   }, []);
 
-  function addModelLine() {
-    if (!models.length) return;
-    setDraft((current) => ({ ...current, lines: [...current.lines, makeLine(models[0].code)] }));
+  function addModelLine(modelCode = models[0]?.code) {
+    if (modelCode === undefined) return;
+    setDraft((current) => ({ ...current, lines: [...current.lines, makeLine(modelCode)] }));
+    setModelSearch("");
   }
 
   async function saveCurrentProject() {
