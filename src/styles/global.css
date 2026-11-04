@@ -1372,3 +1372,109 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   min-height: 32px !important;
 }
 
+
+
+/* Master Harga catalog bulk actions */
+.budget-catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.budget-catalog-toolbar > .secondary-button,
+.budget-catalog-toolbar > .primary-button {
+  box-sizing: border-box;
+  height: 42px;
+  min-height: 42px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 680;
+  white-space: nowrap;
+}
+.budget-selection-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #FFF;
+  color: var(--muted);
+  font-size: 11px;
+}
+.budget-bulk-delete-button {
+  display: inline-flex;
+  box-sizing: border-box;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid #B42318;
+  border-radius: 8px;
+  background: #B42318;
+  color: #FFF;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 680;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.budget-bulk-delete-button:hover:not(:disabled) {
+  border-color: #912018;
+  background: #912018;
+}
+.budget-bulk-delete-button:active:not(:disabled) { transform: translateY(1px); }
+.budget-bulk-delete-button:disabled { cursor: not-allowed; opacity: .55; }
+.budget-catalog-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 13px;
+  color: #777;
+  font-size: 10px;
+}
+.budget-catalog-select input { width: 15px; height: 15px; accent-color: var(--green); }
+.budget-delete-list {
+  display: grid;
+  max-height: 180px;
+  gap: 7px;
+  overflow: auto;
+  margin: 12px 0;
+  padding: 0 0 0 20px;
+  color: #444;
+  font-size: 12px;
+}
+.budget-delete-help {
+  margin: 12px 0 0;
+  padding: 10px 11px;
+  border: 1px solid #E8E8E8;
+  border-radius: 8px;
+  background: #F8F8F8;
+  color: #777;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.notice-banner[role="status"] {
+  border-color: #E0E0E0;
+  background: #F6F6F6;
+  color: #555;
+}
+.notice-banner.error,
+.notice-banner[role="alert"] {
+  border-color: #E7C8C5;
+  background: #FEF3F2;
+  color: #912018;
+}
+@media (max-width: 680px) {
+  .budget-catalog-toolbar { width: 100%; justify-content: flex-start; }
+  .budget-catalog-toolbar > button { flex: 1 1 auto; }
+  .budget-selection-toolbar { align-items: stretch; }
+  .budget-selection-toolbar > button { width: 100%; }
+}
