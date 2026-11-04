@@ -15,7 +15,7 @@ function setup(projects: ProjectSummary[] = [{
     modelCount: 2,
     createdBy: "Admin DJ3",
   }]) {
-  const repository = { listProjects: vi.fn(async () => projects) } as unknown as ReturnType<typeof createSupabaseRepository>;
+  const repository = { listProjects: vi.fn(async () => projects), deleteProject: vi.fn(async () => undefined) } as unknown as ReturnType<typeof createSupabaseRepository>;
   function Location() {
     const location = useLocation();
     return <output aria-label="Lokasi">{location.pathname}{location.search}</output>;
@@ -35,7 +35,7 @@ function setup(projects: ProjectSummary[] = [{
       </MemoryRouter>
     </AppServicesProvider>,
   );
-  return userEvent.setup();
+  return { user: userEvent.setup(), repository };
 }
 
 describe("ProjectsPage", () => {
@@ -72,20 +72,30 @@ describe("ProjectsPage", () => {
   });
 
   it("shows a clear empty state when no project matches", async () => {
-    const user = setup();
+    const { user } = setup();
     await user.type(await screen.findByRole("searchbox", { name: "Cari proyek" }), "tidak ada");
     expect(screen.getByText("Proyek tidak ditemukan")).toBeInTheDocument();
   });
 
   it("opens the selected saved project for editing", async () => {
-    const user = setup();
+    const { user } = setup();
     await user.click(await screen.findByRole("button", { name: "Edit Rumah Contoh" }));
     expect(screen.getByLabelText("Lokasi")).toHaveTextContent("/calculator?project=project-1");
   });
 
   it("opens a print preview for the selected saved project", async () => {
-    const user = setup();
+    const { user } = setup();
     await user.click(await screen.findByRole("button", { name: "Cetak Rumah Contoh" }));
     expect(screen.getByLabelText("Lokasi")).toHaveTextContent("/projects/project-1/print");
   });
+  it("deletes a project only after confirmation", async () => {
+    const { user, repository } = setup();
+    await user.click(await screen.findByRole("button", { name: "Hapus Rumah Contoh" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("Hapus proyek ini?");
+    expect(repository.deleteProject).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Ya, hapus proyek" }));
+    expect(repository.deleteProject).toHaveBeenCalledWith("project-1");
+    expect(await screen.findByText("Belum ada proyek tersimpan")).toBeInTheDocument();
+  });
+
 });
