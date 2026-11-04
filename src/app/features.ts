@@ -11,7 +11,7 @@ export type FeatureDefinition = {
   path: string;
   icon: string;
   component: ComponentType;
-  /** Menu hanya tampil untuk admin katalog. Halamannya tetap memeriksa hak akses sendiri. */
+  /** Akses halaman tetap diperiksa di dalam komponen tujuan. */
   adminOnly?: boolean;
 };
 
@@ -50,6 +50,5 @@ export const featureRegistry: readonly FeatureDefinition[] = [
     path: "/pengaturan",
     icon: "⚙",
     component: SettingsPage,
-    adminOnly: true,
   },
 ];
