@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Project } from "../../domain/projects/types";
 import { modelGroupLabel } from "../../domain/catalog/types";
 import { calculateModel } from "../../domain/formulas/calculateModel";
@@ -34,6 +34,7 @@ export function CalculatorPage() {
   const { repository, catalog, loadingCatalog, catalogError, reloadCatalog, budgetCatalogs = [], budgetError, loadingBudgets, reloadBudgets } = useAppServices();
   const budgetDetails = useAppServices().budgetDetails ?? new Map<string, BudgetCatalogDetail>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const projectId = searchParams.get("project");
   const models = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
   const projectService = useMemo(
@@ -171,7 +172,7 @@ export function CalculatorPage() {
     setModelSearch("");
   }
 
-  async function saveCurrentProject() {
+  async function saveCurrentProject(andPrint = false) {
     if (!projectService) return;
     setSaving(true);
     setMessage(null);
@@ -186,6 +187,10 @@ export function CalculatorPage() {
         prices: priceMap(saved.project),
       });
       setSearchParams(new URLSearchParams({ project: saved.project.id }), { replace: true });
+      if (andPrint) {
+        navigate(`/projects/${saved.project.id}/print`);
+        return;
+      }
       setMessage({ tone: "success", text: `Perhitungan tersimpan · ${formatRupiah(saved.total)} sementara.` });
     } catch (error) {
       setMessage({ tone: "error", text: error instanceof Error ? error.message : "Perhitungan gagal disimpan." });
@@ -210,9 +215,16 @@ export function CalculatorPage() {
           <h1>{projectId ? "Perhitungan proyek" : "Kalkulator kusen"}</h1>
           <p className="page-description">Susun model, masukkan dimensi, lalu lihat kebutuhan bahan dan estimasi biayanya.</p>
         </div>
-        <button className="primary-button save-project-button" type="button" onClick={() => void saveCurrentProject()} disabled={saving || !draft.name.trim() || !draft.lines.length}>
-          <span aria-hidden="true">↥</span>{saving ? <><span className="button-spinner" />Menyimpan…</> : "Simpan proyek"}
-        </button>
+        <div className="page-heading-actions">
+          {draft.id && (
+            <button className="secondary-button" type="button" onClick={() => void saveCurrentProject(true)} disabled={saving || !draft.name.trim() || !draft.lines.length}>
+              {saving ? <><span className="button-spinner" />Menyimpan…</> : "Simpan & Cetak PDF"}
+            </button>
+          )}
+          <button className="primary-button save-project-button" type="button" onClick={() => void saveCurrentProject()} disabled={saving || !draft.name.trim() || !draft.lines.length}>
+            <span aria-hidden="true">↥</span>{saving ? <><span className="button-spinner" />Menyimpan…</> : "Simpan proyek"}
+          </button>
+        </div>
       </div>
 
       <div className="project-name-panel">
