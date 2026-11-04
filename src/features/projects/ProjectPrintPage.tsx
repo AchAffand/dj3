@@ -128,8 +128,10 @@ export function ProjectPrintPage() {
 
       <article className="project-report">
         <header className="project-report-header">
-          <div className="excel-recap-title-row">
-            <h1>REKAP PEKERJAAN {reportType}</h1>
+          <div className="excel-recap-title-row project-estimate-title">
+            <h1>ESTIMASI BIAYA PROYEK <span>{project.name}</span></h1>
+          </div>
+          <div className="project-report-author-row">
             <strong>Dibuat : {authorName}</strong>
           </div>
           <div className="excel-recap-meta-row">
