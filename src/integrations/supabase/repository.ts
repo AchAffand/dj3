@@ -208,8 +208,8 @@ export function createSupabaseRepository(client: SupabaseClient) {
       throwIfError(error);
     },
 
-    async archiveFormulaModel(modelCode: number): Promise<void> {
-      const { error } = await client.rpc("archive_formula_model", { p_model_code: modelCode });
+    async deleteFormulaModelPermanently(modelCode: number): Promise<void> {
+      const { error } = await client.rpc("delete_formula_model_permanently", { p_model_code: modelCode });
       throwIfError(error);
     },
 
