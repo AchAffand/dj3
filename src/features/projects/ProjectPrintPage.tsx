@@ -6,6 +6,7 @@ import { modelGroupLabel } from "../../domain/catalog/types";
 import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
 import { useAuth } from "../../auth/AuthProvider";
+import { BrandLogo } from "../../app/BrandLogo";
 
 export function ProjectPrintPage() {
   const { projectId = "" } = useParams();
@@ -128,9 +129,13 @@ export function ProjectPrintPage() {
 
       <article className="project-report">
         <header className="project-report-header">
+          <div className="project-report-brand">
+            <BrandLogo />
+            <h1>ESTIMASI BIAYA PROYEK <span>{project.name}</span></h1>
+          </div>
           <div className="excel-recap-title-row">
-            <h1>REKAP PEKERJAAN {reportType}</h1>
             <strong>Dibuat : {authorName}</strong>
+            <strong>Tgl: {reportDate}</strong>
           </div>
           <div className="excel-recap-meta-row">
             <dl className="excel-recap-project-meta">
@@ -138,7 +143,6 @@ export function ProjectPrintPage() {
               <div><dt>Lokasi</dt><dd>{project.location?.trim() || <i className="recap-fill-line" aria-label="Isian lokasi kosong" />}</dd></div>
               <div><dt>Lantai</dt><dd>{project.floor?.trim() || <i className="recap-fill-line short" aria-label="Isian lantai kosong" />}</dd></div>
             </dl>
-            <p>Tgl: {reportDate}</p>
           </div>
         </header>
 
