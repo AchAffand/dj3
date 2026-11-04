@@ -1231,3 +1231,39 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
     flex: 0 0 auto;
   }
 }
+
+/* Keep item management actions aligned with the price settings toolbar. */
+.budget-items-description {
+  margin: 14px 0;
+  color: #777;
+  font-size: 12px;
+}
+.budget-danger-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid #B42318;
+  border-radius: 7px;
+  background: #B42318;
+  color: #FFF;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.budget-danger-button:hover:not(:disabled) {
+  border-color: #912018;
+  background: #912018;
+}
+.budget-danger-button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.budget-item-actions .budget-item-delete {
+  min-height: 30px;
+  padding: 0 9px;
+}
+
