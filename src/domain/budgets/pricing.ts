@@ -11,11 +11,15 @@ export function budgetPriceForMaterial(
   name: string,
   unit: string,
   variantId: string | null | undefined,
+  doorLeafSourceColumn?: string | null,
 ) {
   if (!detail || !variantId) return null;
   const mapping = detail.mappings.find((item) => item.materialKey === normalizeMaterialKey(name, unit) && item.active);
   if (!mapping?.componentId) return null;
-  const component = detail.components.find((item) => item.id === mapping.componentId);
+  const selectedDoorLeaf = doorLeafSourceColumn && /^[R-X]$/.test(doorLeafSourceColumn)
+    ? detail.components.find((item) => item.sourceColumn === doorLeafSourceColumn && item.active)
+    : undefined;
+  const component = selectedDoorLeaf ?? detail.components.find((item) => item.id === mapping.componentId);
   const variant = detail.variants.find((item) => item.id === variantId);
   if (!component || !variant) return null;
   const price = component.prices[variant.key];
