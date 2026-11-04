@@ -286,8 +286,11 @@ export function FormulaMasterPage() {
     setCreateError(null);
     try {
       await repository.createFormulaModel({ code: newModelCode, name: newModelName.trim(), groupCode: activeModelGroupCode, groupName: activeModelGroupName });
-      setModelCode(newModelCode);
       await reloadCatalog();
+      // Select the new model only after it exists in the refreshed catalog.
+      // Otherwise the catalog-selection effect can fall back to the previous model.
+      setModelCode(newModelCode);
+      setMaterialCode(null);
       setShowModelForm(false);
       setShowMaterialForm(true);
       setNewMaterialCode(suggestMaterialCode(newModelCode));
