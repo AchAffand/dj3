@@ -17,6 +17,7 @@ type ModelRow = {
   name: string;
   input_variables: unknown;
   status: "ready" | "incomplete";
+  is_active: boolean;
   model_groups?: { group_name: string } | { group_name: string }[] | null;
   model_materials: {
     material_code: number;
@@ -57,6 +58,7 @@ function mappedModel(row: ModelRow): DoorModel {
     status: materials.length > 0 && materials.every((material) => material.expression !== null)
       ? "ready"
       : "incomplete",
+    active: row.is_active !== false,
     materials,
   };
 }
@@ -224,8 +226,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     async listModels(): Promise<DoorModel[]> {
       const { data, error } = await client
         .from("door_models")
-        .select("code,group_code,name,input_variables,status,model_groups(group_name),model_materials(material_code,current_expression,formula_version,source_cell,source_formula,source_cached_quantity,materials(name,unit,source_code))")
-        .eq("is_active", true)
+        .select("code,group_code,name,input_variables,status,is_active,model_groups(group_name),model_materials(material_code,current_expression,formula_version,source_cell,source_formula,source_cached_quantity,materials(name,unit,source_code))")
         .order("code", { ascending: true });
       throwIfError(error);
       const models = ((data ?? []) as unknown as ModelRow[]).map(mappedModel);
