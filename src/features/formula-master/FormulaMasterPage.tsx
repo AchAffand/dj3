@@ -150,11 +150,11 @@ export function FormulaMasterPage() {
       [30000, { code: 30000, name: "Pintu Jendela" }],
       [40000, { code: 40000, name: "Pintu Sliding" }],
     ]);
-    for (const model of allModels) groups.set(model.groupCode, {
+    for (const model of models) groups.set(model.groupCode, {
       code: model.groupCode, name: modelGroupLabel(model.groupCode, model.groupName),
     });
     return [...groups.values()].sort((a, b) => a.code - b.code);
-  }, [allModels]);
+  }, [models]);
   const suggestedNewGroupCode = useMemo(() => {
     const used = new Set(modelGroups.map((group) => group.code));
     for (let code = 50000; code < 1000000; code += 10000) if (!used.has(code)) return code;
@@ -175,8 +175,12 @@ export function FormulaMasterPage() {
     return Math.max(groupCode, ...groupModels.map((model) => model.code)) + 100;
   }
 
-  function suggestMaterialCode(model: DoorModel): number {
-    return Math.max(model.code, ...model.materials.map((item) => item.code)) + 1;
+  function suggestMaterialCode(modelCodeToUse: number): number {
+    const usedCodes = new Set(allModels.flatMap((model) => model.materials.map((item) => item.code)));
+    for (let code = modelCodeToUse + 1; code < modelCodeToUse + 100; code += 1) {
+      if (!usedCodes.has(code)) return code;
+    }
+    return 0;
   }
 
   useEffect(() => {
@@ -277,7 +281,7 @@ export function FormulaMasterPage() {
       await reloadCatalog();
       setShowModelForm(false);
       setShowMaterialForm(true);
-      setNewMaterialCode(newModelCode + 1);
+      setNewMaterialCode(suggestMaterialCode(newModelCode));
       setNewMaterialName("");
       setNewMaterialUnit("m'");
       setNewMaterialExpression("");
@@ -527,7 +531,7 @@ export function FormulaMasterPage() {
           <section className="formula-history-card formula-material-manager-card" aria-label="Kelola material model">
             <div className="section-title-row"><div><p className="eyebrow">KATALOG MODEL</p><h2>Material pada model {selectedModel?.code}</h2></div><button className="secondary-button" type="button" disabled={!selectedModel || !isCatalogAdmin} onClick={() => {
               if (!selectedModel) return;
-              setNewMaterialCode(suggestMaterialCode(selectedModel));
+              setNewMaterialCode(suggestMaterialCode(selectedModel.code));
               setNewMaterialName(""); setNewMaterialUnit("m'"); setNewMaterialExpression(""); setCreateError(null); setShowMaterialForm(true);
             }}>+ Tambah</button></div>
             <p className="formula-material-manager-note">Atur nama, satuan, rumus, dan material yang digunakan model ini.</p>
