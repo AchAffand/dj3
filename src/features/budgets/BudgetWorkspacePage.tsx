@@ -51,7 +51,7 @@ export function BudgetWorkspacePage() {
       <form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="new-budget-brand-title" onSubmit={(event) => void createBrand(event)}>
         <p className="eyebrow">MASTER HARGA</p>
         <h2 id="new-budget-brand-title">Tambah merk baru</h2>
-        <p>Masukkan nama merk yang ingin kamu gunakan. Katalog baru dibuat kosong dengan satu varian harga awal bernama Standar.</p>
+        <p>Masukkan nama merk yang ingin kamu gunakan. Item, kategori, varian, rumus, dan pemetaan akan disalin dari template HPM / INKA / DACON. Harga tiap item tetap kosong agar bisa kamu isi sesuai merk baru.</p>
         <label htmlFor="new-budget-brand-name">Nama merk</label>
         <input id="new-budget-brand-name" autoFocus value={newBrandName} onChange={(event) => setNewBrandName(event.target.value)} placeholder="Masukkan nama merk" maxLength={80} required />
         {brandError && <div className="notice-banner" role="alert">{brandError}</div>}
