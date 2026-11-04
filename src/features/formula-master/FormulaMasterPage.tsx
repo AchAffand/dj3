@@ -150,7 +150,7 @@ export function FormulaMasterPage() {
       [30000, { code: 30000, name: "Pintu Jendela" }],
       [40000, { code: 40000, name: "Pintu Sliding" }],
     ]);
-    for (const model of models) groups.set(model.groupCode, {
+    for (const model of allModels) groups.set(model.groupCode, {
       code: model.groupCode, name: modelGroupLabel(model.groupCode, model.groupName),
     });
     return [...groups.values()].sort((a, b) => a.code - b.code);
