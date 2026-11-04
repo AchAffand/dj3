@@ -171,8 +171,11 @@ export function FormulaMasterPage() {
     && !allModels.some((model) => model.code === newModelCode);
 
   function suggestModelCode(groupCode: number): number {
-    const groupModels = allModels.filter((model) => model.groupCode === groupCode);
-    return Math.max(groupCode, ...groupModels.map((model) => model.code)) + 100;
+    const usedCodes = new Set(allModels.map((model) => model.code));
+    for (let code = groupCode + 100; code <= groupCode + 9900; code += 100) {
+      if (!usedCodes.has(code)) return code;
+    }
+    return 0;
   }
 
   function suggestMaterialCode(modelCodeToUse: number): number {
