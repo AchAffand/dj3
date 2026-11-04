@@ -18,6 +18,8 @@ export function BudgetWorkspacePage() {
   const [selectedCatalogIds, setSelectedCatalogIds] = useState<string[]>([]);
   const [deletingCatalogs, setDeletingCatalogs] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const load = useCallback(async () => {
     if (!repository) { setLoading(false); return; }
     setLoading(true); setError(null);
@@ -38,16 +40,15 @@ export function BudgetWorkspacePage() {
     const selectedNames = catalogs
       .filter((catalog) => selectedCatalogIds.includes(catalog.id))
       .map((catalog) => catalog.label);
-    const confirmed = window.confirm(
-      `Hapus ${selectedNames.length} merek berikut dari daftar Master Harga?\\n\\n${selectedNames.join(", ")}\\n\\nData katalog diarsipkan, sehingga riwayat perkiraan lama tetap aman.`,
-    );
-    if (!confirmed) return;
     setDeletingCatalogs(true);
     setDeleteError(null);
+    setDeleteSuccess(null);
     try {
       await repository.archiveBudgetCatalogs(selectedCatalogIds);
       setSelectedCatalogIds([]);
       setSelectionMode(false);
+      setConfirmDeleteOpen(false);
+      setDeleteSuccess(`${selectedNames.length} merek berhasil dihapus dari daftar aktif.`);
       await load();
     } catch (cause) {
       setDeleteError(cause instanceof Error ? cause.message : "Merek yang dipilih gagal dihapus.");
@@ -73,14 +74,28 @@ export function BudgetWorkspacePage() {
   if (loading) return <AppPageState title="Memuat Master Harga" detail="Katalog dan perkiraan sedang dibuka." />;
   if (error) return <AppPageState title="Master Harga belum dapat dimuat" detail={error} tone="error" actionLabel="Coba lagi" onAction={() => void load()} />;
   return <section className="page-content">
-    <div className="page-heading-row"><div className="page-intro"><p className="eyebrow">ANGGARAN KUSEN</p><h1>Master Harga</h1><p className="page-description">Kelola tarif Excel, tentukan pemetaan item, lalu gunakan otomatis saat menghitung proyek kusen.</p></div>{isCatalogAdmin && <div className="budget-catalog-toolbar" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>{selectionMode && <button className="secondary-button" type="button" onClick={() => setSelectedCatalogIds(catalogs.filter((item) => item.slug !== "hpm-inka-dacon").map((item) => item.id))}>Pilih semua</button>}<button className="secondary-button" type="button" onClick={() => { setSelectionMode((current) => !current); setSelectedCatalogIds([]); setDeleteError(null); }}>{selectionMode ? "Batal pilih" : "Pilih untuk hapus"}</button><button className="primary-button" type="button" onClick={() => { setBrandError(null); setShowBrandForm(true); }}>+ Tambah Merk</button></div>}</div>
-    {selectionMode && <div className="budget-selection-toolbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "16px 0", flexWrap: "wrap" }}><span>{selectedCatalogIds.length} merek dipilih</span><button className="danger-button" style={{ background: "#dc2626", color: "#fff", border: "1px solid #dc2626" }} type="button" disabled={!selectedCatalogIds.length || deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Menghapus…" : `Hapus Terpilih (${selectedCatalogIds.length})`}</button></div>}
-    {deleteError && <div className="notice-banner" role="alert">{deleteError}</div>}
+    <div className="page-heading-row"><div className="page-intro"><p className="eyebrow">ANGGARAN KUSEN</p><h1>Master Harga</h1><p className="page-description">Kelola tarif Excel, tentukan pemetaan item, lalu gunakan otomatis saat menghitung proyek kusen.</p></div>{isCatalogAdmin && <div className="budget-catalog-toolbar">{selectionMode && <button className="secondary-button" type="button" onClick={() => setSelectedCatalogIds(catalogs.filter((item) => item.slug !== "hpm-inka-dacon").map((item) => item.id))}>Pilih semua</button>}<button className="secondary-button" type="button" onClick={() => { setSelectionMode((current) => !current); setSelectedCatalogIds([]); setDeleteError(null); setDeleteSuccess(null); }}>{selectionMode ? "Batal pilih" : "Pilih untuk hapus"}</button><button className="primary-button" type="button" onClick={() => { setBrandError(null); setShowBrandForm(true); }}>+ Tambah Merk</button></div>}</div>
+    {selectionMode && <div className="budget-selection-toolbar"><span>{selectedCatalogIds.length} merek dipilih</span><button className="budget-bulk-delete-button" type="button" disabled={!selectedCatalogIds.length || deletingCatalogs} onClick={() => setConfirmDeleteOpen(true)}>{`Hapus Terpilih (${selectedCatalogIds.length})`}</button></div>}
+    {deleteSuccess && <div className="notice-banner" role="status">{deleteSuccess}</div>}
+    {deleteError && <div className="notice-banner error" role="alert">{deleteError}</div>}
     <div className="budget-catalog-grid">{catalogs.map((catalog) => <article className={`budget-catalog-card${selectionMode && selectedCatalogIds.includes(catalog.id) ? " is-selected" : ""}`} style={selectionMode && selectedCatalogIds.includes(catalog.id) ? { outline: "2px solid var(--color-primary, #2563eb)", outlineOffset: 2 } : undefined} key={catalog.id}>
       {selectionMode && <label className="budget-catalog-select"><input type="checkbox" checked={selectedCatalogIds.includes(catalog.id)} disabled={catalog.slug === "hpm-inka-dacon"} onChange={() => toggleCatalogSelection(catalog.id)} /><span>{catalog.slug === "hpm-inka-dacon" ? "Template utama (dilindungi)" : "Pilih merek"}</span></label>}
       <div><p className="eyebrow">LEMBAR {String(catalog.position).padStart(2,"0")}</p><h2>{catalog.label}</h2><p>Harga, rumus, dan perhitungan untuk katalog ini.</p></div>
       {!selectionMode && <div className="budget-card-actions"><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>Atur harga</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=items`)}>Tambah / Hapus Item</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=mappings`)}>Pemetaan item</button><button className="primary-button" type="button" onClick={() => navigate("/calculator")}>Gunakan di kalkulator</button></div>}
     </article>)}</div>
+    {confirmDeleteOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingCatalogs) setConfirmDeleteOpen(false); }}>
+      <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-catalog-title">
+        <p className="eyebrow">KONFIRMASI HAPUS</p>
+        <h2 id="confirm-delete-catalog-title">Hapus merek terpilih?</h2>
+        <p>Merek berikut akan dikeluarkan dari daftar Master Harga:</p>
+        <ul className="budget-delete-list">{catalogs.filter((catalog) => selectedCatalogIds.includes(catalog.id)).map((catalog) => <li key={catalog.id}>{catalog.label}</li>)}</ul>
+        <p className="budget-delete-help">Katalog akan diarsipkan, bukan dihapus permanen. Riwayat perkiraan lama tetap aman. Template HPM / INKA / DACON dilindungi.</p>
+        <div className="budget-modal-actions">
+          <button className="secondary-button" type="button" disabled={deletingCatalogs} onClick={() => setConfirmDeleteOpen(false)}>Batal</button>
+          <button className="budget-bulk-delete-button" type="button" disabled={deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Menghapus…" : "Ya, hapus merek"}</button>
+        </div>
+      </div>
+    </div>}
     {showBrandForm && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !creatingBrand) setShowBrandForm(false); }}>
       <form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="new-budget-brand-title" onSubmit={(event) => void createBrand(event)}>
         <p className="eyebrow">MASTER HARGA</p>
