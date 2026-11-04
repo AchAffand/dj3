@@ -355,20 +355,20 @@ export function FormulaMasterPage() {
     }
   }
 
-  async function archiveSelectedModel(model: DoorModel) {
+  async function permanentlyDeleteSelectedModel(model: DoorModel) {
     if (!repository || !isCatalogAdmin) return;
     setDeletingModelCode(model.code);
     setMessage(null);
     try {
-      await repository.archiveFormulaModel(model.code);
+      await repository.deleteFormulaModelPermanently(model.code);
       const nextModel = models.find((item) => item.code !== model.code);
       setModelCode(nextModel?.code ?? null);
       setMaterialCode(null);
       setPendingModelRemoval(null);
       await reloadCatalog();
-      setMessage({ tone: "success", text: `Model ${model.code} dinonaktifkan dari katalog baru. Proyek lama tetap menyimpan hasil perhitungannya.` });
+      setMessage({ tone: "success", text: `Model ${model.code} dan data katalog yang tidak terpakai berhasil dihapus permanen. Kodenya sekarang dapat digunakan kembali.` });
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Model gagal dinonaktifkan." });
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Model gagal dihapus permanen." });
     } finally {
       setDeletingModelCode(null);
     }
@@ -435,6 +435,19 @@ export function FormulaMasterPage() {
           )) : <p className="formula-search-empty">Model atau material tidak ditemukan.</p>}
         </div>}
       </div>
+
+      {isCatalogAdmin && allModels.some((model) => model.active === false) && <section className="formula-archived-models">
+        <div className="formula-archived-heading">
+          <div><strong>Model arsip</strong><span>Model yang dinonaktifkan tetap tercatat sampai dihapus permanen.</span></div>
+          <span>{allModels.filter((model) => model.active === false).length} model</span>
+        </div>
+        <div className="formula-archived-list">
+          {allModels.filter((model) => model.active === false).map((model) => <div className="formula-archived-item" key={model.code}>
+            <div><strong>{model.code} · {model.name}</strong><span>{modelGroupLabel(model.groupCode, model.groupName)} · {model.materials.length} material</span></div>
+            <button className="secondary-button project-delete-button" type="button" disabled={deletingModelCode !== null} onClick={() => setPendingModelRemoval(model)}>Hapus permanen</button>
+          </div>)}
+        </div>
+      </section>}
 
       <div className="formula-layout">
         <section className="formula-editor-card">
@@ -604,12 +617,12 @@ export function FormulaMasterPage() {
       {pendingModelRemoval && <div className="formula-modal-backdrop formula-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && deletingModelCode === null) setPendingModelRemoval(null); }}>
         <section className="formula-create-modal formula-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="archive-model-title" aria-describedby="archive-model-description">
           <p className="eyebrow">KATALOG MODEL</p>
-          <h2 id="archive-model-title">Nonaktifkan model ini?</h2>
-          <p id="archive-model-description">Model <strong>{pendingModelRemoval.code} · {pendingModelRemoval.name}</strong> akan dikeluarkan dari pilihan kalkulator dan master rumus untuk perhitungan baru.</p>
-          <p className="formula-confirm-note">Model tidak dihapus permanen. Data model dan hasil proyek lama tetap tersimpan. Jika rumus model lain masih memakai material dari model ini, sistem akan menolak penonaktifan.</p>
+          <h2 id="archive-model-title">Hapus model permanen?</h2>
+          <p id="archive-model-description">Model <strong>{pendingModelRemoval.code} · {pendingModelRemoval.name}</strong> beserta data material dan riwayat rumusnya akan dihapus dari master.</p>
+          <p className="formula-confirm-note">Kode model dapat digunakan kembali setelah dihapus. Penghapusan akan ditolak jika model atau materialnya masih dipakai proyek, harga proyek, atau rumus model lain.</p>
           <div className="formula-modal-actions formula-confirm-actions">
             <button className="secondary-button" type="button" disabled={deletingModelCode !== null} onClick={() => setPendingModelRemoval(null)}>Batal</button>
-            <button className="primary-button formula-danger-button" type="button" disabled={deletingModelCode !== null} onClick={() => void archiveSelectedModel(pendingModelRemoval)}>{deletingModelCode === pendingModelRemoval.code ? <><span className="button-spinner" />Menonaktifkan…</> : "Ya, nonaktifkan model"}</button>
+            <button className="primary-button formula-danger-button" type="button" disabled={deletingModelCode !== null} onClick={() => void permanentlyDeleteSelectedModel(pendingModelRemoval)}>{deletingModelCode === pendingModelRemoval.code ? <><span className="button-spinner" />Menghapus…</> : "Ya, hapus permanen"}</button>
           </div>
         </section>
       </div>}
