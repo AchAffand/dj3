@@ -12,6 +12,9 @@ export function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<ProjectSummary | null>(null);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
     if (!repository) return;
@@ -25,6 +28,21 @@ export function ProjectsPage() {
       setLoading(false);
     }
   }, [repository]);
+
+  async function deleteProject(project: ProjectSummary) {
+    if (!repository) return;
+    setDeletingProjectId(project.id);
+    setActionError(null);
+    try {
+      await repository.deleteProject(project.id);
+      setProjects((current) => current.filter((item) => item.id !== project.id));
+      setPendingDelete(null);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "Proyek gagal dihapus.");
+    } finally {
+      setDeletingProjectId(null);
+    }
+  }
 
   useEffect(() => { void loadProjects(); }, [loadProjects]);
 
@@ -83,6 +101,7 @@ export function ProjectsPage() {
                   <div className="project-list-actions">
                     <button className="secondary-button" type="button" aria-label={`Edit ${project.name}`} onClick={() => navigate(`/calculator?project=${encodeURIComponent(project.id)}`)}>Edit</button>
                     <button className="secondary-button" type="button" aria-label={`Cetak ${project.name}`} onClick={() => navigate(`/projects/${encodeURIComponent(project.id)}/print`)}>Cetak</button>
+                    <button className="secondary-button project-delete-button" type="button" aria-label={`Hapus ${project.name}`} onClick={() => { setActionError(null); setPendingDelete(project); }}>Hapus</button>
                   </div>
                 </article>
               ))}
@@ -96,6 +115,18 @@ export function ProjectsPage() {
           )}
         </>
       )}
+      {pendingDelete && <div className="formula-modal-backdrop formula-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && deletingProjectId === null) setPendingDelete(null); }}>
+        <section className="formula-create-modal formula-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-project-title" aria-describedby="delete-project-description">
+          <p className="eyebrow">ARSIP PROYEK</p>
+          <h2 id="delete-project-title">Hapus proyek ini?</h2>
+          <p id="delete-project-description">Proyek <strong>{pendingDelete.name}</strong> beserta rincian model dan harga tersimpannya akan dihapus. Tindakan ini tidak bisa dibatalkan.</p>
+          {actionError && <div className="notice-banner error" role="alert">{actionError}</div>}
+          <div className="formula-modal-actions formula-confirm-actions">
+            <button className="secondary-button" type="button" disabled={deletingProjectId !== null} onClick={() => setPendingDelete(null)}>Batal</button>
+            <button className="primary-button formula-danger-button" type="button" disabled={deletingProjectId !== null} onClick={() => void deleteProject(pendingDelete)}>{deletingProjectId === pendingDelete.id ? <><span className="button-spinner" />Menghapus…</> : "Ya, hapus proyek"}</button>
+          </div>
+        </section>
+      </div>}
     </section>
   );
 }
