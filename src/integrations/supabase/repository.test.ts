@@ -9,6 +9,7 @@ function makeClient(
   const resolved = (data: unknown) => Promise.resolve({ data, error: null });
   const query = {
     select: vi.fn(() => query),
+    delete: vi.fn(() => query),
     eq: vi.fn(() => query),
     order: vi.fn(() => resolved(rows)),
     maybeSingle: vi.fn(() => resolved(single)),
@@ -205,4 +206,19 @@ describe("Supabase repository", () => {
     expect(query.select).toHaveBeenCalledWith("user_id");
     expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
   });
+  it("deletes only the requested project through the owner-scoped table policy", async () => {
+    const { client, query } = makeClient([], { id: "project-1" });
+    await createSupabaseRepository(client).deleteProject("project-1");
+    expect(client.from).toHaveBeenCalledWith("projects");
+    expect(query.delete).toHaveBeenCalledOnce();
+    expect(query.eq).toHaveBeenCalledWith("id", "project-1");
+    expect(query.select).toHaveBeenCalledWith("id");
+  });
+
+  it("archives a formula model through the guarded database function", async () => {
+    const { client } = makeClient();
+    await createSupabaseRepository(client).archiveFormulaModel(10100);
+    expect(client.rpc).toHaveBeenCalledWith("archive_formula_model", { p_model_code: 10100 });
+  });
+
 });
