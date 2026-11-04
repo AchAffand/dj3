@@ -9,7 +9,11 @@ export function BudgetWorkspacePage() {
   const navigate = useNavigate();
   const [catalogs, setCatalogs] = useState<BudgetCatalog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);\n  const [newBrandName, setNewBrandName] = useState("");\n  const [showBrandForm, setShowBrandForm] = useState(false);\n  const [creatingBrand, setCreatingBrand] = useState(false);\n  const [brandError, setBrandError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [newBrandName, setNewBrandName] = useState("");
+  const [showBrandForm, setShowBrandForm] = useState(false);
+  const [creatingBrand, setCreatingBrand] = useState(false);
+  const [brandError, setBrandError] = useState<string | null>(null);
   const load = useCallback(async () => {
     if (!repository) { setLoading(false); return; }
     setLoading(true); setError(null);
