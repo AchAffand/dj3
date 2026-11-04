@@ -78,6 +78,31 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                   {line.priceCatalogId && <label className="dimension-field"><span>Warna / varian harga</span><select value={line.priceVariantId ?? ""} onChange={(event) => onChange(lineId, { ...line, priceVariantId: event.target.value || null })}><option value="">Pilih varian</option>{(budgetDetails.get(line.priceCatalogId)?.variants ?? []).map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}</select></label>}
                 </div>}
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
+                {line.priceCatalogId && model.materials.some((material) => /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
+                  const options = (budgetDetails.get(line.priceCatalogId)?.components ?? [])
+                    .filter((component) => /^[R-X]$/.test(component.sourceColumn))
+                    .sort((a, b) => a.position - b.position);
+                  const selectedColumn = line.inputs.__doorLeafSourceColumn;
+                  return options.length > 0 ? (
+                    <div className="budget-source-fields door-leaf-source-field">
+                      <label className="dimension-field">
+                        <span>Jenis daun pintu</span>
+                        <select
+                          value={typeof selectedColumn === "number" ? String.fromCharCode(64 + selectedColumn) : ""}
+                          onChange={(event) => {
+                            const inputs: InputVariables = { ...line.inputs };
+                            if (!event.target.value) delete inputs.__doorLeafSourceColumn;
+                            else inputs.__doorLeafSourceColumn = event.target.value.charCodeAt(0) - 64;
+                            onChange(lineId, { ...line, inputs });
+                          }}
+                        >
+                          <option value="">Pilih jenis daun pintu</option>
+                          {options.map((component) => <option key={component.id} value={component.sourceColumn}>{component.label}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  ) : null;
+                })()}
                 {model.inputs.length > 0 && (
                   <div className="input-grid">
                     {model.inputs.map((name) => {
