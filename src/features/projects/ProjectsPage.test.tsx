@@ -57,7 +57,7 @@ describe("ProjectsPage", () => {
   });
 
   it("filters projects by name and creator", async () => {
-    const user = setup([
+    const { user } = setup([
       { id: "project-1", name: "Rumah Contoh", createdAt: "2026-09-25T00:00:00.000Z", updatedAt: "2026-10-01T00:00:00.000Z", modelCount: 2, createdBy: "Admin DJ3" },
       { id: "project-2", name: "Gudang", createdAt: "2026-09-26T00:00:00.000Z", updatedAt: "2026-10-02T00:00:00.000Z", modelCount: 1, createdBy: "Budi" },
     ]);
