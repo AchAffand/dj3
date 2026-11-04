@@ -51,16 +51,25 @@ export function ProjectPrintPage() {
       unitPrice: number | null;
       priceSource: string;
       modelCodes: number[];
+      doorLeafType: string | null;
     }>();
     for (const line of project.lines) {
       const model = catalog.get(line.modelCode);
       const groupCode = model?.groupCode ?? 0;
       const type = modelGroupLabel(groupCode, model?.groupName).toUpperCase();
+      const selectedDoorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
+        ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
+        : null;
+      const selectedDoorLeafType = line.priceCatalogId && selectedDoorLeafColumn
+        ? budgetDetails?.get(line.priceCatalogId)?.components.find((component) => component.sourceColumn === selectedDoorLeafColumn)?.label ?? null
+        : null;
       for (const material of line.resultSnapshot.items) {
+        const isDoorLeaf = /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"));
+        const doorLeafType = isDoorLeaf ? selectedDoorLeafType : null;
         const linePrice = line.priceCatalogId && line.priceVariantId
           ? project.prices.find((price) => price.materialCode === material.materialCode && price.catalogId === line.priceCatalogId && price.variantId === line.priceVariantId)
           : project.prices.find((price) => price.materialCode === material.materialCode && !price.catalogId);
-        const key = `${groupCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}`;
+        const key = `${groupCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}`;
         const previous = materialTotals.get(key);
         if (previous) {
           previous.quantity += material.quantity * line.count;
@@ -78,6 +87,7 @@ export function ProjectPrintPage() {
             ? `${catalogNames.get(line.priceCatalogId) ?? "Master Harga"}${budgetDetails?.get(line.priceCatalogId)?.variants.find((variant) => variant.id === line.priceVariantId)?.label ? ` · ${budgetDetails.get(line.priceCatalogId)?.variants.find((variant) => variant.id === line.priceVariantId)?.label}` : ""}`
             : "Harga manual",
           modelCodes: [line.modelCode],
+          doorLeafType,
         });
       }
     }
@@ -140,7 +150,7 @@ export function ProjectPrintPage() {
               <tbody>{recap.length ? recap.map((row, index) => (
                 <tr key={`${row.groupCode}-${row.materialCode}-${row.unit}`}>
                   <td>{index === 0 || recap[index - 1].groupCode !== row.groupCode ? <>{row.type}<small>{row.modelCodes.join(", ")}</small></> : ""}</td>
-                  <td>{row.name}<small>{row.materialCode} · {row.priceSource}</small></td>
+                  <td>{row.name}<small>{row.doorLeafType ? `${row.doorLeafType} · ` : ""}{row.materialCode} · {row.priceSource}</small></td>
                   <td>{formatQuantity(row.quantity)}</td>
                   <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
                   <td>{row.unit}</td>
