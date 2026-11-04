@@ -1478,3 +1478,50 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .budget-selection-toolbar { align-items: stretch; }
   .budget-selection-toolbar > button { width: 100%; }
 }
+
+
+/* Formula master: archived models and permanent deletion */
+.formula-archived-models {
+  margin: 0 0 20px;
+  padding: 15px 17px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+.formula-archived-heading,
+.formula-archived-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.formula-archived-heading > div,
+.formula-archived-item > div {
+  display: grid;
+  gap: 4px;
+}
+.formula-archived-heading strong { font-size: 12px; }
+.formula-archived-heading span,
+.formula-archived-item span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.formula-archived-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.formula-archived-item {
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+.formula-archived-item strong { font-size: 11px; }
+.formula-archived-item .secondary-button {
+  min-height: 32px;
+  padding: 0 11px;
+  font-size: 10px;
+}
+@media (max-width: 600px) {
+  .formula-archived-item { align-items: flex-start; flex-direction: column; }
+  .formula-archived-item > button { width: 100%; }
+}
