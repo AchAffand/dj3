@@ -23,7 +23,7 @@ export function BudgetWorkspacePage() {
   const createBrand = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!repository || !newBrandName.trim()) return;
-    const slug = newBrandName.trim().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase()
+    const slug = newBrandName.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     if (!slug) { setBrandError("Nama merk tidak dapat dijadikan kode katalog."); return; }
     setCreatingBrand(true); setBrandError(null);
