@@ -352,6 +352,16 @@ export function createSupabaseRepository(client: SupabaseClient) {
       return ((data ?? []) as unknown as Record<string, unknown>[]).map(mapBudgetCatalog);
     },
 
+    async createBudgetCatalog(label: string, slug: string): Promise<string> {
+      const { data, error } = await client.rpc("create_budget_catalog", {
+        p_label: label.trim(),
+        p_slug: slug,
+      });
+      throwIfError(error);
+      if (typeof data !== "string") throw new Error("Supabase tidak mengembalikan ID merek baru.");
+      return data;
+    },
+
     async loadBudgetCatalog(slug: string): Promise<BudgetCatalogDetail | null> {
       const { data: catalogData, error: catalogError } = await client.from("budget_catalogs").select("id,slug,label,position,active").eq("slug", slug).eq("active", true).maybeSingle();
       throwIfError(catalogError);
