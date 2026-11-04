@@ -201,6 +201,17 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .print-actions { display: flex; justify-content: flex-end; gap: 9px; margin-bottom: 15px; }
 .print-actions .secondary-button { margin: 0; }
 .project-print-page { max-width: 980px; margin-inline: auto; }
+.project-report-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0 22px; text-align: center; }
+.project-report-brand .brand-logo { display: inline-flex; width: 104px; height: 104px; align-items: center; justify-content: center; overflow: hidden; background: #fff; }
+.project-report-brand .brand-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.project-report-brand h1 { margin: 0; color: #171717; font-size: 23px; font-weight: 800; line-height: 1.25; letter-spacing: .025em; }
+.project-report-brand h1 span { display: block; margin-top: 4px; }
+.project-print-page .excel-recap-title-row { justify-content: space-between; }
+@media print {
+  .project-report-brand { padding-top: 0; }
+  .project-report-brand .brand-logo { width: 86px; height: 86px; }
+  .project-report-brand h1 { font-size: 19px; }
+}
 .project-report { padding: 28px 30px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--shadow); }
 .project-report-header { padding-bottom: 22px; border-bottom: 1px solid #EBEBEB; }
 .project-report-header h1 { font-size: 30px; }
