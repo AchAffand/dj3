@@ -1267,3 +1267,59 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   padding: 0 9px;
 }
 
+/* Explicit action-button treatment for budget item management. */
+.budget-page .budget-estimate-toolbar.budget-mode-actions > div > button.budget-danger-button,
+.budget-page .budget-item-actions > button.budget-danger-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  min-height: 36px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  border: 1px solid #B42318 !important;
+  border-radius: 7px !important;
+  background: #B42318 !important;
+  color: #FFFFFF !important;
+  font: inherit !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 10%) !important;
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+}
+.budget-page .budget-item-actions > button.budget-danger-button {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+}
+.budget-page .budget-estimate-toolbar.budget-mode-actions > div > button.budget-danger-button:hover:not(:disabled),
+.budget-page .budget-item-actions > button.budget-danger-button:hover:not(:disabled) {
+  border-color: #8F1D14 !important;
+  background: #8F1D14 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 10px rgb(180 35 24 / 22%) !important;
+  transform: translateY(-1px) !important;
+}
+.budget-page .budget-estimate-toolbar.budget-mode-actions > div > button.budget-danger-button:active:not(:disabled),
+.budget-page .budget-item-actions > button.budget-danger-button:active:not(:disabled) {
+  transform: translateY(0) scale(.98) !important;
+  box-shadow: 0 1px 2px rgb(180 35 24 / 18%) !important;
+}
+.budget-page .budget-estimate-toolbar.budget-mode-actions > div > button.budget-danger-button:focus-visible,
+.budget-page .budget-item-actions > button.budget-danger-button:focus-visible,
+.budget-page .budget-item-actions > button.secondary-button:focus-visible {
+  outline: 3px solid rgb(180 35 24 / 22%) !important;
+  outline-offset: 2px !important;
+}
+.budget-page .budget-item-actions > button.secondary-button {
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+}
+.budget-page .budget-item-actions > button.secondary-button:hover:not(:disabled) {
+  border-color: #BDBDBD !important;
+  background: #F2F2F2 !important;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 8%) !important;
+  transform: translateY(-1px) !important;
+}
+
