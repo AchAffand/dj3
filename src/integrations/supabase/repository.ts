@@ -213,6 +213,11 @@ export function createSupabaseRepository(client: SupabaseClient) {
       throwIfError(error);
     },
 
+    async archiveFormulaModel(modelCode: number): Promise<void> {
+      const { error } = await client.rpc("archive_formula_model", { p_model_code: modelCode });
+      throwIfError(error);
+    },
+
     async isCatalogAdmin(): Promise<boolean> {
       const { data, error } = await client
         .from("catalog_admins")
