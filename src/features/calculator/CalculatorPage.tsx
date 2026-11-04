@@ -118,7 +118,19 @@ export function CalculatorPage() {
     draft.lines.map((line) => ({
       materials: (results.get(line.id ?? `${line.modelCode}`)?.items ?? []).map((material) => {
         const detail = line.priceCatalogId ? budgetDetails.get(line.priceCatalogId) : undefined;
-        const mapped = budgetPriceForMaterial(detail, material.materialCode, material.name, material.unit, line.priceVariantId);
+        const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
+          ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
+          : null;
+        const mapped = budgetPriceForMaterial(
+          detail,
+          material.materialCode,
+          material.name,
+          material.unit,
+          line.priceVariantId,
+          /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))
+            ? doorLeafColumn
+            : null,
+        );
         const variant = detail?.variants.find((item) => item.id === line.priceVariantId);
         return {
           ...material,
