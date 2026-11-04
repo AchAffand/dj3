@@ -16,7 +16,7 @@ export function budgetPriceForMaterial(
   if (!detail || !variantId) return null;
   const mapping = detail.mappings.find((item) => item.materialKey === normalizeMaterialKey(name, unit) && item.active);
   const selectedDoorLeaf = doorLeafSourceColumn && /^[R-X]$/.test(doorLeafSourceColumn)
-    ? detail.components.find((item) => item.sourceColumn === doorLeafSourceColumn && item.active)
+    ? detail.components.find((item) => item.sourceColumn === doorLeafSourceColumn)
     : undefined;
   const component = selectedDoorLeaf ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
   const variant = detail.variants.find((item) => item.id === variantId);
