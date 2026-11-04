@@ -117,6 +117,12 @@ export function FormulaMasterPage() {
   const selectedModel = modelCode === null ? undefined : catalog.get(modelCode);
   const selectedMaterial = selectedModel?.materials.find((item) => item.code === materialCode);
 
+  useEffect(() => {
+    if (showMaterialForm && selectedModel) {
+      setNewMaterialCode(suggestMaterialCode(selectedModel.code));
+    }
+  }, [showMaterialForm, selectedModel?.code, catalog]);
+
   const newMaterialCandidate = useMemo(() => {
     if (!selectedModel) return null;
     const material = {
@@ -284,7 +290,7 @@ export function FormulaMasterPage() {
       await reloadCatalog();
       setShowModelForm(false);
       setShowMaterialForm(true);
-      setNewMaterialCode(newModelCode + 1);
+      setNewMaterialCode(suggestMaterialCode(newModelCode));
       setNewMaterialName("");
       setNewMaterialUnit("m'");
       setNewMaterialExpression("");
