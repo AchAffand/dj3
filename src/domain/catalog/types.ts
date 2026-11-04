@@ -25,6 +25,7 @@ export type DoorModel = {
   inputs: readonly InputVariableName[];
   materials: readonly MaterialFormula[];
   status: "ready" | "incomplete";
+  active?: boolean;
 };
 
 export function modelGroupLabel(groupCode: number, customName?: string): string {

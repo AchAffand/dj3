@@ -17,6 +17,7 @@ type ModelRow = {
   name: string;
   input_variables: unknown;
   status: "ready" | "incomplete";
+  is_active: boolean;
   model_groups?: { group_name: string } | { group_name: string }[] | null;
   model_materials: {
     material_code: number;
@@ -57,6 +58,7 @@ function mappedModel(row: ModelRow): DoorModel {
     status: materials.length > 0 && materials.every((material) => material.expression !== null)
       ? "ready"
       : "incomplete",
+    active: row.is_active !== false,
     materials,
   };
 }
@@ -206,6 +208,11 @@ export function createSupabaseRepository(client: SupabaseClient) {
       throwIfError(error);
     },
 
+    async archiveFormulaModel(modelCode: number): Promise<void> {
+      const { error } = await client.rpc("archive_formula_model", { p_model_code: modelCode });
+      throwIfError(error);
+    },
+
     async isCatalogAdmin(): Promise<boolean> {
       const { data, error } = await client
         .from("catalog_admins")
@@ -219,7 +226,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     async listModels(): Promise<DoorModel[]> {
       const { data, error } = await client
         .from("door_models")
-        .select("code,group_code,name,input_variables,status,model_groups(group_name),model_materials(material_code,current_expression,formula_version,source_cell,source_formula,source_cached_quantity,materials(name,unit,source_code))")
+        .select("code,group_code,name,input_variables,status,is_active,model_groups(group_name),model_materials(material_code,current_expression,formula_version,source_cell,source_formula,source_cached_quantity,materials(name,unit,source_code))")
         .order("code", { ascending: true });
       throwIfError(error);
       const models = ((data ?? []) as unknown as ModelRow[]).map(mappedModel);
@@ -262,6 +269,12 @@ export function createSupabaseRepository(client: SupabaseClient) {
         modelCount: ((row.project_model_lines as unknown[]) ?? []).length,
         createdBy: profilesById.get(String(row.user_id ?? "")) ?? "Pengguna",
       }));
+    },
+
+    async deleteProject(id: string): Promise<void> {
+      const { data, error } = await client.from("projects").delete().eq("id", id).select("id").maybeSingle();
+      throwIfError(error);
+      if (!data) throw new Error("Proyek tidak ditemukan atau tidak dapat dihapus.");
     },
 
     async loadProject(id: string): Promise<Project | null> {

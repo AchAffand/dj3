@@ -47,8 +47,8 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                   }}
                 >
                   <option value="" disabled>Pilih kode model</option>
-                  {models.map((item) => (
-                    <option key={item.code} value={item.code}>{item.code} · {modelGroupLabel(item.groupCode, item.groupName)}</option>
+                  {models.filter((item) => item.active !== false || item.code === line.modelCode).map((item) => (
+                    <option key={item.code} value={item.code}>{item.code} · {modelGroupLabel(item.groupCode, item.groupName)}{item.active === false ? " · Arsip (proyek lama)" : ""}</option>
                   ))}
                 </select>
               </div>

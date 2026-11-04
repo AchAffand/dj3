@@ -36,7 +36,8 @@ export function CalculatorPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectId = searchParams.get("project");
-  const models = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
+  const catalogModels = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
+  const models = useMemo(() => catalogModels.filter((model) => model.active !== false), [catalogModels]);
   const projectService = useMemo(
     () => repository ? createProjectService(repository, catalog) : null,
     [repository, catalog],
@@ -264,7 +265,7 @@ export function CalculatorPage() {
           {draft.lines.length ? (
             <ModelLineEditor
               lines={draft.lines}
-              models={models}
+              models={catalogModels}
               results={results}
               onChange={updateLine}
               onRemove={removeLine}

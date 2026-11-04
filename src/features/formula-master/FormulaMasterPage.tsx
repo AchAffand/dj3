@@ -63,7 +63,8 @@ function formulaReferences(expression: string | null): number[] {
 
 export function FormulaMasterPage() {
   const { repository, catalog, loadingCatalog, catalogError, isCatalogAdmin, reloadCatalog } = useAppServices();
-  const models = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
+  const allModels = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
+  const models = useMemo(() => allModels.filter((model) => model.active !== false), [allModels]);
   const [modelCode, setModelCode] = useState<number | null>(null);
   const [formulaSearch, setFormulaSearch] = useState("");
   const [materialCode, setMaterialCode] = useState<number | null>(null);
@@ -80,6 +81,8 @@ export function FormulaMasterPage() {
   const [savingMaterialDetails, setSavingMaterialDetails] = useState(false);
   const [materialDetailsError, setMaterialDetailsError] = useState<string | null>(null);
   const [pendingMaterialRemoval, setPendingMaterialRemoval] = useState<DoorModel["materials"][number] | null>(null);
+  const [pendingModelRemoval, setPendingModelRemoval] = useState<DoorModel | null>(null);
+  const [deletingModelCode, setDeletingModelCode] = useState<number | null>(null);
   const [deletingMaterialCode, setDeletingMaterialCode] = useState<number | null>(null);
   const [newModelGroup, setNewModelGroup] = useState(20000);
   const [newModelGroupName, setNewModelGroupName] = useState("");
@@ -136,7 +139,7 @@ export function FormulaMasterPage() {
       : undefined;
     return { material, validation, preview };
   }, [catalog, newMaterialCode, newMaterialExpression, newMaterialName, newMaterialUnit, selectedModel]);
-  const newMaterialCodeConflict = [...catalog.values()].some((model) => model.materials.some((item) => item.code === newMaterialCode));
+  const newMaterialCodeConflict = allModels.some((model) => model.materials.some((item) => item.code === newMaterialCode));
   const newMaterialCodeValid = Boolean(selectedModel && Number.isInteger(newMaterialCode)
     && newMaterialCode > selectedModel.code && newMaterialCode < selectedModel.code + 100
     && newMaterialCode < 1000000 && !newMaterialCodeConflict);
@@ -147,11 +150,11 @@ export function FormulaMasterPage() {
       [30000, { code: 30000, name: "Pintu Jendela" }],
       [40000, { code: 40000, name: "Pintu Sliding" }],
     ]);
-    for (const model of models) groups.set(model.groupCode, {
+    for (const model of allModels) groups.set(model.groupCode, {
       code: model.groupCode, name: modelGroupLabel(model.groupCode, model.groupName),
     });
     return [...groups.values()].sort((a, b) => a.code - b.code);
-  }, [models]);
+  }, [allModels]);
   const suggestedNewGroupCode = useMemo(() => {
     const used = new Set(modelGroups.map((group) => group.code));
     for (let code = 50000; code < 1000000; code += 10000) if (!used.has(code)) return code;
@@ -165,10 +168,10 @@ export function FormulaMasterPage() {
     && newModelCode <= activeModelGroupCode + 9900 && newModelCode % 100 === 0
     && Math.floor(newModelCode / 10000) * 10000 === activeModelGroupCode
     && Boolean(activeModelGroupName)
-    && !models.some((model) => model.code === newModelCode);
+    && !allModels.some((model) => model.code === newModelCode);
 
   function suggestModelCode(groupCode: number): number {
-    const groupModels = models.filter((model) => model.groupCode === groupCode);
+    const groupModels = allModels.filter((model) => model.groupCode === groupCode);
     return Math.max(groupCode, ...groupModels.map((model) => model.code)) + 100;
   }
 
@@ -178,7 +181,7 @@ export function FormulaMasterPage() {
 
   useEffect(() => {
     if (!models.length) return;
-    if (modelCode === null || !catalog.has(modelCode)) setModelCode(models[0].code);
+    if (modelCode === null || !models.some((model) => model.code === modelCode)) setModelCode(models[0].code);
   }, [catalog, modelCode, models]);
 
   useEffect(() => {
@@ -348,6 +351,25 @@ export function FormulaMasterPage() {
     }
   }
 
+  async function archiveSelectedModel(model: DoorModel) {
+    if (!repository || !isCatalogAdmin) return;
+    setDeletingModelCode(model.code);
+    setMessage(null);
+    try {
+      await repository.archiveFormulaModel(model.code);
+      const nextModel = models.find((item) => item.code !== model.code);
+      setModelCode(nextModel?.code ?? null);
+      setMaterialCode(null);
+      setPendingModelRemoval(null);
+      await reloadCatalog();
+      setMessage({ tone: "success", text: `Model ${model.code} dinonaktifkan dari katalog baru. Proyek lama tetap menyimpan hasil perhitungannya.` });
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Model gagal dinonaktifkan." });
+    } finally {
+      setDeletingModelCode(null);
+    }
+  }
+
   function appendToken(token: string) {
     setExpression((current) => {
       const trimmed = current.trimEnd();
@@ -425,6 +447,10 @@ export function FormulaMasterPage() {
               </select>
             </label>
           </div>
+          {selectedModel && isCatalogAdmin && <div className="formula-model-actions">
+            <span>Model aktif: <strong>{selectedModel.code} · {selectedModel.name}</strong></span>
+            <button className="secondary-button project-delete-button" type="button" disabled={deletingModelCode !== null} onClick={() => setPendingModelRemoval(selectedModel)}>Hapus model</button>
+          </div>}
 
           <div className="formula-current-meta">
             <span>SEL SUMBER {selectedMaterial?.sourceCell}</span>
@@ -571,6 +597,18 @@ export function FormulaMasterPage() {
         </section>
       </div>}
 
+      {pendingModelRemoval && <div className="formula-modal-backdrop formula-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && deletingModelCode === null) setPendingModelRemoval(null); }}>
+        <section className="formula-create-modal formula-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="archive-model-title" aria-describedby="archive-model-description">
+          <p className="eyebrow">KATALOG MODEL</p>
+          <h2 id="archive-model-title">Nonaktifkan model ini?</h2>
+          <p id="archive-model-description">Model <strong>{pendingModelRemoval.code} · {pendingModelRemoval.name}</strong> akan dikeluarkan dari pilihan kalkulator dan master rumus untuk perhitungan baru.</p>
+          <p className="formula-confirm-note">Model tidak dihapus permanen. Data model dan hasil proyek lama tetap tersimpan. Jika rumus model lain masih memakai material dari model ini, sistem akan menolak penonaktifan.</p>
+          <div className="formula-modal-actions formula-confirm-actions">
+            <button className="secondary-button" type="button" disabled={deletingModelCode !== null} onClick={() => setPendingModelRemoval(null)}>Batal</button>
+            <button className="primary-button formula-danger-button" type="button" disabled={deletingModelCode !== null} onClick={() => void archiveSelectedModel(pendingModelRemoval)}>{deletingModelCode === pendingModelRemoval.code ? <><span className="button-spinner" />Menonaktifkan…</> : "Ya, nonaktifkan model"}</button>
+          </div>
+        </section>
+      </div>}
       {pendingMaterialRemoval && selectedModel && <div className="formula-modal-backdrop formula-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && deletingMaterialCode === null) setPendingMaterialRemoval(null); }}>
         <section className="formula-create-modal formula-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="remove-material-title" aria-describedby="remove-material-description">
           <p className="eyebrow">KELOLA MATERIAL</p>

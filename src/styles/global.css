@@ -414,6 +414,11 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .formula-select-grid { display: grid; grid-template-columns: .75fr 1.25fr; gap: 12px; }
 .form-field { display: grid; gap: 6px; min-width: 0; }
 .form-field select { height: 40px; font-size: 10px; }
+
+.formula-model-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 9px 11px; border: 1px solid #EEEEEE; border-radius: 8px; color: #777; font-size: 10px; }
+.formula-model-actions .secondary-button { min-height: 30px; margin: 0; padding: 0 10px; font-size: 9px; }
+.project-delete-button { border-color: #E7C5C2 !important; color: #A12A22 !important; }
+.project-delete-button:hover:not(:disabled) { border-color: #B42318 !important; background: #FFF7F6 !important; }
 .formula-current-meta { display: flex; flex-wrap: wrap; gap: 7px; margin: 18px 0 15px; }
 .formula-current-meta span { padding: 5px 7px; border-radius: 5px; background: #F5F5F5; color: #838383; font-size: 8px; font-weight: 680; letter-spacing: .06em; }
 .formula-material-manager-card { padding: 17px; }
