@@ -1194,3 +1194,40 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .calculator-model-search { width: 100%; min-height: 46px; }
   .calculator-model-search-results { width: 100%; max-height: 260px; }
 }
+
+
+/* Compact, single-row actions on Master Harga price and mapping modes. */
+.budget-estimate-toolbar.budget-mode-actions {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.budget-mode-actions > div {
+  display: flex;
+  width: auto;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.budget-mode-actions > div > button {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  padding: 0 16px;
+}
+@media (max-width: 760px) {
+  .budget-estimate-toolbar.budget-mode-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .budget-mode-actions > div {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .budget-mode-actions > div > button {
+    flex: 0 0 auto;
+  }
+}
