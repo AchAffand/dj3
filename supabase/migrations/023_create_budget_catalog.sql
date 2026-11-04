@@ -1,7 +1,7 @@
 create or replace function public.create_budget_catalog(p_label text, p_slug text)
 returns uuid
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $$
 declare
@@ -36,5 +36,6 @@ begin
 end;
 $$;
 
+grant insert on public.budget_catalogs, public.budget_variants to authenticated;
 revoke all on function public.create_budget_catalog(text, text) from public, anon, authenticated;
 grant execute on function public.create_budget_catalog(text, text) to authenticated;
