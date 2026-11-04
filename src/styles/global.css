@@ -1323,3 +1323,52 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   transform: translateY(-1px) !important;
 }
 
+/* Final alignment: hover feedback must not move buttons out of line. */
+.budget-page .budget-estimate-toolbar.budget-mode-actions > div {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+}
+.budget-page .budget-estimate-toolbar.budget-mode-actions > div > button {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+.budget-page .budget-estimate-toolbar.budget-mode-actions > div > button:hover:not(:disabled) {
+  transform: none !important;
+}
+.budget-page .budget-item-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  vertical-align: middle !important;
+}
+.budget-page .budget-item-actions > button {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+.budget-page .budget-item-actions > button:hover:not(:disabled) {
+  transform: none !important;
+}
+.budget-page .budget-item-actions > button.budget-danger-button {
+  height: 32px !important;
+  min-height: 32px !important;
+}
+
