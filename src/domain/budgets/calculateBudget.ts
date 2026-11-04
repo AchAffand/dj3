@@ -18,8 +18,14 @@ export function resolveBudgetPrice(detail: BudgetCatalogDetail, componentId: str
       const match = name.match(/^price_(col_[a-z]+)_([a-z_]+)$/);
       if (!match) return undefined;
       const refComponent = detail.components.find((item) => item.key === match[1]);
-      const refVariant = detail.variants.find((item) => item.key === match[2]);
-      if (!refComponent || !refVariant) return undefined;
+      if (!refComponent) return undefined;
+
+      // Legacy/master-price formulas use the semantic key "base" for the
+      // default finish. In catalogs without an explicit "base" variant,
+      // Brown is that base price. Prefer a real "base" variant when present.
+      const refVariant = detail.variants.find((item) => item.key === match[2])
+        ?? (match[2] === "base" ? detail.variants.find((item) => item.key === "brown") : undefined);
+      if (!refVariant) return undefined;
       return resolveBudgetPrice(detail, refComponent.id, refVariant.id, nextStack);
     },
   }) as Record<string, number | undefined>);
