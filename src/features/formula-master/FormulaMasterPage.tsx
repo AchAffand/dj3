@@ -63,7 +63,7 @@ function formulaReferences(expression: string | null): number[] {
 
 export function FormulaMasterPage() {
   const { repository, catalog, loadingCatalog, catalogError, isCatalogAdmin, reloadCatalog } = useAppServices();
-  const models = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
+  const models = useMemo(() => [...catalog.values()].filter((model) => model.active !== false).sort((a, b) => a.code - b.code), [catalog]);
   const [modelCode, setModelCode] = useState<number | null>(null);
   const [formulaSearch, setFormulaSearch] = useState("");
   const [materialCode, setMaterialCode] = useState<number | null>(null);
@@ -180,7 +180,7 @@ export function FormulaMasterPage() {
 
   useEffect(() => {
     if (!models.length) return;
-    if (modelCode === null || !catalog.has(modelCode)) setModelCode(models[0].code);
+    if (modelCode === null || !models.some((model) => model.code === modelCode)) setModelCode(models[0].code);
   }, [catalog, modelCode, models]);
 
   useEffect(() => {
