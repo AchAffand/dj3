@@ -72,6 +72,29 @@ describe("Supabase repository", () => {
     expect(model.materials[0]).toMatchObject({ code: 34204, sourceCode: 34104, name: "coak" });
   });
 
+  it("keeps archived models available for saved project history while marking them inactive", async () => {
+    const { client } = makeClient([{
+      code: 10100,
+      group_code: 10000,
+      name: "Model lama",
+      input_variables: ["T1"],
+      status: "ready",
+      is_active: false,
+      model_materials: [{
+        material_code: 10101,
+        current_expression: "T1/1000",
+        formula_version: 1,
+        source_cell: "L2",
+        source_formula: null,
+        source_cached_quantity: null,
+        materials: { name: "kusen", unit: "m'" },
+      }],
+    }]);
+    const models = await createSupabaseRepository(client).listModels();
+    expect(models).toHaveLength(1);
+    expect(models[0]).toMatchObject({ code: 10100, active: false });
+  });
+
   it("derives readiness from current formulas instead of the imported status", async () => {
     const { client } = makeClient([{
       code: 30100,
