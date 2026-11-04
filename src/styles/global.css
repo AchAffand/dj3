@@ -66,6 +66,9 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .sign-out-button:hover { background: #F5F5F5; color: var(--ink); }
 .page-content { width: 100%; }
 .page-heading-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; margin-bottom: 25px; }
+.page-heading-actions { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
+.page-heading-actions .secondary-button { margin-top: 0; min-height: 39px; white-space: nowrap; }
+@media (max-width: 680px) { .page-heading-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; } }
 .page-heading-row .page-intro { max-width: 780px; }
 .page-heading-row .page-description { max-width: 670px; }
 .page-heading-row h1 { font-size: clamp(27px, 2.6vw, 34px); }
