@@ -104,10 +104,6 @@ export function ProjectPrintPage() {
   }, [budgetCatalogs, budgetDetails, catalog, project]);
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
   const missingPriceCount = recap.filter((row) => row.unitPrice === null).length;
-  const reportTypes = project
-    ? [...new Set(project.lines.map((line) => { const model = catalog.get(line.modelCode); return modelGroupLabel(model?.groupCode ?? 0, model?.groupName).toUpperCase(); }))]
-    : [];
-  const reportType = reportTypes.length ? reportTypes.join(" / ") : "PINTU";
   const authorName = typeof user?.user_metadata.full_name === "string" && user.user_metadata.full_name.trim()
     ? user.user_metadata.full_name.trim()
     : user?.email ?? "DJ3 Engineering";
