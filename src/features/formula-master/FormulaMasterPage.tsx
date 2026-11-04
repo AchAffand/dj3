@@ -63,7 +63,8 @@ function formulaReferences(expression: string | null): number[] {
 
 export function FormulaMasterPage() {
   const { repository, catalog, loadingCatalog, catalogError, isCatalogAdmin, reloadCatalog } = useAppServices();
-  const models = useMemo(() => [...catalog.values()].filter((model) => model.active !== false).sort((a, b) => a.code - b.code), [catalog]);
+  const allModels = useMemo(() => [...catalog.values()].sort((a, b) => a.code - b.code), [catalog]);
+  const models = useMemo(() => allModels.filter((model) => model.active !== false), [allModels]);
   const [modelCode, setModelCode] = useState<number | null>(null);
   const [formulaSearch, setFormulaSearch] = useState("");
   const [materialCode, setMaterialCode] = useState<number | null>(null);
@@ -138,7 +139,7 @@ export function FormulaMasterPage() {
       : undefined;
     return { material, validation, preview };
   }, [catalog, newMaterialCode, newMaterialExpression, newMaterialName, newMaterialUnit, selectedModel]);
-  const newMaterialCodeConflict = [...catalog.values()].some((model) => model.materials.some((item) => item.code === newMaterialCode));
+  const newMaterialCodeConflict = allModels.some((model) => model.materials.some((item) => item.code === newMaterialCode));
   const newMaterialCodeValid = Boolean(selectedModel && Number.isInteger(newMaterialCode)
     && newMaterialCode > selectedModel.code && newMaterialCode < selectedModel.code + 100
     && newMaterialCode < 1000000 && !newMaterialCodeConflict);
@@ -153,7 +154,7 @@ export function FormulaMasterPage() {
       code: model.groupCode, name: modelGroupLabel(model.groupCode, model.groupName),
     });
     return [...groups.values()].sort((a, b) => a.code - b.code);
-  }, [models]);
+  }, [allModels]);
   const suggestedNewGroupCode = useMemo(() => {
     const used = new Set(modelGroups.map((group) => group.code));
     for (let code = 50000; code < 1000000; code += 10000) if (!used.has(code)) return code;
@@ -167,10 +168,10 @@ export function FormulaMasterPage() {
     && newModelCode <= activeModelGroupCode + 9900 && newModelCode % 100 === 0
     && Math.floor(newModelCode / 10000) * 10000 === activeModelGroupCode
     && Boolean(activeModelGroupName)
-    && !models.some((model) => model.code === newModelCode);
+    && !allModels.some((model) => model.code === newModelCode);
 
   function suggestModelCode(groupCode: number): number {
-    const groupModels = models.filter((model) => model.groupCode === groupCode);
+    const groupModels = allModels.filter((model) => model.groupCode === groupCode);
     return Math.max(groupCode, ...groupModels.map((model) => model.code)) + 100;
   }
 
