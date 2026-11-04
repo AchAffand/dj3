@@ -80,7 +80,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
                 {line.priceCatalogId && model.materials.some((material) => /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
                   const options = (budgetDetails.get(line.priceCatalogId)?.components ?? [])
-                    .filter((component) => component.active && /^[R-X]$/.test(component.sourceColumn))
+                    .filter((component) => /^[R-X]$/.test(component.sourceColumn))
                     .sort((a, b) => a.position - b.position);
                   const selectedColumn = line.inputs.__doorLeafSourceColumn;
                   return options.length > 0 ? (
