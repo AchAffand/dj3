@@ -284,7 +284,7 @@ export function FormulaMasterPage() {
       await reloadCatalog();
       setShowModelForm(false);
       setShowMaterialForm(true);
-      setNewMaterialCode(suggestMaterialCode(newModelCode));
+      setNewMaterialCode(newModelCode + 1);
       setNewMaterialName("");
       setNewMaterialUnit("m'");
       setNewMaterialExpression("");
