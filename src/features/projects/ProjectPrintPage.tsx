@@ -161,14 +161,15 @@ export function ProjectPrintPage() {
   const formattedLetterDate = letterDate
     ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(letterDate + "T00:00:00"))
     : "-";
-  const projectCreatedAt = project.createdAt ?? letterDate;
-  const projectCreatedDate = new Date(projectCreatedAt);
-  const letterNumber = String(projectSequence ?? 1001) + "/DJ3/" + romanMonth(projectCreatedAt) + "/" + (Number.isNaN(projectCreatedDate.getTime()) ? new Date().getFullYear() : projectCreatedDate.getFullYear());
 
   if (loading) return <AppPageState title="Menyiapkan laporan" detail="Data proyek sedang dimuat." />;
   if (error || !project) {
     return <AppPageState title="Laporan belum dapat dibuka" detail={error ?? "Proyek tidak ditemukan."} tone="error" actionLabel="Kembali ke proyek" onAction={() => navigate("/projects")} />;
   }
+
+  const projectCreatedAt = project.createdAt ?? letterDate;
+  const projectCreatedDate = new Date(projectCreatedAt);
+  const letterNumber = String(projectSequence ?? 1001) + "/DJ3/" + romanMonth(projectCreatedAt) + "/" + (Number.isNaN(projectCreatedDate.getTime()) ? new Date().getFullYear() : projectCreatedDate.getFullYear());
 
   return (
     <section className="page-content project-print-page">
