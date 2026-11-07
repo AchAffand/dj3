@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -93,14 +93,14 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       if (options.length < 2) return null;
                       const inputKey = "__budgetAccessory_" + material.code;
                       const selected = line.inputs[inputKey];
-                      const selectedOption = options.find((item) => item.sourceColumn.charCodeAt(0) - 64 === selected) ?? options[0];
+                      const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected) ?? options[0];
                       return <label className="dimension-field" key={material.code}>
                         <span>{material.name} · Variasi</span>
                         <select aria-label={"Variasi " + material.name + " " + material.code} value={selectedOption.sourceColumn}
                           onChange={(event) => {
                             const component = options.find((item) => item.sourceColumn === event.target.value);
                             if (!component) return;
-                            const inputs: InputVariables = { ...line.inputs, [inputKey]: component.sourceColumn.charCodeAt(0) - 64 };
+                            const inputs: InputVariables = { ...line.inputs, [inputKey]: excelColumnToNumber(component.sourceColumn) };
                             onChange(lineId, { ...line, inputs });
                           }}>
                           {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
