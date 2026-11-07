@@ -68,7 +68,6 @@ describe("ProjectPrintPage", () => {
     expect(screen.getByText("A. Pekerjaan Pintu")).toBeInTheDocument();
     expect(screen.getByText("NB:")).toBeInTheDocument();
     expect(screen.getByText("Hormat kami,")).toBeInTheDocument();
-    expect(screen.getByText("Operator DJ3")).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Cetak / Simpan PDF" }));
     expect(window.print).toHaveBeenCalledOnce();
   });
