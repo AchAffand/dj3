@@ -15,11 +15,11 @@ export function normalizeMaterialKey(name: string, unit: string): string {
 }
 export function accessoryPriceOptions(detail: BudgetCatalogDetail | undefined, materialName: string) {
   if (!detail) return [];
-  const name = materialName.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+  const name = materialName.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
   let allowedColumns: string[] = [];
   if (name.includes("engsel kupu")) allowedColumns = ["BC", "BI"];
   else if (name.includes("kunci sliding")) allowedColumns = ["BN", "BO"];
-  else if (/^(handel|handle)\\s*\\+\\s*kunci$/.test(name) || /^handle$/.test(name)) {
+  else if (/^(handel|handle)\s*\+\s*kunci$/.test(name) || /^handle$/.test(name)) {
     allowedColumns = ["BD", "BE", "BF", "BG", "BH", "BJ", "BM", "BR"];
   }
   return detail.components
