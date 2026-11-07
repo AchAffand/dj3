@@ -43,12 +43,12 @@ with desired(material_key, material_name, material_unit, source_column) as (valu
    and component.source_column = desired.source_column
    and component.active = true
 )
-insert into public.budget_material_mappings
+insert into public.budget_material_mappings as current_mapping
   (catalog_id, material_key, material_name, material_unit, component_id, active)
 select catalog_id, material_key, material_name, material_unit, component_id, true
 from resolved
 on conflict (catalog_id, material_key) do update
-set component_id = coalesce(public.budget_material_mappings.component_id, excluded.component_id),
+set component_id = coalesce(current_mapping.component_id, excluded.component_id),
     active = true;
 
 -- Doorcloser deliberately remains unmapped: it has no corresponding item in
