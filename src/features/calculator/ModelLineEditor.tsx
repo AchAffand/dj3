@@ -3,6 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
+import { accessoryPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -83,18 +84,12 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                     const name = material.name.toLocaleLowerCase("id-ID");
                     const unit = material.unit.trim().toLocaleLowerCase("id-ID");
                     if (/^handle$/.test(name) && !["pcs", "set"].includes(unit)) return false;
-                    return /engsel kupu|handel \\+ kunci|^handle$|kunci sliding/i.test(name);
+                    return /engsel kupu|^(handel|handle)\s*\+\s*kunci$|^handle$|kunci sliding/i.test(name);
                   });
-                  const components = budgetDetails.get(line.priceCatalogId ?? "")?.components ?? [];
-                  const accessoryOptions = (name: string) => {
-                    if (/engsel kupu/i.test(name)) return components.filter((item) => /^engsel kupu/i.test(item.label));
-                    if (/kunci sliding/i.test(name)) return components.filter((item) => /^kunci sliding/i.test(item.label));
-                    if (/handel \\+ kunci|^handle$/i.test(name)) return components.filter((item) => /^handle/i.test(item.label));
-                    return [];
-                  };
+                  const detail = budgetDetails.get(line.priceCatalogId ?? "");
                   return accessories.length ? <div className="budget-source-fields accessory-source-fields">
                     {accessories.map((material) => {
-                      const options = accessoryOptions(material.name);
+                      const options = accessoryPriceOptions(detail, material.name);
                       if (options.length < 2) return null;
                       const inputKey = "__budgetAccessory_" + material.code;
                       const selected = line.inputs[inputKey];
@@ -114,6 +109,9 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                     })}
                   </div> : null;
                 })()}
+                {line.priceCatalogId && model.materials.some((material) => /doorcloser/i.test(material.name)) && (
+                  <p className="empty-inline">Harga Doorcloser belum tersedia di Master Harga HPM / INKA / DACON. Harga dapat diisi manual pada Rekap Material sampai item dan harga Doorcloser ditambahkan ke master.</p>
+                )}
                 {line.priceCatalogId && model.materials.some((material) => /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
                   const options = (budgetDetails.get(line.priceCatalogId)?.components ?? [])
                     .filter((component) => /^[R-X]$/.test(component.sourceColumn))
