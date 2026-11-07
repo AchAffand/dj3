@@ -68,7 +68,6 @@ price_rows as (
     comp.id as component_id,
     var.id as variant_id,
     p.amount,
-    p.source_column || case when var.variant_key = 'coating' then '14' else '11' end as source_formula_cell,
     p.source_column || case var.variant_key
       when 'brown' then '14'
       when 'cream' then '17'
@@ -89,25 +88,57 @@ select component_id, variant_id, amount, null, source_cell, source_formula, amou
 from price_rows
 on conflict (component_id, variant_id) do nothing;
 
--- The existing AZ / Aseseris Pivot row was seeded as a self-reference. Convert it to
--- the workbook's evaluated value only while it is still untouched at seed version 1.
-with updated as (
+-- Normalize any still-unedited seed expressions for all accessory columns (AZ:BU).
+-- The workbook cells contain direct numeric prices, with Brown/Cream/Coating all
+-- referencing the same base value. Only version-1 expression rows are normalized;
+-- versioned admin edits are left untouched.
+with accessory_prices(component_key, source_column, amount) as (
+  values
+    ('col_az', 'AZ', 165000),
+    ('col_ba', 'BA', 15000),
+    ('col_bb', 'BB', 100000),
+    ('col_bc', 'BC', 55000),
+    ('col_bd', 'BD', 350000),
+    ('col_be', 'BE', 350000),
+    ('col_bf', 'BF', 600000),
+    ('col_bg', 'BG', 0),
+    ('col_bh', 'BH', 350000),
+    ('col_bi', 'BI', 35000),
+    ('col_bj', 'BJ', 150000),
+    ('col_bk', 'BK', 45000),
+    ('col_bl', 'BL', 300000),
+    ('col_bm', 'BM', 60000),
+    ('col_bn', 'BN', 250000),
+    ('col_bo', 'BO', 150000),
+    ('col_bp', 'BP', 45000),
+    ('col_bq', 'BQ', 50000),
+    ('col_br', 'BR', 200000),
+    ('col_bs', 'BS', 140000),
+    ('col_bt', 'BT', 275000),
+    ('col_bu', 'BU', 175000)
+),
+updated as (
   update public.budget_prices bp
-  set amount = 165000,
+  set amount = p.amount,
       expression = null,
-      source_value = '165000',
-      version = 2,
+      source_value = p.amount::text,
+      version = bp.version + 1,
       updated_at = now()
   from public.budget_catalogs c
-  join public.budget_components comp on comp.catalog_id = c.id and comp.source_column = 'AZ'
-  join public.budget_variants var on var.catalog_id = c.id
+  join accessory_prices p on true
+  join public.budget_components comp
+    on comp.catalog_id = c.id and comp.component_key = p.component_key
+  join public.budget_variants var
+    on var.catalog_id = c.id and var.variant_key in ('brown', 'cream', 'coating')
   where c.slug = 'hpm-inka-dacon'
     and bp.component_id = comp.id
     and bp.variant_id = var.id
-    and var.variant_key in ('brown', 'cream', 'coating')
     and bp.amount is null
     and bp.version = 1
-    and bp.expression in ('price_col_az_base', 'price_col_az_brown')
+    and bp.expression in (
+      'price_' || p.component_key || '_base',
+      'price_' || p.component_key || '_brown'
+    )
   returning bp.component_id, bp.variant_id, bp.version, bp.amount, bp.expression, bp.updated_by
 )
 insert into public.budget_price_versions
