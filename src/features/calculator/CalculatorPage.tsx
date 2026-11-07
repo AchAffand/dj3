@@ -10,7 +10,7 @@ import { aggregateMaterials } from "../recap/aggregateMaterials";
 import { MaterialRecap } from "../recap/MaterialRecap";
 import { createProjectService, type ProjectDraft, type ProjectLineDraft } from "../projects/projectService";
 import { ModelLineEditor } from "./ModelLineEditor";
-import { accessoryPriceOptions, budgetPriceForMaterial } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, displayMaterialName, excelColumnFromNumber } from "../../domain/budgets/pricing";
 import type { BudgetCatalogDetail } from "../../domain/budgets/types";
 
 function makeLine(modelCode: number): ProjectLineDraft {
@@ -26,7 +26,12 @@ function makeLine(modelCode: number): ProjectLineDraft {
 
 function priceMap(project: Project): Record<string, number | null | undefined> {
   const result: Record<string, number | null | undefined> = {};
-  for (const price of project.prices) result[price.catalogId && price.variantId ? `${price.catalogId}:${price.variantId}:${price.materialCode}` : `manual:${price.materialCode}`] = price.unitPrice;
+  for (const price of project.prices) {
+    const key = price.catalogId && price.variantId
+      ? `${price.catalogId}:${price.variantId}:${price.componentId ?? price.materialCode}`
+      : `manual:${price.materialCode}`;
+    result[key] = price.unitPrice;
+  }
   return result;
 }
 
@@ -94,7 +99,10 @@ export function CalculatorPage() {
     for (const line of draft.lines) {
       const id = line.id ?? `${line.modelCode}`;
       if (line.resultSnapshot) {
-        result.set(id, line.resultSnapshot);
+        result.set(id, {
+          ...line.resultSnapshot,
+          items: line.resultSnapshot.items.map((item) => ({ ...item, name: displayMaterialName(item.name) })),
+        });
         continue;
       }
       const model = catalog.get(line.modelCode);
@@ -103,7 +111,7 @@ export function CalculatorPage() {
         result.set(id, {
           items: calculated.items.map((item) => ({
             materialCode: item.code,
-            name: item.name,
+            name: displayMaterialName(item.name),
             unit: item.unit,
             quantity: item.quantity,
           })),
@@ -121,11 +129,11 @@ export function CalculatorPage() {
       materials: (results.get(line.id ?? `${line.modelCode}`)?.items ?? []).map((material) => {
         const detail = line.priceCatalogId ? budgetDetails.get(line.priceCatalogId) : undefined;
         const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
-          ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
+          ? excelColumnFromNumber(line.inputs.__doorLeafSourceColumn)
           : null;
         const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
         const accessoryColumn = typeof accessoryColumnValue === "number"
-          ? String.fromCharCode(64 + accessoryColumnValue)
+          ? excelColumnFromNumber(accessoryColumnValue)
           : accessoryPriceOptions(detail, material.name)[0]?.sourceColumn ?? null;
         const mapped = budgetPriceForMaterial(
           detail,
@@ -141,7 +149,7 @@ export function CalculatorPage() {
         const variant = detail?.variants.find((item) => item.id === line.priceVariantId);
         return {
           ...material,
-          priceKey: detail && variant ? `${detail.catalog.id}:${variant.id}:${material.materialCode}` : `manual:${material.materialCode}`,
+          priceKey: mapped?.priceKey ?? `manual:${material.materialCode}`,
           catalogId: detail && variant ? detail.catalog.id : null,
           variantId: detail && variant ? variant.id : null,
           unitPrice: mapped?.unitPrice ?? null,

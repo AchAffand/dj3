@@ -1,6 +1,30 @@
 import type { BudgetCatalogDetail } from "./types";
 import { resolveBudgetPrice } from "./calculateBudget";
 
+export function displayMaterialName(name: string): string {
+  const normalized = name.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+  if (/^engsel casm(at|ent|et)$/.test(normalized)) return "Engsel Casement";
+  if (normalized === "rambancis") return "Rambuncis";
+  if (normalized === "flashbolt") return "Flushbolt";
+  return name;
+}
+
+export function excelColumnToNumber(column: string): number {
+  return [...column.toUpperCase()].reduce((value, char) => value * 26 + char.charCodeAt(0) - 64, 0);
+}
+
+export function excelColumnFromNumber(number: number): string {
+  if (!Number.isInteger(number) || number < 1) return "";
+  let value = number;
+  let column = "";
+  while (value > 0) {
+    value -= 1;
+    column = String.fromCharCode(65 + (value % 26)) + column;
+    value = Math.floor(value / 26);
+  }
+  return column;
+}
+
 function canonicalMaterialName(name: string): string {
   const normalized = name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
   if (/^engsel casm(at|ent|et)$/.test(normalized)) return "engsel casement";
@@ -51,7 +75,7 @@ export function budgetPriceForMaterial(
   if (!price || (price.amount === null && !price.expression)) return null;
   try {
     return {
-      priceKey: `${detail.catalog.id}:${variant.id}:${materialCode}`,
+      priceKey: `${detail.catalog.id}:${variant.id}:${component.id}`,
       catalogId: detail.catalog.id,
       variantId: variant.id,
       unitPrice: resolveBudgetPrice(detail, component.id, variant.id),
