@@ -1,10 +1,18 @@
 import type { BudgetCatalogDetail } from "./types";
 import { resolveBudgetPrice } from "./calculateBudget";
 
-export function normalizeMaterialKey(name: string, unit: string): string {
-  return `${name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID")}|${unit.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID")}`;
+function canonicalMaterialName(name: string): string {
+  const normalized = name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  if (/^engsel casm(at|ent|et)$/.test(normalized)) return "engsel casement";
+  if (normalized === "rambancis") return "rambuncis";
+  if (normalized === "flashbolt") return "flushbolt";
+  return normalized;
 }
 
+export function normalizeMaterialKey(name: string, unit: string): string {
+  const normalizedUnit = unit.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  return `${canonicalMaterialName(name)}|${normalizedUnit}`;
+}
 export function budgetPriceForMaterial(
   detail: BudgetCatalogDetail | undefined,
   materialCode: number,
@@ -12,13 +20,17 @@ export function budgetPriceForMaterial(
   unit: string,
   variantId: string | null | undefined,
   doorLeafSourceColumn?: string | null,
+  accessorySourceColumn?: string | null,
 ) {
   if (!detail || !variantId) return null;
   const mapping = detail.mappings.find((item) => item.materialKey === normalizeMaterialKey(name, unit) && item.active);
   const selectedDoorLeaf = doorLeafSourceColumn && /^[R-X]$/.test(doorLeafSourceColumn)
     ? detail.components.find((item) => item.sourceColumn === doorLeafSourceColumn)
     : undefined;
-  const component = selectedDoorLeaf ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
+  const selectedAccessory = accessorySourceColumn && /^[A-Z]{2}$/.test(accessorySourceColumn)
+    ? detail.components.find((item) => item.sourceColumn === accessorySourceColumn)
+    : undefined;
+  const component = selectedDoorLeaf ?? selectedAccessory ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
   const variant = detail.variants.find((item) => item.id === variantId);
   if (!component || !variant) return null;
   const price = component.prices[variant.key];
