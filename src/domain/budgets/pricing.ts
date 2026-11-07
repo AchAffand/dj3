@@ -75,7 +75,7 @@ export function budgetPriceForMaterial(
   if (!price || (price.amount === null && !price.expression)) return null;
   try {
     return {
-      priceKey: `${detail.catalog.id}:${variant.id}:${materialCode}`,
+      priceKey: `${detail.catalog.id}:${variant.id}:${component.id}`,
       catalogId: detail.catalog.id,
       variantId: variant.id,
       unitPrice: resolveBudgetPrice(detail, component.id, variant.id),
