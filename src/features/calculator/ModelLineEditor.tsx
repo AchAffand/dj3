@@ -78,6 +78,37 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                   {line.priceCatalogId && <label className="dimension-field"><span>Warna / varian harga</span><select value={line.priceVariantId ?? ""} onChange={(event) => onChange(lineId, { ...line, priceVariantId: event.target.value || null })}><option value="">Pilih varian</option>{(budgetDetails.get(line.priceCatalogId)?.variants ?? []).map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}</select></label>}
                 </div>}
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
+                {(() => {
+                  const accessories = model.materials.filter((material) => /engsel kupu|handel \\+ kunci|^handle$|kunci sliding/i.test(material.name.toLocaleLowerCase("id-ID")));
+                  const components = budgetDetails.get(line.priceCatalogId ?? "")?.components ?? [];
+                  const accessoryOptions = (name: string) => {
+                    if (/engsel kupu/i.test(name)) return components.filter((item) => /^engsel kupu/i.test(item.label));
+                    if (/kunci sliding/i.test(name)) return components.filter((item) => /^kunci sliding/i.test(item.label));
+                    if (/handel \\+ kunci|^handle$/i.test(name)) return components.filter((item) => /^handle/i.test(item.label));
+                    return [];
+                  };
+                  return accessories.length ? <div className="budget-source-fields accessory-source-fields">
+                    {accessories.map((material) => {
+                      const options = accessoryOptions(material.name);
+                      if (options.length < 2) return null;
+                      const inputKey = "__budgetAccessory_" + material.code;
+                      const selected = line.inputs[inputKey];
+                      const selectedOption = options.find((item) => item.sourceColumn.charCodeAt(0) - 64 === selected) ?? options[0];
+                      return <label className="dimension-field" key={material.code}>
+                        <span>{material.name} · Variasi</span>
+                        <select aria-label={"Variasi " + material.name + " " + material.code} value={selectedOption.sourceColumn}
+                          onChange={(event) => {
+                            const component = options.find((item) => item.sourceColumn === event.target.value);
+                            if (!component) return;
+                            const inputs: InputVariables = { ...line.inputs, [inputKey]: component.sourceColumn.charCodeAt(0) - 64 };
+                            onChange(lineId, { ...line, inputs });
+                          }}>
+                          {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
+                        </select>
+                      </label>;
+                    })}
+                  </div> : null;
+                })()}
                 {line.priceCatalogId && model.materials.some((material) => /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
                   const options = (budgetDetails.get(line.priceCatalogId)?.components ?? [])
                     .filter((component) => /^[R-X]$/.test(component.sourceColumn))
