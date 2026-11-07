@@ -10,7 +10,7 @@ import { aggregateMaterials } from "../recap/aggregateMaterials";
 import { MaterialRecap } from "../recap/MaterialRecap";
 import { createProjectService, type ProjectDraft, type ProjectLineDraft } from "../projects/projectService";
 import { ModelLineEditor } from "./ModelLineEditor";
-import { budgetPriceForMaterial } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial } from "../../domain/budgets/pricing";
 import type { BudgetCatalogDetail } from "../../domain/budgets/types";
 
 function makeLine(modelCode: number): ProjectLineDraft {
@@ -126,7 +126,7 @@ export function CalculatorPage() {
         const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
         const accessoryColumn = typeof accessoryColumnValue === "number"
           ? String.fromCharCode(64 + accessoryColumnValue)
-          : null;
+          : accessoryPriceOptions(detail, material.name)[0]?.sourceColumn ?? null;
         const mapped = budgetPriceForMaterial(
           detail,
           material.materialCode,
