@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { budgetPriceForMaterial, normalizeMaterialKey } from "./pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, normalizeMaterialKey } from "./pricing";
 import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
@@ -13,6 +13,14 @@ const detail: BudgetCatalogDetail = {
     { id: "casement", key: "col_bb", sourceColumn: "BB", label: "Engsel Casement", unit: "pcs", category: "Aksesori", position: 1, prices: { brown: { amount: 100000, expression: null, version: 1 } } },
     { id: "kupu-4", key: "col_bc", sourceColumn: "BC", label: "Engsel Kupu 4 inch", unit: "pcs", category: "Aksesori", position: 2, prices: { brown: { amount: 55000, expression: null, version: 1 } } },
     { id: "kupu-km", key: "col_bi", sourceColumn: "BI", label: "Engsel Kupu KM", unit: "pcs", category: "Aksesori", position: 3, prices: { brown: { amount: 35000, expression: null, version: 1 } } },
+    { id: "handle-set", key: "col_bd", sourceColumn: "BD", label: "Handle + kunci", unit: "pcs", category: "Aksesori", position: 4, prices: { brown: { amount: 350000, expression: null, version: 1 } } },
+    { id: "handle-35", key: "col_be", sourceColumn: "BE", label: "Handle H P 35 cm", unit: "pcs", category: "Aksesori", position: 5, prices: { brown: { amount: 350000, expression: null, version: 1 } } },
+    { id: "handle-45", key: "col_bf", sourceColumn: "BF", label: "Handle H P 45 cm", unit: "pcs", category: "Aksesori", position: 6, prices: { brown: { amount: 600000, expression: null, version: 1 } } },
+    { id: "handle", key: "col_bg", sourceColumn: "BG", label: "Handle", unit: "pcs", category: "Aksesori", position: 7, prices: { brown: { amount: 0, expression: null, version: 1 } } },
+    { id: "kunci-pelor", key: "col_bh", sourceColumn: "BH", label: "Kunci pelor", unit: "pcs", category: "Aksesori", position: 8, prices: { brown: { amount: 350000, expression: null, version: 1 } } },
+    { id: "handle-km", key: "col_bj", sourceColumn: "BJ", label: "Handle Kunci KM", unit: "pcs", category: "Aksesori", position: 9, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
+    { id: "kunci-sliding-door", key: "col_bn", sourceColumn: "BN", label: "Kunci Sliding Pintu", unit: "pcs", category: "Aksesori", position: 10, prices: { brown: { amount: 250000, expression: null, version: 1 } } },
+    { id: "kunci-sliding-window", key: "col_bo", sourceColumn: "BO", label: "Kunci Sliding Jendela RA", unit: "pcs", category: "Aksesori", position: 11, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
   ],
 };
 
@@ -28,6 +36,24 @@ describe("model accessory price mapping", () => {
     const result = budgetPriceForMaterial(detail, 10105, "Engsel kupu", "pcs", "brown-id", null, "BI");
     expect(result?.componentId).toBe("kupu-km");
     expect(result?.unitPrice).toBe(35000);
+  });
+
+  it("offers both butterfly hinge options and applies the first option by default", () => {
+    expect(accessoryPriceOptions(detail, "Engsel kupu").map((item) => item.sourceColumn)).toEqual(["BC", "BI"]);
+    const defaultPrice = budgetPriceForMaterial(detail, 10105, "Engsel kupu", "pcs", "brown-id", null, "BC");
+    expect(defaultPrice?.unitPrice).toBe(55000);
+  });
+
+  it("recognizes the plus sign in Handle + Kunci and offers its workbook variants", () => {
+    expect(accessoryPriceOptions(detail, "Handel + kunci").map((item) => item.sourceColumn)).toEqual(["BD", "BE", "BF", "BG", "BH", "BJ"]);
+    const selected = budgetPriceForMaterial(detail, 10106, "Handel + kunci", "set", "brown-id", null, "BF");
+    expect(selected?.unitPrice).toBe(600000);
+  });
+
+  it("offers both sliding-lock variants", () => {
+    expect(accessoryPriceOptions(detail, "Kunci Sliding").map((item) => item.sourceColumn)).toEqual(["BN", "BO"]);
+    const selected = budgetPriceForMaterial(detail, 10108, "Kunci Sliding", "set", "brown-id", null, "BO");
+    expect(selected?.unitPrice).toBe(150000);
   });
 
   it("keeps the standard mapping when no accessory variation is selected", () => {
