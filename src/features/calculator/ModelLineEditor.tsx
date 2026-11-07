@@ -84,7 +84,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                     const name = material.name.toLocaleLowerCase("id-ID");
                     const unit = material.unit.trim().toLocaleLowerCase("id-ID");
                     if (/^handle$/.test(name) && !["pcs", "set"].includes(unit)) return false;
-                    return /engsel kupu|^(handel|handle)\\s*\\+\\s*kunci$|^handle$|kunci sliding/i.test(name);
+                    return /engsel kupu|^(handel|handle)\s*\+\s*kunci$|^handle$|kunci sliding/i.test(name);
                   });
                   const detail = budgetDetails.get(line.priceCatalogId ?? "");
                   return accessories.length ? <div className="budget-source-fields accessory-source-fields">
