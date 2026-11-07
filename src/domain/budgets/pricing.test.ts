@@ -72,6 +72,7 @@ describe("model accessory price mapping", () => {
     const result = budgetPriceForMaterial(detail, 10105, "Engsel kupu", "pcs", "brown-id", null, "BI");
     expect(result?.componentId).toBe("kupu-km");
     expect(result?.unitPrice).toBe(35000);
+    expect(result?.priceKey).toBe("catalog-1:brown-id:kupu-km");
   });
 
   it("offers both butterfly hinge options and applies the first option by default", () => {
