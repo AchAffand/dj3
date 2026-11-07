@@ -9,6 +9,36 @@ function canonicalMaterialName(name: string): string {
   return normalized;
 }
 
+export function normalizeMaterialDisplayName(name: string): string {
+  const canonical = canonicalMaterialName(name);
+  if (canonical === "engsel casement") return "Engsel Casement";
+  if (canonical === "rambuncis") return "Rambuncis";
+  if (canonical === "flushbolt") return "Flushbolt";
+  return name.trim().replace(/\s+/g, " ");
+}
+
+export function excelColumnToNumber(column: string): number {
+  let result = 0;
+  for (const char of column.toUpperCase()) {
+    const code = char.charCodeAt(0);
+    if (code < 65 || code > 90) return 0;
+    result = result * 26 + code - 64;
+  }
+  return result;
+}
+
+export function excelColumnFromNumber(value: number): string {
+  if (!Number.isInteger(value) || value < 1) return "";
+  let current = value;
+  let result = "";
+  while (current > 0) {
+    const remainder = (current - 1) % 26;
+    result = String.fromCharCode(65 + remainder) + result;
+    current = Math.floor((current - 1) / 26);
+  }
+  return result;
+}
+
 export function normalizeMaterialKey(name: string, unit: string): string {
   const normalizedUnit = unit.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
   return `${canonicalMaterialName(name)}|${normalizedUnit}`;
