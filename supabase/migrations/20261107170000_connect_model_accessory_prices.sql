@@ -26,7 +26,12 @@ with desired(material_key, material_name, material_unit, source_column) as (valu
   ('handel mangkok|set', 'Handle Mangkok', 'set', 'BM'),
   ('kunci sliding|set', 'Kunci Sliding', 'set', 'BN'),
   ('kunci ra|pcs', 'Kunci RA', 'pcs', 'BO'),
-  ('flushbolt|pcs', 'Flushbolt', 'pcs', 'BK')
+  ('flushbolt|pcs', 'Flushbolt', 'pcs', 'BK'),
+  ('bracket|pcs', 'Bracket', 'pcs', 'BS'),
+  ('rell sliding pintu|set', 'Rell Sliding Pintu', 'set', 'BL'),
+  ('roda sliding|set', 'Roda Sliding', 'set', 'BP'),
+  ('roda atas|pcs', 'Roda Atas', 'pcs', 'BT'),
+  ('roda bawah|pcs', 'Roda Bawah', 'pcs', 'BU')
 ), catalog as (
   select id from public.budget_catalogs where slug = 'hpm-inka-dacon'
 ), resolved as (
