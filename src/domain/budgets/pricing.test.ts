@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessoryPriceOptions, budgetPriceForMaterial, normalizeMaterialKey } from "./pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, displayMaterialName, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialKey } from "./pricing";
 import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
@@ -35,6 +35,30 @@ const detail: BudgetCatalogDetail = {
     { id: "kunci-sliding-window", key: "col_bo", sourceColumn: "BO", label: "Kunci Sliding Jendela RA", unit: "pcs", category: "Aksesori", position: 11, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
   ],
 };
+
+describe("Excel column encoding", () => {
+  it("round-trips single- and double-letter workbook columns", () => {
+    for (const column of ["A", "R", "X", "AZ", "BA", "BB", "BC", "BD", "BI", "BN", "BO", "BU"]) {
+      expect(excelColumnFromNumber(excelColumnToNumber(column))).toBe(column);
+    }
+  });
+
+  it("uses distinct numeric values for accessory columns", () => {
+    expect(excelColumnToNumber("BC")).toBe(55);
+    expect(excelColumnToNumber("BI")).toBe(61);
+    expect(excelColumnToNumber("BD")).toBe(56);
+    expect(excelColumnToNumber("BF")).toBe(58);
+  });
+});
+
+describe("legacy material display names", () => {
+  it("shows canonical names for legacy snapshots", () => {
+    expect(displayMaterialName("Engsel Casmat")).toBe("Engsel Casement");
+    expect(displayMaterialName("Engsel casment")).toBe("Engsel Casement");
+    expect(displayMaterialName("Rambancis")).toBe("Rambuncis");
+    expect(displayMaterialName("Flashbolt")).toBe("Flushbolt");
+  });
+});
 
 describe("model accessory price mapping", () => {
   it("normalizes common legacy spellings before looking up the mapping", () => {
