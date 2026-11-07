@@ -5,7 +5,6 @@ import { formatQuantity, formatRupiah } from "../../app/format";
 import { modelGroupLabel } from "../../domain/catalog/types";
 import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
-import { useAuth } from "../../auth/AuthProvider";
 
 const defaultNotes = [
   "Hitungan disesuaikan dengan note pekerjaan di desain rencana",
@@ -28,7 +27,6 @@ export function ProjectPrintPage() {
   const { projectId = "" } = useParams();
   const navigate = useNavigate();
   const { repository, catalog, budgetCatalogs = [], budgetDetails } = useAppServices();
-  const { user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
