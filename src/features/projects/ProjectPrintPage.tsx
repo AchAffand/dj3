@@ -18,6 +18,12 @@ const defaultNotes = [
   "Penawaran berlaku selama 7 hari sejak tanggal diterbitkan, mohon segera konfirmasi untuk menjaga kesesuaian harga",
 ];
 
+function romanMonth(dateValue?: string) {
+  const date = dateValue ? new Date(dateValue) : new Date();
+  const month = Number.isNaN(date.getTime()) ? new Date().getMonth() + 1 : date.getMonth() + 1;
+  return ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][month - 1];
+}
+
 function todayForInput() {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -30,14 +36,11 @@ export function ProjectPrintPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [letterNumber, setLetterNumber] = useState("xxx/DJ3/XI/2026");
+  const [projectSequence, setProjectSequence] = useState<number | null>(null);
   const [letterDate, setLetterDate] = useState(todayForInput);
-  const [recipient, setRecipient] = useState("Pak xxxx");
-  const [recipientAddress, setRecipientAddress] = useState("Jl.xxxxx");
-  const [recipientCity, setRecipientCity] = useState("Surabaya");
   const [letterSubject, setLetterSubject] = useState("Surat penawaran");
   const [workTitle, setWorkTitle] = useState("RENOVASI RUMAH TINGGAL");
-  const [workSubtitle, setWorkSubtitle] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [signatory, setSignatory] = useState("Bagus Satrio S.T");
 
   useEffect(() => {
@@ -49,10 +52,23 @@ export function ProjectPrintPage() {
     }
     setLoading(true);
     setError(null);
-    void repository.loadProject(projectId).then((loaded) => {
+    void Promise.all([repository.loadProject(projectId), repository.listProjects()]).then(([loaded, projects]) => {
       if (active) {
         setProject(loaded);
-        if (!loaded) setError("Proyek tidak ditemukan atau tidak dapat dibuka.");
+        if (!loaded) {
+          setError("Proyek tidak ditemukan atau tidak dapat dibuka.");
+          return;
+        }
+        const ordered = projects.map((item) => ({ id: item.id, createdAt: item.createdAt }));
+        if (!ordered.some((item) => item.id === loaded.id)) {
+          ordered.push({ id: loaded.id, createdAt: loaded.createdAt ?? new Date().toISOString() });
+        }
+        ordered.sort((left, right) => {
+          const leftTime = new Date(left.createdAt).getTime();
+          const rightTime = new Date(right.createdAt).getTime();
+          return leftTime - rightTime || left.id.localeCompare(right.id);
+        });
+        setProjectSequence(1001 + ordered.findIndex((item) => item.id === loaded.id));
       }
     }).catch((cause) => {
       if (active) setError(cause instanceof Error ? cause.message : "Laporan proyek tidak dapat dibuka.");
@@ -143,13 +159,17 @@ export function ProjectPrintPage() {
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
   const missingPriceCount = recap.filter((row) => row.unitPrice === null).length;
   const formattedLetterDate = letterDate
-    ? new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(`${letterDate}T00:00:00`))
+    ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(letterDate + "T00:00:00"))
     : "-";
 
   if (loading) return <AppPageState title="Menyiapkan laporan" detail="Data proyek sedang dimuat." />;
   if (error || !project) {
     return <AppPageState title="Laporan belum dapat dibuka" detail={error ?? "Proyek tidak ditemukan."} tone="error" actionLabel="Kembali ke proyek" onAction={() => navigate("/projects")} />;
   }
+
+  const projectCreatedAt = project.createdAt ?? letterDate;
+  const projectCreatedDate = new Date(projectCreatedAt);
+  const letterNumber = String(projectSequence ?? 1001) + "/DJ3/" + romanMonth(projectCreatedAt) + "/" + (Number.isNaN(projectCreatedDate.getTime()) ? new Date().getFullYear() : projectCreatedDate.getFullYear());
 
   return (
     <section className="page-content project-print-page">
@@ -164,16 +184,15 @@ export function ProjectPrintPage() {
         <header className="quotation-header">
           <div className="quotation-top">
             <div className="quotation-brand">
-              <img src="/dj3-engineering-logo.png" alt="DJ3 Engineering" />
+              <img src="/dj3-engineering-letter-logo.jpg" alt="DJ3 Engineering" />
               <div className="quotation-recipient">
                 <div>Kepada Yth,</div>
-                <input aria-label="Nama penerima" className="print-editable" value={recipient} onChange={(event) => setRecipient(event.target.value)} />
-                <input aria-label="Alamat penerima" className="print-editable" value={recipientAddress} onChange={(event) => setRecipientAddress(event.target.value)} />
-                <input aria-label="Kota penerima" className="print-editable" value={recipientCity} onChange={(event) => setRecipientCity(event.target.value)} />
+                <div>{project.name}</div>
+                {project.location && <div>{project.location}</div>}
               </div>
             </div>
             <dl className="quotation-letter-meta">
-              <div><dt>No</dt><dd><input aria-label="Nomor surat" className="print-editable" value={letterNumber} onChange={(event) => setLetterNumber(event.target.value)} /></dd></div>
+              <div><dt>No</dt><dd><span aria-label="Nomor surat">{letterNumber}</span></dd></div>
               <div><dt>Tanggal</dt><dd><input aria-label="Tanggal surat" type="date" className="print-editable date-editable" value={letterDate} onChange={(event) => setLetterDate(event.target.value)} /><span className="print-only">{formattedLetterDate}</span></dd></div>
               <div><dt>Hal</dt><dd><input aria-label="Perihal surat" className="print-editable" value={letterSubject} onChange={(event) => setLetterSubject(event.target.value)} /></dd></div>
             </dl>
@@ -182,7 +201,7 @@ export function ProjectPrintPage() {
             <input aria-label="Judul penawaran" className="print-editable quotation-work-title" value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} />
             <p>Dengan hormat,</p>
             <p>Bersama surat penawaran ini kami dari CV. DJ3 Engineering bermaksud menawarkan jasa konstruksi / pembangunan<br className="quotation-desktop-break" /> di Instansi Bapak / Ibu Pimpin.</p>
-            <input aria-label="Subjudul pekerjaan" className="print-editable quotation-work-subtitle" placeholder="(Nama / jenis pekerjaan)" value={workSubtitle || project.name.toUpperCase()} onChange={(event) => setWorkSubtitle(event.target.value)} />
+            <div className="quotation-customer"><strong>Nama Customer:</strong><input aria-label="Nama customer" className="print-editable quotation-work-subtitle" value={customerName} onChange={(event) => setCustomerName(event.target.value)} /></div>
           </div>
         </header>
 
