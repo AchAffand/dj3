@@ -1525,3 +1525,99 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .formula-archived-item { align-items: flex-start; flex-direction: column; }
   .formula-archived-item > button { width: 100%; }
 }
+
+
+/* Project quotation print layout: mirrors the supplied A4 DJ3 template. */
+.project-print-page { width: 100%; max-width: 980px; margin-inline: auto; }
+.project-report {
+  position: relative; isolation: isolate; overflow: hidden; padding: 30px 32px 28px 38px;
+  border: 1px solid #E3E3E3; border-radius: 2px; background: #FFF; color: #111;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 7%); font-family: Arial, Helvetica, sans-serif;
+}
+.project-report::before {
+  position: absolute; z-index: -1; inset: 0; background: url("/dj3-engineering-logo.png") center 54% / 64% auto no-repeat;
+  content: ""; opacity: .045; pointer-events: none;
+}
+.project-report-orange-rule { position: absolute; inset: 0 auto 0 0; width: 7px; background: #F79436; }
+.quotation-header { padding: 0 0 9px; }
+.quotation-top { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; min-height: 150px; }
+.quotation-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; }
+.quotation-brand > img { display: block; width: 105px; height: 76px; object-fit: contain; object-position: left top; }
+.quotation-recipient { display: grid; gap: 3px; font-size: 10px; line-height: 1.25; }
+.quotation-recipient > div { margin-bottom: 1px; }
+.quotation-letter-meta { display: grid; align-content: start; gap: 5px; margin: 38px 0 0; font-size: 10px; }
+.quotation-letter-meta > div { display: grid; grid-template-columns: 58px 1fr; gap: 4px; align-items: baseline; }
+.quotation-letter-meta dt, .quotation-letter-meta dd { margin: 0; }
+.quotation-letter-meta dd { display: flex; gap: 4px; align-items: baseline; }
+.quotation-letter-meta dd::before { content: ":"; }
+.print-editable { min-width: 0; width: 100%; padding: 0; border: 0; border-bottom: 1px dotted #B8B8B8; border-radius: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
+.print-editable:focus { border-bottom-color: #F79436; }
+.quotation-intro { display: grid; gap: 5px; margin-top: 3px; font-size: 10px; line-height: 1.4; }
+.quotation-intro p { margin: 0; }
+.quotation-work-title { width: 100%; margin-bottom: 1px; font-weight: 700; font-size: 11px; }
+.quotation-work-subtitle { margin-top: 4px; color: #0875C9; font-style: italic; font-weight: 700; font-size: 10px; }
+.quotation-table-section { margin-top: 0; }
+.quotation-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #333; font-size: 8px; }
+.quotation-table col:nth-child(1) { width: 4%; }
+.quotation-table col:nth-child(2) { width: 39%; }
+.quotation-table col:nth-child(3) { width: 8%; }
+.quotation-table col:nth-child(4) { width: 8%; }
+.quotation-table col:nth-child(5) { width: 13%; }
+.quotation-table col:nth-child(6) { width: 14%; }
+.quotation-table col:nth-child(7) { width: 14%; }
+.quotation-table th, .quotation-table td { padding: 3px 4px; border: 1px solid #555; overflow-wrap: anywhere; }
+.quotation-table thead { display: table-header-group; }
+.quotation-table thead th { background: #F2F2F2; text-align: center; font-size: 8px; font-weight: 700; }
+.quotation-table tbody td { text-align: right; vertical-align: top; }
+.quotation-table tbody td:nth-child(2), .quotation-table tbody td:nth-child(7) { text-align: left; }
+.quotation-table tbody td:nth-child(4) { text-align: center; }
+.quotation-table tbody td small { display: block; margin-top: 2px; font-size: 7px; font-style: italic; }
+.quotation-section-heading th { background: #FFF000; text-align: left; font-size: 8px; }
+.quotation-section-subtotal th { background: #FFF; color: #111; text-align: right; font-weight: 700; }
+.quotation-section-subtotal td { height: 4px; }
+.quotation-grand-total th { background: #FFF; text-align: right; font-size: 9px; }
+.quotation-grand-total strong { display: inline-block; min-width: 125px; margin-left: 16px; text-align: right; }
+.quotation-closing { position: relative; min-height: 280px; padding-top: 16px; font-size: 9px; line-height: 1.45; }
+.quotation-closing > p { margin: 0 0 15px; }
+.quotation-notes strong { display: block; margin-bottom: 3px; }
+.quotation-notes ol { margin: 0; padding-left: 18px; }
+.quotation-notes li { padding-left: 1px; margin: 1px 0; }
+.quotation-signature { width: 180px; margin: 24px 0 0 auto; text-align: center; font-size: 9px; }
+.quotation-signature p { margin: 0; }
+.quotation-signature-space { height: 68px; }
+.quotation-signatory { text-align: center; font-weight: 700; }
+.quotation-footer-line { position: absolute; right: 0; bottom: 0; left: -20px; height: 3px; background: #D71920; }
+.print-only { display: none; }
+@page { size: A4 portrait; margin: 12mm 12mm 13mm 16mm; }
+@media print {
+  html, body { width: 210mm; min-width: 0; margin: 0 !important; background: #FFF !important; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sidebar, .topbar, .print-actions, .mobile-nav-drawer, .mobile-nav-backdrop { display: none !important; }
+  .main-area { margin: 0 !important; min-height: 0 !important; }
+  .content-area { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+  .project-print-page { width: 100% !important; max-width: none !important; margin: 0 !important; }
+  .project-report {
+    overflow: visible; padding: 0 0 0 7mm; border: 0; border-radius: 0; box-shadow: none;
+    font-size: 8px; break-inside: auto;
+  }
+  .project-report::before { position: fixed; inset: 0; background-position: center center; background-size: 62% auto; opacity: .055; }
+  .project-report-orange-rule { position: fixed; top: 0; bottom: 0; left: 0; width: 2mm; }
+  .print-editable { border: 0 !important; box-shadow: none !important; }
+  .date-editable { display: none !important; }
+  .print-only { display: inline !important; }
+  .quotation-table { font-size: 7px; }
+  .quotation-table th, .quotation-table td { padding: 2.2px 3px; }
+  .quotation-table thead th { font-size: 7px; }
+  .quotation-section-heading, .quotation-section-subtotal, .quotation-grand-total, .quotation-table tr { break-inside: avoid; page-break-inside: avoid; }
+  .quotation-table-section { break-inside: auto; }
+  .quotation-closing { min-height: 270px; break-inside: avoid; page-break-inside: avoid; }
+  .quotation-footer-line { position: fixed; bottom: 0; left: 0; }
+  .report-warning { font-size: 7px; }
+}
+@media (max-width: 680px) {
+  .project-report { padding: 18px 14px 18px 22px; }
+  .quotation-top { grid-template-columns: 1fr; gap: 8px; }
+  .quotation-letter-meta { margin-top: 0; }
+  .quotation-table-section { overflow-x: auto; }
+  .quotation-table { min-width: 650px; }
+}
