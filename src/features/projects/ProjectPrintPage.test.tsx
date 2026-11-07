@@ -41,7 +41,7 @@ describe("ProjectPrintPage", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("renders the quotation letter layout and editable letter details", async () => {
-    const repository = { loadProject: vi.fn(async () => project) } as unknown as ReturnType<typeof createSupabaseRepository>;
+    const repository = { loadProject: vi.fn(async () => project), listProjects: vi.fn(async () => [{ id: project.id, name: project.name, createdAt: project.createdAt ?? "2026-10-01T00:00:00.000Z", updatedAt: project.createdAt ?? "2026-10-01T00:00:00.000Z", modelCount: 1, createdBy: "Operator DJ3" }]) } as unknown as ReturnType<typeof createSupabaseRepository>;
     render(
       <AppServicesProvider override={{
         repository,
@@ -59,9 +59,12 @@ describe("ProjectPrintPage", () => {
 
     expect(await screen.findByText("Kepada Yth,")).toBeInTheDocument();
     expect(screen.getByAltText("DJ3 Engineering")).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Nomor surat" })).toHaveValue("xxx/DJ3/XI/2026");
-    expect(screen.getByRole("textbox", { name: "Nama penerima" })).toHaveValue("Pak xxxx");
+    expect(screen.getByText("1001/DJ3/X/2026")).toBeInTheDocument();
+    expect(screen.getByText("Rumah Contoh")).toBeInTheDocument();
+    expect(screen.getByText("Bandung")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Nama customer" })).toHaveValue("");
     expect(screen.getByRole("textbox", { name: "Nama penandatangan" })).toHaveValue("Bagus Satrio S.T");
+    expect(screen.getByText("Tanggal")).toBeInTheDocument();
     expect(screen.getByText(/Bersama surat penawaran/)).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "ITEM" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "HARSAT" })).toBeInTheDocument();
