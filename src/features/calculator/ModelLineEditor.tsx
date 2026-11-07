@@ -79,7 +79,12 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                 </div>}
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
                 {(() => {
-                  const accessories = model.materials.filter((material) => /engsel kupu|handel \\+ kunci|^handle$|kunci sliding/i.test(material.name.toLocaleLowerCase("id-ID")));
+                  const accessories = model.materials.filter((material) => {
+                    const name = material.name.toLocaleLowerCase("id-ID");
+                    const unit = material.unit.trim().toLocaleLowerCase("id-ID");
+                    if (/^handle$/.test(name) && !["pcs", "set"].includes(unit)) return false;
+                    return /engsel kupu|handel \\+ kunci|^handle$|kunci sliding/i.test(name);
+                  });
                   const components = budgetDetails.get(line.priceCatalogId ?? "")?.components ?? [];
                   const accessoryOptions = (name: string) => {
                     if (/engsel kupu/i.test(name)) return components.filter((item) => /^engsel kupu/i.test(item.label));
