@@ -123,6 +123,10 @@ export function CalculatorPage() {
         const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
           ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
           : null;
+        const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
+        const accessoryColumn = typeof accessoryColumnValue === "number"
+          ? String.fromCharCode(64 + accessoryColumnValue)
+          : null;
         const mapped = budgetPriceForMaterial(
           detail,
           material.materialCode,
@@ -132,6 +136,7 @@ export function CalculatorPage() {
           /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))
             ? doorLeafColumn
             : null,
+          accessoryColumn,
         );
         const variant = detail?.variants.find((item) => item.id === line.priceVariantId);
         return {
