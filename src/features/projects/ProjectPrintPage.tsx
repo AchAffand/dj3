@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppPageState } from "../../app/AppPageState";
-import { formatDate, formatQuantity, formatRupiah } from "../../app/format";
+import { formatQuantity, formatRupiah } from "../../app/format";
 import { modelGroupLabel } from "../../domain/catalog/types";
 import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
@@ -144,9 +144,6 @@ export function ProjectPrintPage() {
 
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
   const missingPriceCount = recap.filter((row) => row.unitPrice === null).length;
-  const authorName = typeof user?.user_metadata.full_name === "string" && user.user_metadata.full_name.trim()
-    ? user.user_metadata.full_name.trim()
-    : user?.email ?? "DJ3 Engineering";
   const formattedLetterDate = letterDate
     ? new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(`${letterDate}T00:00:00`))
     : "-";
@@ -223,13 +220,15 @@ export function ProjectPrintPage() {
   );
 }
 
-type RecapRow = ReturnType<typeof useRecapRows>[number];
-function useRecapRows() {
-  return [] as {
-    materialCode: number; name: string; unit: string; quantity: number;
-    unitPrice: number | null; subtotal: number | null; modelCodes: number[];
-    doorLeafType: string | null;
-  }[];
+type RecapRow = {
+  materialCode: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number | null;
+  subtotal: number | null;
+  modelCodes: number[];
+  doorLeafType: string | null;
 }
 function FragmentSection({ letter, title, rows, subtotal }: {
   letter: string;
