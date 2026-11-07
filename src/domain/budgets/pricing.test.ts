@@ -4,15 +4,27 @@ import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
   catalog: { id: "catalog-1", slug: "hpm-inka-dacon", label: "HPM / INKA / DACON", position: 1, active: true },
-  variants: [{ id: "brown-id", key: "brown", label: "Brown", position: 1 }],
+  variants: [
+    { id: "brown-id", key: "brown", label: "Brown", position: 1 },
+    { id: "cream-id", key: "cream", label: "Putih / Cream", position: 2 },
+    { id: "coating-id", key: "coating", label: "Coating", position: 3 },
+  ],
   rules: [],
   mappings: [
     { materialKey: "engsel casement|pcs", materialName: "Engsel Casement", materialUnit: "pcs", componentId: "casement", active: true },
   ],
   components: [
     { id: "casement", key: "col_bb", sourceColumn: "BB", label: "Engsel Casement", unit: "pcs", category: "Aksesori", position: 1, prices: { brown: { amount: 100000, expression: null, version: 1 } } },
-    { id: "kupu-4", key: "col_bc", sourceColumn: "BC", label: "Engsel Kupu 4 inch", unit: "pcs", category: "Aksesori", position: 2, prices: { brown: { amount: 55000, expression: null, version: 1 } } },
-    { id: "kupu-km", key: "col_bi", sourceColumn: "BI", label: "Engsel Kupu KM", unit: "pcs", category: "Aksesori", position: 3, prices: { brown: { amount: 35000, expression: null, version: 1 } } },
+    { id: "kupu-4", key: "col_bc", sourceColumn: "BC", label: "Engsel Kupu 4 inch", unit: "pcs", category: "Aksesori", position: 2, prices: {
+      brown: { amount: 55000, expression: null, version: 1 },
+      cream: { amount: 56000, expression: null, version: 1 },
+      coating: { amount: 57000, expression: null, version: 1 },
+    } },
+    { id: "kupu-km", key: "col_bi", sourceColumn: "BI", label: "Engsel Kupu KM", unit: "pcs", category: "Aksesori", position: 3, prices: {
+      brown: { amount: 35000, expression: null, version: 1 },
+      cream: { amount: 36000, expression: null, version: 1 },
+      coating: { amount: 37000, expression: null, version: 1 },
+    } },
     { id: "handle-set", key: "col_bd", sourceColumn: "BD", label: "Handle + kunci", unit: "pcs", category: "Aksesori", position: 4, prices: { brown: { amount: 350000, expression: null, version: 1 } } },
     { id: "handle-35", key: "col_be", sourceColumn: "BE", label: "Handle H P 35 cm", unit: "pcs", category: "Aksesori", position: 5, prices: { brown: { amount: 350000, expression: null, version: 1 } } },
     { id: "handle-45", key: "col_bf", sourceColumn: "BF", label: "Handle H P 45 cm", unit: "pcs", category: "Aksesori", position: 6, prices: { brown: { amount: 600000, expression: null, version: 1 } } },
@@ -42,6 +54,13 @@ describe("model accessory price mapping", () => {
     expect(accessoryPriceOptions(detail, "Engsel kupu").map((item) => item.sourceColumn)).toEqual(["BC", "BI"]);
     const defaultPrice = budgetPriceForMaterial(detail, 10105, "Engsel kupu", "pcs", "brown-id", null, "BC");
     expect(defaultPrice?.unitPrice).toBe(55000);
+  });
+
+  it("recalculates the selected accessory when the finish variant changes", () => {
+    const brown = budgetPriceForMaterial(detail, 10105, "Engsel kupu", "pcs", "brown-id", null, "BC");
+    const cream = budgetPriceForMaterial(detail, 10105, "Engsel kupu", "pcs", "cream-id", null, "BC");
+    const coating = budgetPriceForMaterial(detail, 10105, "Engsel kupu", "pcs", "coating-id", null, "BC");
+    expect([brown?.unitPrice, cream?.unitPrice, coating?.unitPrice]).toEqual([55000, 56000, 57000]);
   });
 
   it("recognizes the plus sign in Handle + Kunci and offers its workbook variants", () => {
