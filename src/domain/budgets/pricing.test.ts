@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessoryPriceOptions, budgetPriceForMaterial, normalizeMaterialKey } from "./pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
 import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
@@ -37,6 +37,22 @@ const detail: BudgetCatalogDetail = {
 };
 
 describe("model accessory price mapping", () => {
+  it("converts full Excel column names to and from numeric input values", () => {
+    expect(excelColumnToNumber("BC")).toBe(55);
+    expect(excelColumnToNumber("BI")).toBe(61);
+    expect(excelColumnToNumber("BD")).toBe(56);
+    expect(excelColumnToNumber("BO")).toBe(67);
+    expect(excelColumnFromNumber(55)).toBe("BC");
+    expect(excelColumnFromNumber(61)).toBe("BI");
+    expect(excelColumnFromNumber(56)).toBe("BD");
+    expect(excelColumnFromNumber(67)).toBe("BO");
+  });
+
+  it("normalizes legacy display names as well as their matching keys", () => {
+    expect(normalizeMaterialDisplayName("Engsel casmat")).toBe("Engsel Casement");
+    expect(normalizeMaterialDisplayName("Engsel casment")).toBe("Engsel Casement");
+  });
+
   it("normalizes common legacy spellings before looking up the mapping", () => {
     expect(normalizeMaterialKey("Engsel casmat", "pcs")).toBe("engsel casement|pcs");
     expect(normalizeMaterialKey("Engsel casment", "pcs")).toBe("engsel casement|pcs");

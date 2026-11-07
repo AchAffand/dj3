@@ -10,7 +10,7 @@ import { aggregateMaterials } from "../recap/aggregateMaterials";
 import { MaterialRecap } from "../recap/MaterialRecap";
 import { createProjectService, type ProjectDraft, type ProjectLineDraft } from "../projects/projectService";
 import { ModelLineEditor } from "./ModelLineEditor";
-import { accessoryPriceOptions, budgetPriceForMaterial } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, normalizeMaterialDisplayName } from "../../domain/budgets/pricing";
 import type { BudgetCatalogDetail } from "../../domain/budgets/types";
 
 function makeLine(modelCode: number): ProjectLineDraft {
@@ -94,7 +94,13 @@ export function CalculatorPage() {
     for (const line of draft.lines) {
       const id = line.id ?? `${line.modelCode}`;
       if (line.resultSnapshot) {
-        result.set(id, line.resultSnapshot);
+        result.set(id, {
+          ...line.resultSnapshot,
+          items: line.resultSnapshot.items.map((item) => ({
+            ...item,
+            name: normalizeMaterialDisplayName(item.name),
+          })),
+        });
         continue;
       }
       const model = catalog.get(line.modelCode);
@@ -103,7 +109,7 @@ export function CalculatorPage() {
         result.set(id, {
           items: calculated.items.map((item) => ({
             materialCode: item.code,
-            name: item.name,
+            name: normalizeMaterialDisplayName(item.name),
             unit: item.unit,
             quantity: item.quantity,
           })),
@@ -125,7 +131,7 @@ export function CalculatorPage() {
           : null;
         const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
         const accessoryColumn = typeof accessoryColumnValue === "number"
-          ? String.fromCharCode(64 + accessoryColumnValue)
+          ? excelColumnFromNumber(accessoryColumnValue)
           : accessoryPriceOptions(detail, material.name)[0]?.sourceColumn ?? null;
         const mapped = budgetPriceForMaterial(
           detail,
