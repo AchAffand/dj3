@@ -40,7 +40,7 @@ describe("ProjectPrintPage", () => {
   beforeEach(() => vi.stubGlobal("print", vi.fn()));
   afterEach(() => vi.unstubAllGlobals());
 
-  it("prints the Excel-style project recap with author, metadata and seven material columns", async () => {
+  it("renders the quotation letter layout and editable letter details", async () => {
     const repository = { loadProject: vi.fn(async () => project) } as unknown as ReturnType<typeof createSupabaseRepository>;
     render(
       <AppServicesProvider override={{
@@ -57,28 +57,18 @@ describe("ProjectPrintPage", () => {
       </AppServicesProvider>,
     );
 
-    expect(await screen.findByText("Rumah Contoh")).toBeInTheDocument();
-    expect(screen.getByText("REKAP PEKERJAAN PINTU")).toBeInTheDocument();
-    expect(screen.getByText("Dibuat : Operator DJ3")).toBeInTheDocument();
-    expect(screen.getByText("Project")).toBeInTheDocument();
-    expect(screen.getByText("Lokasi")).toBeInTheDocument();
-    expect(screen.getByText("Lantai")).toBeInTheDocument();
-    expect(screen.getByText("Bandung")).toBeInTheDocument();
-    expect(screen.getByText("2", { selector: "dd" })).toBeInTheDocument();
-    expect(screen.getByText("Tgl:", { exact: false })).toBeInTheDocument();
-    expect(screen.getByText("10101 · Harga manual")).toBeInTheDocument();
-    for (const heading of ["TYPE", "ITEM", "QTY", "HARG SAT", "SATUAN", "SUB TOTAL", "GRAND TOTAL"]) {
-      expect(screen.getByRole("columnheader", { name: heading })).toBeInTheDocument();
-    }
-    expect(screen.getByRole("cell", { name: /PINTU.*10100/ })).toBeInTheDocument();
-    expect(screen.getAllByRole("cell", { name: /11,508/ })).toHaveLength(2);
-    expect(document.querySelector(".grand-total-merged")).not.toHaveAttribute("rowspan");
-    expect(document.querySelector(".grand-total-row")).toBeInTheDocument();
-    expect(document.querySelector(".grand-total-spacer")).toHaveAttribute("colspan", "6");
-    expect(document.querySelector(".grand-total-spacer")).toHaveClass("grand-total-spacer");
-    expect(document.querySelector(".grand-total-merged")).toHaveClass("grand-total-merged");
-    expect(document.querySelector(".grand-total-value")).toBeInTheDocument();
-    expect(screen.getAllByText(/Rp\s*575\.400/)).toHaveLength(2);
+    expect(await screen.findByText("Kepada Yth,")).toBeInTheDocument();
+    expect(screen.getByAltText("DJ3 Engineering")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Nomor surat" })).toHaveValue("xxx/DJ3/XI/2026");
+    expect(screen.getByRole("textbox", { name: "Nama penerima" })).toHaveValue("Pak xxxx");
+    expect(screen.getByRole("textbox", { name: "Nama penandatangan" })).toHaveValue("Bagus Satrio S.T");
+    expect(screen.getByText(/Bersama surat penawaran/)).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "ITEM" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "HARSAT" })).toBeInTheDocument();
+    expect(screen.getByText("A. Pekerjaan Pintu")).toBeInTheDocument();
+    expect(screen.getByText("NB:")).toBeInTheDocument();
+    expect(screen.getByText("Hormat kami,")).toBeInTheDocument();
+    expect(screen.getByText("Operator DJ3")).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Cetak / Simpan PDF" }));
     expect(window.print).toHaveBeenCalledOnce();
   });
