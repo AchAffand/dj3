@@ -1,20 +1,44 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppPageState } from "../../app/AppPageState";
-import { formatDate, formatQuantity, formatRupiah } from "../../app/format";
+import { formatQuantity, formatRupiah } from "../../app/format";
 import { modelGroupLabel } from "../../domain/catalog/types";
 import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
-import { useAuth } from "../../auth/AuthProvider";
+
+const defaultNotes = [
+  "Hitungan disesuaikan dengan note pekerjaan di desain rencana",
+  "Detail bahan disesuaikan dengan note customer",
+  "Belum termasuk pengadaan listrik kerja dan biaya pasang atau penyambungan PLN",
+  "Belum termasuk pengadaan air untuk tenaga kerja (bersih-bersih dan mandi)",
+  "Sudah termasuk pembersihan, mobilisasi dan demobilisasi",
+  "Harga termasuk material dan pemasangan",
+  "Harga dapat berubah apabila ada perubahan atau tambahan di luar item di atas",
+  "Apabila telah melakukan DP dan terjadi pembatalan secara sepihak maka tidak dapat refund dan dianggap biaya 100%",
+  "Penawaran berlaku selama 7 hari sejak tanggal diterbitkan, mohon segera konfirmasi untuk menjaga kesesuaian harga",
+];
+
+function todayForInput() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
 
 export function ProjectPrintPage() {
   const { projectId = "" } = useParams();
   const navigate = useNavigate();
   const { repository, catalog, budgetCatalogs = [], budgetDetails } = useAppServices();
-  const { user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [letterNumber, setLetterNumber] = useState("xxx/DJ3/XI/2026");
+  const [letterDate, setLetterDate] = useState(todayForInput);
+  const [recipient, setRecipient] = useState("Pak xxxx");
+  const [recipientAddress, setRecipientAddress] = useState("Jl.xxxxx");
+  const [recipientCity, setRecipientCity] = useState("Surabaya");
+  const [letterSubject, setLetterSubject] = useState("Surat penawaran");
+  const [workTitle, setWorkTitle] = useState("RENOVASI RUMAH TINGGAL");
+  const [workSubtitle, setWorkSubtitle] = useState("");
+  const [signatory, setSignatory] = useState("Bagus Satrio S.T");
 
   useEffect(() => {
     let active = true;
@@ -74,8 +98,7 @@ export function ProjectPrintPage() {
         if (previous) {
           previous.quantity += material.quantity * line.count;
           if (!previous.modelCodes.includes(line.modelCode)) previous.modelCodes.push(line.modelCode);
-        }
-        else materialTotals.set(key, {
+        } else materialTotals.set(key, {
           groupCode,
           type,
           materialCode: material.materialCode,
@@ -93,21 +116,35 @@ export function ProjectPrintPage() {
     }
     return [...materialTotals.values()]
       .sort((left, right) => left.groupCode - right.groupCode || left.materialCode - right.materialCode)
-      .map((row) => {
-        const unitPrice = row.unitPrice;
-        return {
-          ...row,
-          unitPrice,
-          subtotal: unitPrice === null ? null : Math.round(row.quantity * unitPrice * 100) / 100,
-        };
-      });
+      .map((row) => ({
+        ...row,
+        subtotal: row.unitPrice === null ? null : Math.round(row.quantity * row.unitPrice * 100) / 100,
+      }));
   }, [budgetCatalogs, budgetDetails, catalog, project]);
+
+  const sections = useMemo(() => {
+    const grouped = new Map<number, { type: string; rows: typeof recap }>();
+    for (const row of recap) {
+      const group = grouped.get(row.groupCode);
+      if (group) group.rows.push(row);
+      else grouped.set(row.groupCode, { type: row.type, rows: [row] });
+    }
+    return [...grouped.entries()].map(([groupCode, group], index) => ({
+      groupCode,
+      letter: String.fromCharCode(65 + index),
+      title: group.type === "LAINNYA" ? "Lain-lain" : group.type.charAt(0) + group.type.slice(1).toLowerCase(),
+      rows: group.rows,
+      subtotal: group.rows.some((row) => row.subtotal === null)
+        ? null
+        : group.rows.reduce((sum, row) => sum + (row.subtotal ?? 0), 0),
+    }));
+  }, [recap]);
+
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
   const missingPriceCount = recap.filter((row) => row.unitPrice === null).length;
-  const authorName = typeof user?.user_metadata.full_name === "string" && user.user_metadata.full_name.trim()
-    ? user.user_metadata.full_name.trim()
-    : user?.email ?? "DJ3 Engineering";
-  const reportDate = formatDate(new Date().toISOString());
+  const formattedLetterDate = letterDate
+    ? new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(`${letterDate}T00:00:00`))
+    : "-";
 
   if (loading) return <AppPageState title="Menyiapkan laporan" detail="Data proyek sedang dimuat." />;
   if (error || !project) {
@@ -123,45 +160,95 @@ export function ProjectPrintPage() {
       </div>
 
       <article className="project-report">
-        <header className="project-report-header">
-          <div className="excel-recap-title-row project-estimate-title">
-            <h1>ESTIMASI BIAYA PROYEK <span>{project.name}</span></h1>
-          </div>
-          <div className="project-report-author-row">
-            <strong>Dibuat : {authorName}</strong>
-          </div>
-          <div className="excel-recap-meta-row">
-            <dl className="excel-recap-project-meta">
-              <div><dt>Project</dt><dd>{project.name}</dd></div>
-              <div><dt>Lokasi</dt><dd>{project.location?.trim() || <i className="recap-fill-line" aria-label="Isian lokasi kosong" />}</dd></div>
-              <div><dt>Lantai</dt><dd>{project.floor?.trim() || <i className="recap-fill-line short" aria-label="Isian lantai kosong" />}</dd></div>
+        <div className="project-report-orange-rule" aria-hidden="true" />
+        <header className="quotation-header">
+          <div className="quotation-top">
+            <div className="quotation-brand">
+              <img src="/dj3-engineering-logo.png" alt="DJ3 Engineering" />
+              <div className="quotation-recipient">
+                <div>Kepada Yth,</div>
+                <input aria-label="Nama penerima" className="print-editable" value={recipient} onChange={(event) => setRecipient(event.target.value)} />
+                <input aria-label="Alamat penerima" className="print-editable" value={recipientAddress} onChange={(event) => setRecipientAddress(event.target.value)} />
+                <input aria-label="Kota penerima" className="print-editable" value={recipientCity} onChange={(event) => setRecipientCity(event.target.value)} />
+              </div>
+            </div>
+            <dl className="quotation-letter-meta">
+              <div><dt>No</dt><dd><input aria-label="Nomor surat" className="print-editable" value={letterNumber} onChange={(event) => setLetterNumber(event.target.value)} /></dd></div>
+              <div><dt>Tanggal</dt><dd><input aria-label="Tanggal surat" type="date" className="print-editable date-editable" value={letterDate} onChange={(event) => setLetterDate(event.target.value)} /><span className="print-only">{formattedLetterDate}</span></dd></div>
+              <div><dt>Hal</dt><dd><input aria-label="Perihal surat" className="print-editable" value={letterSubject} onChange={(event) => setLetterSubject(event.target.value)} /></dd></div>
             </dl>
-            <p>Tgl: {reportDate}</p>
+          </div>
+          <div className="quotation-intro">
+            <input aria-label="Judul penawaran" className="print-editable quotation-work-title" value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} />
+            <p>Dengan hormat,</p>
+            <p>Bersama surat penawaran ini kami dari CV. DJ3 Engineering bermaksud menawarkan jasa konstruksi / pembangunan<br className="quotation-desktop-break" /> di Instansi Bapak / Ibu Pimpin.</p>
+            <input aria-label="Subjudul pekerjaan" className="print-editable quotation-work-subtitle" placeholder="(Nama / jenis pekerjaan)" value={workSubtitle || project.name.toUpperCase()} onChange={(event) => setWorkSubtitle(event.target.value)} />
           </div>
         </header>
 
-        <section className="excel-recap-table-section" aria-label="Rekap kebutuhan material">
-          <div className="report-table-wrap">
-            <table className="report-table excel-recap-table">
-              <colgroup><col /><col /><col /><col /><col /><col /><col /></colgroup>
-              <thead><tr><th>TYPE</th><th>ITEM</th><th>QTY</th><th>HARG SAT</th><th>SATUAN</th><th>SUB TOTAL</th><th>GRAND TOTAL</th></tr></thead>
-              <tbody>{recap.length ? recap.map((row, index) => (
-                <tr key={`${row.groupCode}-${row.materialCode}-${row.unit}`}>
-                  <td>{index === 0 || recap[index - 1].groupCode !== row.groupCode ? <>{row.type}<small>{row.modelCodes.join(", ")}</small></> : ""}</td>
-                  <td>{row.name}<small>{row.doorLeafType ? `${row.doorLeafType} · ` : ""}{row.materialCode} · {row.priceSource}</small></td>
-                  <td>{formatQuantity(row.quantity)}</td>
-                  <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
-                  <td>{row.unit}</td>
-                  <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
-                </tr>
-              )) : <tr><td colSpan={7}>Belum ada kebutuhan material</td></tr>}
-              <tr className="grand-total-row"><td className="grand-total-spacer" colSpan={6} /><td className="grand-total-merged"><strong className="grand-total-value">{formatRupiah(total)}</strong></td></tr>
-              </tbody>
-            </table>
-          </div>
-          {missingPriceCount > 0 && <p className="report-warning">{missingPriceCount} harga satuan belum diisi; total belum mencakup material tersebut.</p>}
+        <section className="quotation-table-section" aria-label="Rencana anggaran biaya proyek">
+          <table className="quotation-table">
+            <colgroup><col /><col /><col /><col /><col /><col /><col /></colgroup>
+            <thead><tr><th>NO</th><th>ITEM</th><th>QTY</th><th>SATUAN</th><th>HARSAT</th><th>SUBTOTAL</th><th>KETERANGAN</th></tr></thead>
+            <tbody>
+              {sections.length ? sections.map((section) => (
+                <FragmentSection key={section.groupCode} letter={section.letter} title={section.title} rows={section.rows} subtotal={section.subtotal} />
+              )) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
+              <tr className="quotation-grand-total"><td colSpan={5} /><th colSpan={2}>TOTAL <strong>{formatRupiah(total)}</strong></th></tr>
+            </tbody>
+          </table>
+          {missingPriceCount > 0 && <p className="report-warning">{missingPriceCount} harga satuan belum diisi; total sementara hanya menjumlahkan item yang memiliki harga.</p>}
         </section>
+
+        <footer className="quotation-closing">
+          <p>Demikian penawaran harga yang kami sampaikan, atas perhatianya kami ucapkan terima kasih.</p>
+          <div className="quotation-notes">
+            <strong>NB:</strong>
+            <ol>{defaultNotes.map((note) => <li key={note}>{note}</li>)}</ol>
+          </div>
+          <div className="quotation-signature">
+            <p>Hormat kami,</p>
+            <div className="quotation-signature-space" />
+            <input aria-label="Nama penandatangan" className="print-editable quotation-signatory" value={signatory} onChange={(event) => setSignatory(event.target.value)} />
+          </div>
+          <div className="quotation-footer-line" />
+        </footer>
       </article>
     </section>
+  );
+}
+
+type RecapRow = {
+  materialCode: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number | null;
+  subtotal: number | null;
+  modelCodes: number[];
+  doorLeafType: string | null;
+}
+function FragmentSection({ letter, title, rows, subtotal }: {
+  letter: string;
+  title: string;
+  rows: RecapRow[];
+  subtotal: number | null;
+}) {
+  return (
+    <>
+      <tr className="quotation-section-heading"><th colSpan={7}>{letter}. Pekerjaan {title}</th></tr>
+      {rows.map((row, index) => (
+        <tr key={`${row.materialCode}-${row.unit}-${index}`}>
+          <td>{index + 1}</td>
+          <td>{row.name}{row.doorLeafType ? <small>{row.doorLeafType}</small> : null}</td>
+          <td>{formatQuantity(row.quantity)}</td>
+          <td>{row.unit}</td>
+          <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
+          <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
+          <td>{row.doorLeafType ?? "-"}</td>
+        </tr>
+      ))}
+      <tr className="quotation-section-subtotal"><td colSpan={5} /><th colSpan={2}>{subtotal === null ? "Sebagian harga belum diisi" : formatRupiah(subtotal)}</th></tr>
+    </>
   );
 }
