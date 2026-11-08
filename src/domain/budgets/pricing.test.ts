@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, windowPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
 import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
@@ -33,6 +33,9 @@ const detail: BudgetCatalogDetail = {
     { id: "handle-km", key: "col_bj", sourceColumn: "BJ", label: "Handle Kunci KM", unit: "pcs", category: "Aksesori", position: 9, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
     { id: "kunci-sliding-door", key: "col_bn", sourceColumn: "BN", label: "Kunci Sliding Pintu", unit: "pcs", category: "Aksesori", position: 10, prices: { brown: { amount: 250000, expression: null, version: 1 } } },
     { id: "kunci-sliding-window", key: "col_bo", sourceColumn: "BO", label: "Kunci Sliding Jendela RA", unit: "pcs", category: "Aksesori", position: 11, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
+    { id: "window-casement", key: "col_aa", sourceColumn: "AA", label: "JENDELA CASEMENT/ M'", unit: "", category: "Daun pintu", position: 12, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
+    { id: "window-sliding", key: "col_ab", sourceColumn: "AB", label: "JENDELA SLIDING/ M'", unit: "", category: "Daun pintu", position: 13, prices: { brown: { amount: 185000, expression: null, version: 1 } } },
+    { id: "window-pivot", key: "col_ac", sourceColumn: "AC", label: "DAUN JENDELA PIVOT / M'", unit: "", category: "Pintu dan jendela", position: 14, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
   ],
 };
 
@@ -89,6 +92,18 @@ describe("model accessory price mapping", () => {
     expect(accessoryPriceOptions(detail, "Kunci Sliding").map((item) => item.sourceColumn)).toEqual(["BN", "BO"]);
     const selected = budgetPriceForMaterial(detail, 10108, "Kunci Sliding", "set", "brown-id", null, "BO");
     expect(selected?.unitPrice).toBe(150000);
+  });
+
+  it("offers the three supported window types in workbook order", () => {
+    expect(windowPriceOptions(detail).map((item) => item.sourceColumn)).toEqual(["AA", "AB", "AC"]);
+  });
+
+  it("uses the explicitly selected window component even without a material mapping", () => {
+    const casement = budgetPriceForMaterial(detail, 20202, "Jendela", "m'", "brown-id", null, null, "AA");
+    const sliding = budgetPriceForMaterial(detail, 20202, "Jendela", "m'", "brown-id", null, null, "AB");
+    const pivot = budgetPriceForMaterial(detail, 20202, "Jendela", "m'", "brown-id", null, null, "AC");
+    expect([casement?.unitPrice, sliding?.unitPrice, pivot?.unitPrice]).toEqual([150000, 185000, 150000]);
+    expect([casement?.componentId, sliding?.componentId, pivot?.componentId]).toEqual(["window-casement", "window-sliding", "window-pivot"]);
   });
 
   it("keeps the standard mapping when no accessory variation is selected", () => {

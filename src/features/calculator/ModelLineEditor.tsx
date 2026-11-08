@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnToNumber, normalizeMaterialDisplayName } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, excelColumnToNumber, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -108,6 +108,32 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       </label>;
                     })}
                   </div> : null;
+                })()}
+                {line.priceCatalogId && model.groupCode === 20000 && model.materials.some((material) => /^jendela$/i.test(material.name.trim()) && ["m\u0027", "m’"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
+                  const options = windowPriceOptions(budgetDetails.get(line.priceCatalogId));
+                  const selectedColumn = typeof line.inputs.__windowSourceColumn === "number"
+                    ? String.fromCharCode(64 + line.inputs.__windowSourceColumn)
+                    : "";
+                  return options.length > 0 ? (
+                    <div className="budget-source-fields window-source-field">
+                      <label className="dimension-field">
+                        <span>Jenis Jendela</span>
+                        <select
+                          aria-label="Jenis Jendela"
+                          value={selectedColumn}
+                          onChange={(event) => {
+                            const inputs: InputVariables = { ...line.inputs };
+                            if (!event.target.value) delete inputs.__windowSourceColumn;
+                            else inputs.__windowSourceColumn = excelColumnToNumber(event.target.value);
+                            onChange(lineId, { ...line, inputs });
+                          }}
+                        >
+                          <option value="">Pilih jenis jendela</option>
+                          {options.map((component) => <option key={component.id} value={component.sourceColumn}>{component.label}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  ) : null;
                 })()}
                 {line.priceCatalogId && model.materials.some((material) => /doorcloser/i.test(material.name)) && (
                   <p className="empty-inline">Harga Doorcloser belum tersedia di Master Harga HPM / INKA / DACON. Harga dapat diisi manual pada Rekap Material sampai item dan harga Doorcloser ditambahkan ke master.</p>

@@ -57,6 +57,13 @@ export function accessoryPriceOptions(detail: BudgetCatalogDetail | undefined, m
     .sort((a, b) => a.position - b.position);
 }
 
+export function windowPriceOptions(detail: BudgetCatalogDetail | undefined) {
+  if (!detail) return [];
+  return detail.components
+    .filter((component) => ["AA", "AB", "AC"].includes(component.sourceColumn))
+    .sort((a, b) => a.position - b.position);
+}
+
 export function budgetPriceForMaterial(
   detail: BudgetCatalogDetail | undefined,
   materialCode: number,
@@ -65,6 +72,7 @@ export function budgetPriceForMaterial(
   variantId: string | null | undefined,
   doorLeafSourceColumn?: string | null,
   accessorySourceColumn?: string | null,
+  windowSourceColumn?: string | null,
 ) {
   if (!detail || !variantId) return null;
   const mapping = detail.mappings.find((item) => item.materialKey === normalizeMaterialKey(name, unit) && item.active);
@@ -74,7 +82,10 @@ export function budgetPriceForMaterial(
   const selectedAccessory = accessorySourceColumn && /^[A-Z]{2}$/.test(accessorySourceColumn)
     ? detail.components.find((item) => item.sourceColumn === accessorySourceColumn)
     : undefined;
-  const component = selectedDoorLeaf ?? selectedAccessory ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
+  const selectedWindow = windowSourceColumn && ["AA", "AB", "AC"].includes(windowSourceColumn)
+    ? detail.components.find((item) => item.sourceColumn === windowSourceColumn)
+    : undefined;
+  const component = selectedDoorLeaf ?? selectedAccessory ?? selectedWindow ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
   const variant = detail.variants.find((item) => item.id === variantId);
   if (!component || !variant) return null;
   const price = component.prices[variant.key];
