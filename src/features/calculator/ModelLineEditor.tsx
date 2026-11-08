@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnToNumber, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -112,7 +112,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                 {line.priceCatalogId && model.groupCode === 20000 && model.materials.some((material) => /^jendela$/i.test(material.name.trim()) && ["m\u0027", "m’"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
                   const options = windowPriceOptions(budgetDetails.get(line.priceCatalogId));
                   const selectedColumn = typeof line.inputs.__windowSourceColumn === "number"
-                    ? String.fromCharCode(64 + line.inputs.__windowSourceColumn)
+                    ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
                     : "";
                   return options.length > 0 ? (
                     <div className="budget-source-fields window-source-field">
