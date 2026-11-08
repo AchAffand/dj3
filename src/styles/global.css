@@ -1559,7 +1559,7 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .quotation-customer { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; font-size: 10px; }
 .quotation-customer > strong { white-space: nowrap; }
 .quotation-table-section { margin-top: 0; }
-.quotation-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #333; font-size: 8px; }
+.quotation-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #333; font-size: 9px; }
 .quotation-table col:nth-child(1) { width: 4%; }
 .quotation-table col:nth-child(2) { width: 39%; }
 .quotation-table col:nth-child(3) { width: 8%; }
@@ -1567,9 +1567,9 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .quotation-table col:nth-child(5) { width: 13%; }
 .quotation-table col:nth-child(6) { width: 14%; }
 .quotation-table col:nth-child(7) { width: 14%; }
-.quotation-table th, .quotation-table td { padding: 3px 4px; border: 1px solid #555; overflow-wrap: anywhere; }
+.quotation-table th, .quotation-table td { padding: 3.5px 4px; border: 1px solid #555; overflow-wrap: anywhere; }
 .quotation-table thead { display: table-header-group; }
-.quotation-table thead th { background: #F2F2F2; text-align: center; font-size: 8px; font-weight: 700; }
+.quotation-table thead th { background: #F2F2F2; text-align: center; font-size: 9px; font-weight: 700; }
 .quotation-table tbody td { text-align: right; vertical-align: top; }
 .quotation-table tbody td:nth-child(2), .quotation-table tbody td:nth-child(7) { text-align: left; }
 .quotation-table tbody td:nth-child(4) { text-align: center; }
@@ -1607,9 +1607,9 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .print-editable { border: 0 !important; box-shadow: none !important; }
   .date-editable { display: none !important; }
   .print-only { display: inline !important; }
-  .quotation-table { font-size: 7px; }
-  .quotation-table th, .quotation-table td { padding: 2.2px 3px; }
-  .quotation-table thead th { font-size: 7px; }
+  .quotation-table { font-size: 8.5px; }
+  .quotation-table th, .quotation-table td { padding: 2.8px 3px; }
+  .quotation-table thead th { font-size: 8px; }
   .quotation-section-heading, .quotation-section-subtotal, .quotation-grand-total, .quotation-table tr { break-inside: avoid; page-break-inside: avoid; }
   .quotation-table-section { break-inside: auto; }
   .quotation-closing { min-height: 270px; break-inside: avoid; page-break-inside: avoid; }
