@@ -51,7 +51,7 @@ export function BudgetWorkspacePage() {
       setDeleteSuccess(`${selectedNames.length} merek berhasil diarsipkan dari daftar aktif.`);
       await load();
     } catch (cause) {
-      setDeleteError(cause instanceof Error ? cause.message : "Merek yang dipilih gagal dihapus.");
+      setDeleteError(cause instanceof Error ? cause.message : "Merek yang dipilih gagal diarsipkan.");
     } finally {
       setDeletingCatalogs(false);
     }
@@ -85,14 +85,14 @@ export function BudgetWorkspacePage() {
     </article>)}</div>
     {confirmDeleteOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingCatalogs) setConfirmDeleteOpen(false); }}>
       <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-catalog-title">
-        <p className="eyebrow">KONFIRMASI HAPUS</p>
+        <p className="eyebrow">KONFIRMASI ARSIP</p>
         <h2 id="confirm-delete-catalog-title">Arsipkan merek terpilih?</h2>
         <p>Merek berikut akan disembunyikan dari daftar Master Harga aktif:</p>
         <ul className="budget-delete-list">{catalogs.filter((catalog) => selectedCatalogIds.includes(catalog.id)).map((catalog) => <li key={catalog.id}>{catalog.label}</li>)}</ul>
         <p className="budget-delete-help">Katalog hanya diarsipkan, bukan dihapus permanen. Riwayat perkiraan dan referensi proyek lama tetap aman. Nomor lembar yang sudah tidak aktif dapat digunakan kembali oleh merek baru. Template HPM / INKA / DACON dilindungi.</p>
         <div className="budget-modal-actions">
           <button className="secondary-button" type="button" disabled={deletingCatalogs} onClick={() => setConfirmDeleteOpen(false)}>Batal</button>
-          <button className="budget-bulk-delete-button" type="button" disabled={deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Menghapus…" : "Ya, arsipkan merek"}</button>
+          <button className="budget-bulk-delete-button" type="button" disabled={deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Mengarsipkan…" : "Ya, arsipkan merek"}</button>
         </div>
       </div>
     </div>}
