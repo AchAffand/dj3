@@ -109,6 +109,16 @@ export function ProjectPrintPage() {
         const linePrice = line.priceCatalogId && line.priceVariantId
           ? project.prices.find((price) => price.materialCode === material.materialCode && price.catalogId === line.priceCatalogId && price.variantId === line.priceVariantId)
           : project.prices.find((price) => price.materialCode === material.materialCode && !price.catalogId);
+        const currentMaterial = model?.materials.find((item) => item.code === material.materialCode);
+        const displayName = currentMaterial?.name ?? material.name;
+        const detail = line.priceCatalogId ? budgetDetails?.get(line.priceCatalogId) : undefined;
+        const variant = detail?.variants.find((item) => item.id === line.priceVariantId);
+        const materialKey = `${displayName.trim().toLocaleLowerCase("id-ID")}|${material.unit.trim().toLocaleLowerCase("id-ID")}`;
+        const mapping = detail?.mappings.find((item) => item.active && item.materialKey === materialKey);
+        const mappedComponent = mapping?.componentId ? detail?.components.find((component) => component.id === mapping.componentId) : undefined;
+        const currentMasterPrice = variant && mappedComponent ? mappedComponent.prices[variant.key]?.amount ?? null : null;
+        const resolvedUnitPrice = typeof linePrice?.unitPrice === "number" && Number.isFinite(linePrice.unitPrice) ? linePrice.unitPrice : currentMasterPrice;
+        const printedName = mappedComponent?.category.toLocaleLowerCase("id-ID") === "aksesori" ? mappedComponent.label : displayName;
         const key = `${groupCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}`;
         const previous = materialTotals.get(key);
         if (previous) {
@@ -118,10 +128,10 @@ export function ProjectPrintPage() {
           groupCode,
           type,
           materialCode: material.materialCode,
-          name: material.name,
+          name: printedName,
           unit: material.unit,
           quantity: material.quantity * line.count,
-          unitPrice: linePrice?.unitPrice ?? null,
+          unitPrice: resolvedUnitPrice,
           priceSource: line.priceCatalogId
             ? `${catalogNames.get(line.priceCatalogId) ?? "Master Harga"}${budgetDetails?.get(line.priceCatalogId)?.variants.find((variant) => variant.id === line.priceVariantId)?.label ? ` · ${budgetDetails.get(line.priceCatalogId)?.variants.find((variant) => variant.id === line.priceVariantId)?.label}` : ""}`
             : "Harga manual",
