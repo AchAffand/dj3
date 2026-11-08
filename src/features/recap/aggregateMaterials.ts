@@ -59,7 +59,12 @@ export function aggregateMaterials(
         expressionSnapshot: material.expressionSnapshot ?? null,
         componentId: material.componentId ?? null,
         priceSourceLabel: material.priceSourceLabel ?? "Harga manual",
-        configuredPrice: Object.hasOwn(prices, priceKey) ? prices[priceKey] : material.unitPrice,
+        // Older project snapshots can contain an explicit NULL from when a master-price
+        // mapping was missing. Treat that as "no saved override" and fall back to the
+        // currently resolved master price. A real numeric project override still wins.
+        configuredPrice: typeof prices[priceKey] === "number" && Number.isFinite(prices[priceKey])
+          ? prices[priceKey]
+          : material.unitPrice,
       });
     }
   }
