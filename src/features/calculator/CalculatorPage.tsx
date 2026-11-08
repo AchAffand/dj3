@@ -133,6 +133,9 @@ export function CalculatorPage() {
         const accessoryColumn = typeof accessoryColumnValue === "number"
           ? excelColumnFromNumber(accessoryColumnValue)
           : accessoryPriceOptions(detail, material.name)[0]?.sourceColumn ?? null;
+        const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
+          ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
+          : null;
         const mapped = budgetPriceForMaterial(
           detail,
           material.materialCode,
@@ -143,6 +146,7 @@ export function CalculatorPage() {
             ? doorLeafColumn
             : null,
           accessoryColumn,
+          /^jendela$/i.test(material.name.trim()) ? windowColumn : null,
         );
         const variant = detail?.variants.find((item) => item.id === line.priceVariantId);
         return {
