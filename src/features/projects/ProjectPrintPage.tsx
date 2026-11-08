@@ -5,6 +5,7 @@ import { formatQuantity, formatRupiah } from "../../app/format";
 import { modelGroupLabel } from "../../domain/catalog/types";
 import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
+import { budgetPriceForMaterial, excelColumnFromNumber } from "../../domain/budgets/pricing";
 
 const defaultNotes = [
   "Hitungan disesuaikan dengan note pekerjaan di desain rencana",
@@ -116,10 +117,21 @@ export function ProjectPrintPage() {
         const materialKey = `${displayName.trim().toLocaleLowerCase("id-ID")}|${material.unit.trim().toLocaleLowerCase("id-ID")}`;
         const mapping = detail?.mappings.find((item) => item.active && item.materialKey === materialKey);
         const mappedComponent = mapping?.componentId ? detail?.components.find((component) => component.id === mapping.componentId) : undefined;
-        const currentMasterPrice = variant && mappedComponent ? mappedComponent.prices[variant.key]?.amount ?? null : null;
+        const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
+          ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
+          : null;
+        const selectedWindowPrice = /^jendela$/i.test(displayName.trim()) && windowColumn
+          ? budgetPriceForMaterial(detail, material.materialCode, displayName, material.unit, line.priceVariantId, null, null, windowColumn)
+          : null;
+        const selectedWindowComponent = windowColumn
+          ? detail?.components.find((component) => component.sourceColumn === windowColumn)
+          : undefined;
+        const currentMasterPrice = selectedWindowPrice?.unitPrice
+          ?? (variant && mappedComponent ? mappedComponent.prices[variant.key]?.amount ?? null : null);
         const resolvedUnitPrice = typeof linePrice?.unitPrice === "number" && Number.isFinite(linePrice.unitPrice) ? linePrice.unitPrice : currentMasterPrice;
-        const printedName = mappedComponent?.category.toLocaleLowerCase("id-ID") === "aksesori" ? mappedComponent.label : displayName;
-        const key = `${groupCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}`;
+        const printedName = selectedWindowComponent?.label
+          ?? (mappedComponent?.category.toLocaleLowerCase("id-ID") === "aksesori" ? mappedComponent.label : displayName);
+        const key = `${groupCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}:${selectedWindowComponent?.id ?? ""}`;
         const previous = materialTotals.get(key);
         if (previous) {
           previous.quantity += material.quantity * line.count;
