@@ -27,6 +27,26 @@ describe("material recap", () => {
     expect(rows.map((row) => row.unit)).toEqual(["pcs", "m'"]);
   });
 
+  it("falls back to the resolved master price when an old project snapshot is explicitly null", () => {
+    const rows = aggregateMaterials([
+      { materials: [{
+        materialCode: 10105, name: "Engsel kupu", unit: "pcs", quantity: 2,
+        priceKey: "catalog:brown:10105", unitPrice: 55000,
+      }], modelCount: 1 },
+    ], { "catalog:brown:10105": null });
+    expect(rows[0]).toMatchObject({ unitPrice: 55000, subtotal: 110000 });
+  });
+
+  it("keeps a numeric saved project price ahead of the current master price", () => {
+    const rows = aggregateMaterials([
+      { materials: [{
+        materialCode: 10105, name: "Engsel kupu", unit: "pcs", quantity: 2,
+        priceKey: "catalog:brown:10105", unitPrice: 55000,
+      }], modelCount: 1 },
+    ], { "catalog:brown:10105": 60000 });
+    expect(rows[0]).toMatchObject({ unitPrice: 60000, subtotal: 120000 });
+  });
+
   it("marks an unset price distinctly instead of turning it into a zero price", () => {
     const rows = aggregateMaterials([
       { materials: [{ materialCode: 10101, name: "kusen", unit: "m'", quantity: 5.754 }], modelCount: 1 },
