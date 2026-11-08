@@ -38,7 +38,7 @@ begin
   from generate_series(
     1,
     coalesce((select max(position) from public.budget_catalogs where active), 0) + 1
-  ) as candidate
+  ) as series(candidate)
   where not exists (
     select 1 from public.budget_catalogs active_catalog
     where active_catalog.active and active_catalog.position = candidate
