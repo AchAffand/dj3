@@ -48,7 +48,7 @@ export function BudgetWorkspacePage() {
       setSelectedCatalogIds([]);
       setSelectionMode(false);
       setConfirmDeleteOpen(false);
-      setDeleteSuccess(`${selectedNames.length} merek berhasil dihapus dari daftar aktif.`);
+      setDeleteSuccess(`${selectedNames.length} merek berhasil diarsipkan dari daftar aktif.`);
       await load();
     } catch (cause) {
       setDeleteError(cause instanceof Error ? cause.message : "Merek yang dipilih gagal dihapus.");
@@ -74,8 +74,8 @@ export function BudgetWorkspacePage() {
   if (loading) return <AppPageState title="Memuat Master Harga" detail="Katalog dan perkiraan sedang dibuka." />;
   if (error) return <AppPageState title="Master Harga belum dapat dimuat" detail={error} tone="error" actionLabel="Coba lagi" onAction={() => void load()} />;
   return <section className="page-content">
-    <div className="page-heading-row"><div className="page-intro"><p className="eyebrow">ANGGARAN KUSEN</p><h1>Master Harga</h1><p className="page-description">Kelola tarif Excel, tentukan pemetaan item, lalu gunakan otomatis saat menghitung proyek kusen.</p></div>{isCatalogAdmin && <div className="budget-catalog-toolbar">{selectionMode && <button className="secondary-button" type="button" onClick={() => setSelectedCatalogIds(catalogs.filter((item) => item.slug !== "hpm-inka-dacon").map((item) => item.id))}>Pilih semua</button>}<button className="secondary-button" type="button" onClick={() => { setSelectionMode((current) => !current); setSelectedCatalogIds([]); setDeleteError(null); setDeleteSuccess(null); }}>{selectionMode ? "Batal pilih" : "Pilih untuk hapus"}</button><button className="primary-button" type="button" onClick={() => { setBrandError(null); setShowBrandForm(true); }}>+ Tambah Merk</button></div>}</div>
-    {selectionMode && <div className="budget-selection-toolbar"><span>{selectedCatalogIds.length} merek dipilih</span><button className="budget-bulk-delete-button" type="button" disabled={!selectedCatalogIds.length || deletingCatalogs} onClick={() => setConfirmDeleteOpen(true)}>{`Hapus Terpilih (${selectedCatalogIds.length})`}</button></div>}
+    <div className="page-heading-row"><div className="page-intro"><p className="eyebrow">ANGGARAN KUSEN</p><h1>Master Harga</h1><p className="page-description">Kelola tarif Excel, tentukan pemetaan item, lalu gunakan otomatis saat menghitung proyek kusen.</p></div>{isCatalogAdmin && <div className="budget-catalog-toolbar">{selectionMode && <button className="secondary-button" type="button" onClick={() => setSelectedCatalogIds(catalogs.filter((item) => item.slug !== "hpm-inka-dacon").map((item) => item.id))}>Pilih semua</button>}<button className="secondary-button" type="button" onClick={() => { setSelectionMode((current) => !current); setSelectedCatalogIds([]); setDeleteError(null); setDeleteSuccess(null); }}>{selectionMode ? "Batal pilih" : "Pilih untuk arsipkan"}</button><button className="primary-button" type="button" onClick={() => { setBrandError(null); setShowBrandForm(true); }}>+ Tambah Merk</button></div>}</div>
+    {selectionMode && <div className="budget-selection-toolbar"><span>{selectedCatalogIds.length} merek dipilih</span><button className="budget-bulk-delete-button" type="button" disabled={!selectedCatalogIds.length || deletingCatalogs} onClick={() => setConfirmDeleteOpen(true)}>{`Arsipkan Terpilih (${selectedCatalogIds.length})`}</button></div>}
     {deleteSuccess && <div className="notice-banner" role="status">{deleteSuccess}</div>}
     {deleteError && <div className="notice-banner error" role="alert">{deleteError}</div>}
     <div className="budget-catalog-grid">{catalogs.map((catalog) => <article className={`budget-catalog-card${selectionMode && selectedCatalogIds.includes(catalog.id) ? " is-selected" : ""}`} style={selectionMode && selectedCatalogIds.includes(catalog.id) ? { outline: "2px solid var(--color-primary, #2563eb)", outlineOffset: 2 } : undefined} key={catalog.id}>
@@ -86,13 +86,13 @@ export function BudgetWorkspacePage() {
     {confirmDeleteOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingCatalogs) setConfirmDeleteOpen(false); }}>
       <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-catalog-title">
         <p className="eyebrow">KONFIRMASI HAPUS</p>
-        <h2 id="confirm-delete-catalog-title">Hapus merek terpilih?</h2>
-        <p>Merek berikut akan dikeluarkan dari daftar Master Harga:</p>
+        <h2 id="confirm-delete-catalog-title">Arsipkan merek terpilih?</h2>
+        <p>Merek berikut akan disembunyikan dari daftar Master Harga aktif:</p>
         <ul className="budget-delete-list">{catalogs.filter((catalog) => selectedCatalogIds.includes(catalog.id)).map((catalog) => <li key={catalog.id}>{catalog.label}</li>)}</ul>
-        <p className="budget-delete-help">Katalog akan diarsipkan, bukan dihapus permanen. Riwayat perkiraan lama tetap aman. Template HPM / INKA / DACON dilindungi.</p>
+        <p className="budget-delete-help">Katalog hanya diarsipkan, bukan dihapus permanen. Riwayat perkiraan dan referensi proyek lama tetap aman. Nomor lembar yang sudah tidak aktif dapat digunakan kembali oleh merek baru. Template HPM / INKA / DACON dilindungi.</p>
         <div className="budget-modal-actions">
           <button className="secondary-button" type="button" disabled={deletingCatalogs} onClick={() => setConfirmDeleteOpen(false)}>Batal</button>
-          <button className="budget-bulk-delete-button" type="button" disabled={deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Menghapus…" : "Ya, hapus merek"}</button>
+          <button className="budget-bulk-delete-button" type="button" disabled={deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Menghapus…" : "Ya, arsipkan merek"}</button>
         </div>
       </div>
     </div>}
