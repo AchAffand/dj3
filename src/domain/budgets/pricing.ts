@@ -72,6 +72,7 @@ export function budgetPriceForMaterial(
   variantId: string | null | undefined,
   doorLeafSourceColumn?: string | null,
   accessorySourceColumn?: string | null,
+  windowSourceColumn?: string | null,
 ) {
   if (!detail || !variantId) return null;
   const mapping = detail.mappings.find((item) => item.materialKey === normalizeMaterialKey(name, unit) && item.active);
