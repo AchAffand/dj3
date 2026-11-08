@@ -128,7 +128,13 @@ export function ProjectPrintPage() {
           : undefined;
         const currentMasterPrice = selectedWindowPrice?.unitPrice
           ?? (variant && mappedComponent ? mappedComponent.prices[variant.key]?.amount ?? null : null);
-        const resolvedUnitPrice = typeof linePrice?.unitPrice === "number" && Number.isFinite(linePrice.unitPrice) ? linePrice.unitPrice : currentMasterPrice;
+        // A legacy project snapshot is keyed only by material/catalog/variant. For
+        // window components the line-level selection is authoritative, not that shared snapshot.
+        const resolvedUnitPrice = selectedWindowPrice
+          ? selectedWindowPrice.unitPrice
+          : typeof linePrice?.unitPrice === "number" && Number.isFinite(linePrice.unitPrice)
+            ? linePrice.unitPrice
+            : currentMasterPrice;
         const printedName = selectedWindowComponent?.label
           ?? (mappedComponent?.category.toLocaleLowerCase("id-ID") === "aksesori" ? mappedComponent.label : displayName);
         const key = `${groupCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}:${selectedWindowComponent?.id ?? ""}`;
