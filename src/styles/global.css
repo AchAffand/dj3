@@ -1562,7 +1562,7 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .quotation-table col:nth-child(5) { width: 8%; }
 .quotation-table col:nth-child(6) { width: 14%; }
 .quotation-table col:nth-child(7) { width: 13%; }
-.quotation-table th, .quotation-table td { padding: 3.5px 4px; border: 1px solid #555; overflow-wrap: anywhere; }
+.quotation-table th, .quotation-table td { text-transform: uppercase; padding: 3.5px 4px; border: 1px solid #555; overflow-wrap: anywhere; }
 .quotation-table thead { display: table-header-group; }
 .quotation-table thead th { background: #F2F2F2; text-align: center; font-size: 9px; font-weight: 700; }
 .quotation-table tbody td { text-align: right; vertical-align: top; }
@@ -1593,7 +1593,7 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .quotation-project-details .print-only { display: inline !important; overflow-wrap: anywhere; }
   .print-only { display: inline !important; }
   .quotation-table { font-size: 8.5px; }
-  .quotation-table th, .quotation-table td { padding: 2.8px 3px; }
+  .quotation-table th, .quotation-table td { text-transform: uppercase; padding: 2.8px 3px; }
   .quotation-table thead th { font-size: 8px; }
   .quotation-grand-total, .quotation-table tr { break-inside: avoid; page-break-inside: avoid; }
   .quotation-table-section { break-inside: auto; }
