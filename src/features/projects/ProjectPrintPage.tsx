@@ -27,6 +27,8 @@ export function ProjectPrintPage() {
   const [error, setError] = useState<string | null>(null);
   const [projectSequence, setProjectSequence] = useState<number | null>(null);
   const [letterDate, setLetterDate] = useState(todayForInput);
+  const [customerName, setCustomerName] = useState("");
+  const [projectLocation, setProjectLocation] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -40,6 +42,10 @@ export function ProjectPrintPage() {
     void Promise.all([repository.loadProject(projectId), repository.listProjects()]).then(([loaded, projects]) => {
       if (active) {
         setProject(loaded);
+        if (loaded) {
+          setCustomerName(loaded.name ?? "");
+          setProjectLocation(loaded.location ?? "");
+        }
         if (!loaded) {
           setError("Proyek tidak ditemukan atau tidak dapat dibuka.");
           return;
@@ -179,6 +185,18 @@ export function ProjectPrintPage() {
           <div className="quotation-top">
             <div className="quotation-brand">
               <img src="/dj3-engineering-letter-logo.jpg" alt="DJ3 Engineering" />
+              <div className="quotation-project-details">
+                <label>
+                  <span>Nama customer</span>
+                  <input aria-label="Nama customer" className="print-editable" value={customerName} onChange={(event) => setCustomerName(event.target.value)} />
+                  <span className="print-only">{customerName || "-"}</span>
+                </label>
+                <label>
+                  <span>Lokasi</span>
+                  <input aria-label="Lokasi proyek" className="print-editable" value={projectLocation} onChange={(event) => setProjectLocation(event.target.value)} />
+                  <span className="print-only">{projectLocation || "-"}</span>
+                </label>
+              </div>
             </div>
             <dl className="quotation-letter-meta">
               <div><dt>No</dt><dd><span aria-label="Nomor surat">{letterNumber}</span></dd></div>
