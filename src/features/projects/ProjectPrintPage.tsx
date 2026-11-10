@@ -29,6 +29,7 @@ export function ProjectPrintPage() {
   const [letterDate, setLetterDate] = useState(todayForInput);
   const [customerName, setCustomerName] = useState("");
   const [projectLocation, setProjectLocation] = useState("");
+  const [letterSubject, setLetterSubject] = useState("Penawaran Harga");
 
   useEffect(() => {
     let active = true;
@@ -207,6 +208,7 @@ export function ProjectPrintPage() {
             <dl className="quotation-letter-meta">
               <div><dt>No</dt><dd><span aria-label="Nomor surat">{letterNumber}</span></dd></div>
               <div><dt>Tanggal</dt><dd><input aria-label="Tanggal surat" type="date" className="print-editable date-editable" value={letterDate} onChange={(event) => setLetterDate(event.target.value)} /><span className="print-only">{formattedLetterDate}</span></dd></div>
+              <div><dt>Hal</dt><dd><input aria-label="Hal surat" className="print-editable subject-editable" value={letterSubject} onChange={(event) => setLetterSubject(event.target.value)} /><span className="print-only">{letterSubject || "-"}</span></dd></div>
             </dl>
           </div>
         </header>
