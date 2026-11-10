@@ -1540,24 +1540,16 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 }
 .project-report-orange-rule { position: absolute; inset: 0 auto 0 0; width: 7px; background: #F79436; }
 .quotation-header { padding: 0 0 9px; }
-.quotation-top { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; min-height: 150px; }
+.quotation-top { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; min-height: 82px; }
 .quotation-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; }
 .quotation-brand > img { display: block; width: 105px; height: 76px; object-fit: contain; object-position: left top; }
-.quotation-recipient { display: grid; gap: 3px; font-size: 10px; line-height: 1.25; }
-.quotation-recipient > div { margin-bottom: 1px; }
-.quotation-letter-meta { display: grid; align-content: start; gap: 5px; margin: 38px 0 0; font-size: 10px; }
+.quotation-letter-meta { display: grid; align-content: start; gap: 5px; margin: 0; font-size: 10px; }
 .quotation-letter-meta > div { display: grid; grid-template-columns: 58px 1fr; gap: 4px; align-items: baseline; }
 .quotation-letter-meta dt, .quotation-letter-meta dd { margin: 0; }
 .quotation-letter-meta dd { display: flex; gap: 4px; align-items: baseline; }
 .quotation-letter-meta dd::before { content: ":"; }
 .print-editable { min-width: 0; width: 100%; padding: 0; border: 0; border-bottom: 1px dotted #B8B8B8; border-radius: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
 .print-editable:focus { border-bottom-color: #F79436; }
-.quotation-intro { display: grid; gap: 5px; margin-top: 3px; font-size: 10px; line-height: 1.4; }
-.quotation-intro p { margin: 0; }
-.quotation-work-title { width: 100%; margin-bottom: 1px; font-weight: 700; font-size: 11px; }
-.quotation-work-subtitle { flex: 1; min-width: 0; margin-top: 0; color: #0875C9; font-style: italic; font-weight: 700; font-size: 10px; }
-.quotation-customer { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; font-size: 10px; }
-.quotation-customer > strong { white-space: nowrap; }
 .quotation-table-section { margin-top: 0; }
 .quotation-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #333; font-size: 9px; }
 .quotation-table col:nth-child(1) { width: 14%; }
@@ -1575,16 +1567,6 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .quotation-table tbody td:nth-child(5) { text-align: center; }
 .quotation-table tbody td small { display: block; margin-top: 2px; font-size: 7px; font-style: italic; }
 .quotation-grand-total th { background: #F2F2F2; text-align: right; font-size: 9px; font-weight: 700; }
-.quotation-closing { position: relative; min-height: 280px; padding-top: 16px; font-size: 9px; line-height: 1.45; }
-.quotation-closing > p { margin: 0 0 15px; }
-.quotation-notes strong { display: block; margin-bottom: 3px; }
-.quotation-notes ol { margin: 0; padding-left: 18px; }
-.quotation-notes li { padding-left: 1px; margin: 1px 0; }
-.quotation-signature { width: 180px; margin: 24px 0 0 auto; text-align: center; font-size: 9px; }
-.quotation-signature p { margin: 0; }
-.quotation-signature-space { height: 68px; }
-.quotation-signatory { text-align: center; font-weight: 700; }
-.quotation-footer-line { position: absolute; right: 0; bottom: 0; left: -20px; height: 3px; background: #D71920; }
 .print-only { display: none; }
 @page { size: A4 portrait; margin: 12mm 12mm 13mm 16mm; }
 @media print {
@@ -1608,8 +1590,6 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .quotation-table thead th { font-size: 8px; }
   .quotation-grand-total, .quotation-table tr { break-inside: avoid; page-break-inside: avoid; }
   .quotation-table-section { break-inside: auto; }
-  .quotation-closing { min-height: 270px; break-inside: avoid; page-break-inside: avoid; }
-  .quotation-footer-line { position: fixed; bottom: 0; left: 0; }
   .report-warning { font-size: 7px; }
 }
 @media (max-width: 680px) {
