@@ -29,6 +29,7 @@ export function ProjectPrintPage() {
   const [letterDate, setLetterDate] = useState(todayForInput);
   const [customerName, setCustomerName] = useState("");
   const [projectLocation, setProjectLocation] = useState("");
+  const [quotationNumber, setQuotationNumber] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -175,7 +176,7 @@ export function ProjectPrintPage() {
 
   const projectCreatedAt = project.createdAt ?? letterDate;
   const projectCreatedDate = new Date(projectCreatedAt);
-  const letterNumber = String(projectSequence ?? 1001) + "/DJ3/" + romanMonth(projectCreatedAt) + "/" + (Number.isNaN(projectCreatedDate.getTime()) ? new Date().getFullYear() : projectCreatedDate.getFullYear());
+  const generatedQuotationNumber = String(projectSequence ?? 1001) + "/DJ3/" + romanMonth(projectCreatedAt) + "/" + (Number.isNaN(projectCreatedDate.getTime()) ? new Date().getFullYear() : projectCreatedDate.getFullYear());
 
   return (
     <section className="page-content project-print-page">
@@ -205,9 +206,8 @@ export function ProjectPrintPage() {
               </div>
             </div>
             <dl className="quotation-letter-meta">
-              <div><dt>No</dt><dd><span aria-label="Nomor surat">{letterNumber}</span></dd></div>
+              <div><dt>No</dt><dd><input aria-label="Nomor penawaran" className="print-editable quotation-number-editable" value={quotationNumber ?? generatedQuotationNumber} onChange={(event) => setQuotationNumber(event.target.value)} /><span className="print-only">{quotationNumber ?? generatedQuotationNumber}</span></dd></div>
               <div><dt>Tanggal</dt><dd><input aria-label="Tanggal surat" type="date" className="print-editable date-editable" value={letterDate} onChange={(event) => setLetterDate(event.target.value)} /><span className="print-only">{formattedLetterDate}</span></dd></div>
-              <div><dt>Hal</dt><dd><span aria-label="Halaman">1</span></dd></div>
             </dl>
           </div>
         </header>
@@ -222,20 +222,33 @@ export function ProjectPrintPage() {
             </thead>
             <tbody>
               {recap.length ? recap.map((row, index) => {
-                const isFirstRowOfModel = index === 0
-                  || recap[index - 1].groupCode !== row.groupCode
-                  || recap[index - 1].modelCodes[0] !== row.modelCodes[0];
+                const groupKey = `${row.groupCode}:${row.modelCodes[0]}`;
+                const previousGroupKey = index > 0 ? `${recap[index - 1].groupCode}:${recap[index - 1].modelCodes[0]}` : null;
+                const nextGroupKey = index < recap.length - 1 ? `${recap[index + 1].groupCode}:${recap[index + 1].modelCodes[0]}` : null;
+                const isFirstRowOfModel = groupKey !== previousGroupKey;
+                const isLastRowOfModel = groupKey !== nextGroupKey;
+                const typeSubtotal = isLastRowOfModel
+                  ? recap.filter((item) => item.groupCode === row.groupCode && item.modelCodes[0] === row.modelCodes[0])
+                    .reduce((sum, item) => sum + (item.subtotal ?? 0), 0)
+                  : null;
                 return (
-                <tr key={`${row.groupCode}-${row.modelCodes[0]}-${row.materialCode}-${row.unit}-${index}`}>
-                  <td>{isFirstRowOfModel ? (row.type === "LAINNYA" ? "Lain-lain" : row.type.charAt(0) + row.type.slice(1).toLowerCase()) : ""}</td>
-                  <td>{row.name}</td>
-                  <td>{formatQuantity(row.quantity)}</td>
-                  <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
-                  <td>{row.unit}</td>
-                  <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
-                  <td />
-                </tr>
-              );}) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
+                  <>
+                    <tr key={`${row.groupCode}-${row.modelCodes[0]}-${row.materialCode}-${row.unit}-${index}`}>
+                      <td>{isFirstRowOfModel ? (row.type === "LAINNYA" ? "Lain-lain" : row.type.charAt(0) + row.type.slice(1).toLowerCase()) : ""}</td>
+                      <td>{row.name}</td>
+                      <td>{formatQuantity(row.quantity)}</td>
+                      <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
+                      <td>{row.unit}</td>
+                      <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
+                      <td />
+                    </tr>
+                    {isLastRowOfModel && <tr key={`subtotal-${groupKey}`} className="quotation-type-subtotal">
+                      <th colSpan={5}>SUBTOTAL {row.type === "LAINNYA" ? "LAIN-LAIN" : row.type}</th>
+                      <th>{formatRupiah(typeSubtotal ?? 0)}</th>
+                      <th />
+                    </tr>}
+                  </>
+                );}) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
               <tr className="quotation-grand-total">
                 <th colSpan={6}>GRAND TOTAL</th>
                 <th>{formatRupiah(total)}</th>
