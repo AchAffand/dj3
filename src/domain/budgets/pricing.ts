@@ -17,6 +17,16 @@ export function normalizeMaterialDisplayName(name: string): string {
   return name.trim().replace(/\s+/g, " ");
 }
 
+export function isDoorLeafMaterial(material: { name: string; unit: string; expression?: string | null }): boolean {
+  const name = material.name.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+  const unit = material.unit.normalize("NFKC").trim().toLocaleLowerCase("id-ID");
+  if (/^daun pintu$/.test(name) && ["unit", "daun"].includes(unit)) return true;
+  // Some models label the leaf material simply "Pintu" (unit: set).
+  // Only treat it as a leaf selector when its formula explicitly uses daunPintu;
+  // linear-meter door-frame formulas remain untouched.
+  return name === "pintu" && ["set", "unit", "daun"].includes(unit) && /\\bdaunPintu\\b/i.test(material.expression ?? "");
+}
+
 export function excelColumnToNumber(column: string): number {
   let result = 0;
   for (const char of column.toUpperCase()) {
