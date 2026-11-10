@@ -7,18 +7,6 @@ import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
 import { budgetPriceForMaterial, excelColumnFromNumber } from "../../domain/budgets/pricing";
 
-const defaultNotes = [
-  "Hitungan disesuaikan dengan note pekerjaan di desain rencana",
-  "Detail bahan disesuaikan dengan note customer",
-  "Belum termasuk pengadaan listrik kerja dan biaya pasang atau penyambungan PLN",
-  "Belum termasuk pengadaan air untuk tenaga kerja (bersih-bersih dan mandi)",
-  "Sudah termasuk pembersihan, mobilisasi dan demobilisasi",
-  "Harga termasuk material dan pemasangan",
-  "Harga dapat berubah apabila ada perubahan atau tambahan di luar item di atas",
-  "Apabila telah melakukan DP dan terjadi pembatalan secara sepihak maka tidak dapat refund dan dianggap biaya 100%",
-  "Penawaran berlaku selama 7 hari sejak tanggal diterbitkan, mohon segera konfirmasi untuk menjaga kesesuaian harga",
-];
-
 function romanMonth(dateValue?: string) {
   const date = dateValue ? new Date(dateValue) : new Date();
   const month = Number.isNaN(date.getTime()) ? new Date().getMonth() + 1 : date.getMonth() + 1;
@@ -39,10 +27,6 @@ export function ProjectPrintPage() {
   const [error, setError] = useState<string | null>(null);
   const [projectSequence, setProjectSequence] = useState<number | null>(null);
   const [letterDate, setLetterDate] = useState(todayForInput);
-  const [letterSubject, setLetterSubject] = useState("Surat penawaran");
-  const [workTitle, setWorkTitle] = useState("RENOVASI RUMAH TINGGAL");
-  const [customerName, setCustomerName] = useState("");
-  const [signatory, setSignatory] = useState("Bagus Satrio S.T");
 
   useEffect(() => {
     let active = true;
@@ -166,24 +150,6 @@ export function ProjectPrintPage() {
       }));
   }, [budgetCatalogs, budgetDetails, catalog, project]);
 
-  const sections = useMemo(() => {
-    const grouped = new Map<number, { type: string; rows: typeof recap }>();
-    for (const row of recap) {
-      const group = grouped.get(row.groupCode);
-      if (group) group.rows.push(row);
-      else grouped.set(row.groupCode, { type: row.type, rows: [row] });
-    }
-    return [...grouped.entries()].map(([groupCode, group], index) => ({
-      groupCode,
-      letter: String.fromCharCode(65 + index),
-      title: group.type === "LAINNYA" ? "Lain-lain" : group.type.charAt(0) + group.type.slice(1).toLowerCase(),
-      rows: group.rows,
-      subtotal: group.rows.some((row) => row.subtotal === null)
-        ? null
-        : group.rows.reduce((sum, row) => sum + (row.subtotal ?? 0), 0),
-    }));
-  }, [recap]);
-
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
   const missingPriceCount = recap.filter((row) => row.unitPrice === null).length;
   const formattedLetterDate = letterDate
@@ -213,89 +179,45 @@ export function ProjectPrintPage() {
           <div className="quotation-top">
             <div className="quotation-brand">
               <img src="/dj3-engineering-letter-logo.jpg" alt="DJ3 Engineering" />
-              <div className="quotation-recipient">
-                <div>Kepada Yth,</div>
-                <div>{project.name}</div>
-                {project.location && <div>{project.location}</div>}
-              </div>
             </div>
             <dl className="quotation-letter-meta">
               <div><dt>No</dt><dd><span aria-label="Nomor surat">{letterNumber}</span></dd></div>
               <div><dt>Tanggal</dt><dd><input aria-label="Tanggal surat" type="date" className="print-editable date-editable" value={letterDate} onChange={(event) => setLetterDate(event.target.value)} /><span className="print-only">{formattedLetterDate}</span></dd></div>
-              <div><dt>Hal</dt><dd><input aria-label="Perihal surat" className="print-editable" value={letterSubject} onChange={(event) => setLetterSubject(event.target.value)} /></dd></div>
             </dl>
-          </div>
-          <div className="quotation-intro">
-            <input aria-label="Judul penawaran" className="print-editable quotation-work-title" value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} />
-            <p>Dengan hormat,</p>
-            <p>Bersama surat penawaran ini kami dari CV. DJ3 Engineering bermaksud menawarkan jasa konstruksi / pembangunan<br className="quotation-desktop-break" /> di Instansi Bapak / Ibu Pimpin.</p>
-            <div className="quotation-customer"><strong>Nama Customer:</strong><input aria-label="Nama customer" className="print-editable quotation-work-subtitle" value={customerName} onChange={(event) => setCustomerName(event.target.value)} /></div>
           </div>
         </header>
 
         <section className="quotation-table-section" aria-label="Rencana anggaran biaya proyek">
           <table className="quotation-table">
             <colgroup><col /><col /><col /><col /><col /><col /><col /></colgroup>
-            <thead><tr><th>NO</th><th>ITEM</th><th>QTY</th><th>SATUAN</th><th>HARSAT</th><th>SUBTOTAL</th><th>KETERANGAN</th></tr></thead>
+            <thead>
+              <tr>
+                <th>TYPE</th><th>ITEM</th><th>QTY</th><th>HARGA SAT</th><th>SATUAN</th><th>SUB TOTAL</th><th>GRAND TOTAL</th>
+              </tr>
+            </thead>
             <tbody>
-              {sections.length ? sections.map((section) => (
-                <FragmentSection key={section.groupCode} letter={section.letter} title={section.title} rows={section.rows} subtotal={section.subtotal} />
+              {recap.length ? recap.map((row, index) => (
+                <tr key={`${row.groupCode}-${row.materialCode}-${row.unit}-${index}`}>
+                  <td>{row.type === "LAINNYA" ? "Lain-lain" : row.type.charAt(0) + row.type.slice(1).toLowerCase()}</td>
+                  <td>{row.name}{row.doorLeafType ? <small>{row.doorLeafType}</small> : null}</td>
+                  <td>{formatQuantity(row.quantity)}</td>
+                  <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
+                  <td>{row.unit}</td>
+                  <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
+                  <td />
+                </tr>
               )) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
-              <tr className="quotation-grand-total"><td colSpan={5} /><th colSpan={2}>TOTAL <strong>{formatRupiah(total)}</strong></th></tr>
+              <tr className="quotation-grand-total">
+                <th colSpan={6}>GRAND TOTAL</th>
+                <th>{formatRupiah(total)}</th>
+              </tr>
             </tbody>
           </table>
           {missingPriceCount > 0 && <p className="report-warning">{missingPriceCount} harga satuan belum diisi; total sementara hanya menjumlahkan item yang memiliki harga.</p>}
         </section>
 
-        <footer className="quotation-closing">
-          <p>Demikian penawaran harga yang kami sampaikan, atas perhatianya kami ucapkan terima kasih.</p>
-          <div className="quotation-notes">
-            <strong>NB:</strong>
-            <ol>{defaultNotes.map((note) => <li key={note}>{note}</li>)}</ol>
-          </div>
-          <div className="quotation-signature">
-            <p>Hormat kami,</p>
-            <div className="quotation-signature-space" />
-            <input aria-label="Nama penandatangan" className="print-editable quotation-signatory" value={signatory} onChange={(event) => setSignatory(event.target.value)} />
-          </div>
-          <div className="quotation-footer-line" />
-        </footer>
       </article>
     </section>
   );
 }
 
-type RecapRow = {
-  materialCode: number;
-  name: string;
-  unit: string;
-  quantity: number;
-  unitPrice: number | null;
-  subtotal: number | null;
-  modelCodes: number[];
-  doorLeafType: string | null;
-}
-function FragmentSection({ letter, title, rows, subtotal }: {
-  letter: string;
-  title: string;
-  rows: RecapRow[];
-  subtotal: number | null;
-}) {
-  return (
-    <>
-      <tr className="quotation-section-heading"><th colSpan={7}>{letter}. Pekerjaan {title}</th></tr>
-      {rows.map((row, index) => (
-        <tr key={`${row.materialCode}-${row.unit}-${index}`}>
-          <td>{index + 1}</td>
-          <td>{row.name}{row.doorLeafType ? <small>{row.doorLeafType}</small> : null}</td>
-          <td>{formatQuantity(row.quantity)}</td>
-          <td>{row.unit}</td>
-          <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
-          <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
-          <td>{row.doorLeafType ?? "-"}</td>
-        </tr>
-      ))}
-      <tr className="quotation-section-subtotal"><td colSpan={5} /><th colSpan={2}>{subtotal === null ? "Sebagian harga belum diisi" : formatRupiah(subtotal)}</th></tr>
-    </>
-  );
-}
