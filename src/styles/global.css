@@ -1541,7 +1541,10 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .project-report-orange-rule { position: absolute; inset: 0 auto 0 0; width: 7px; background: #F79436; }
 .quotation-header { padding: 0 0 9px; }
 .quotation-top { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; min-height: 82px; }
-.quotation-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; }
+.quotation-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+.quotation-project-details { display: grid; gap: 4px; width: 100%; max-width: 245px; font-size: 9px; }
+.quotation-project-details > label { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 5px; align-items: baseline; }
+.quotation-project-details .print-only { display: none; }
 .quotation-brand > img { display: block; width: 105px; height: 76px; object-fit: contain; object-position: left top; }
 .quotation-letter-meta { display: grid; align-content: start; gap: 5px; margin: 0; font-size: 10px; }
 .quotation-letter-meta > div { display: grid; grid-template-columns: 58px 1fr; gap: 4px; align-items: baseline; }
@@ -1583,7 +1586,8 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .project-report::before { position: fixed; inset: 0; background-position: center center; background-size: 62% auto; opacity: .055; }
   .project-report-orange-rule { position: fixed; top: 0; bottom: 0; left: 0; width: 2mm; }
   .print-editable { border: 0 !important; box-shadow: none !important; }
-  .date-editable { display: none !important; }
+  .date-editable, .quotation-project-details .print-editable { display: none !important; }
+  .quotation-project-details .print-only { display: inline !important; overflow-wrap: anywhere; }
   .print-only { display: inline !important; }
   .quotation-table { font-size: 8.5px; }
   .quotation-table th, .quotation-table td { padding: 2.8px 3px; }
