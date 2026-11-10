@@ -7,18 +7,6 @@ import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
 import { budgetPriceForMaterial, excelColumnFromNumber } from "../../domain/budgets/pricing";
 
-const defaultNotes = [
-  "Hitungan disesuaikan dengan note pekerjaan di desain rencana",
-  "Detail bahan disesuaikan dengan note customer",
-  "Belum termasuk pengadaan listrik kerja dan biaya pasang atau penyambungan PLN",
-  "Belum termasuk pengadaan air untuk tenaga kerja (bersih-bersih dan mandi)",
-  "Sudah termasuk pembersihan, mobilisasi dan demobilisasi",
-  "Harga termasuk material dan pemasangan",
-  "Harga dapat berubah apabila ada perubahan atau tambahan di luar item di atas",
-  "Apabila telah melakukan DP dan terjadi pembatalan secara sepihak maka tidak dapat refund dan dianggap biaya 100%",
-  "Penawaran berlaku selama 7 hari sejak tanggal diterbitkan, mohon segera konfirmasi untuk menjaga kesesuaian harga",
-];
-
 function romanMonth(dateValue?: string) {
   const date = dateValue ? new Date(dateValue) : new Date();
   const month = Number.isNaN(date.getTime()) ? new Date().getMonth() + 1 : date.getMonth() + 1;
@@ -39,10 +27,6 @@ export function ProjectPrintPage() {
   const [error, setError] = useState<string | null>(null);
   const [projectSequence, setProjectSequence] = useState<number | null>(null);
   const [letterDate, setLetterDate] = useState(todayForInput);
-  const [letterSubject, setLetterSubject] = useState("Surat penawaran");
-  const [workTitle, setWorkTitle] = useState("RENOVASI RUMAH TINGGAL");
-  const [customerName, setCustomerName] = useState("");
-  const [signatory, setSignatory] = useState("Bagus Satrio S.T");
 
   useEffect(() => {
     let active = true;
@@ -195,23 +179,11 @@ export function ProjectPrintPage() {
           <div className="quotation-top">
             <div className="quotation-brand">
               <img src="/dj3-engineering-letter-logo.jpg" alt="DJ3 Engineering" />
-              <div className="quotation-recipient">
-                <div>Kepada Yth,</div>
-                <div>{project.name}</div>
-                {project.location && <div>{project.location}</div>}
-              </div>
             </div>
             <dl className="quotation-letter-meta">
               <div><dt>No</dt><dd><span aria-label="Nomor surat">{letterNumber}</span></dd></div>
               <div><dt>Tanggal</dt><dd><input aria-label="Tanggal surat" type="date" className="print-editable date-editable" value={letterDate} onChange={(event) => setLetterDate(event.target.value)} /><span className="print-only">{formattedLetterDate}</span></dd></div>
-              <div><dt>Hal</dt><dd><input aria-label="Perihal surat" className="print-editable" value={letterSubject} onChange={(event) => setLetterSubject(event.target.value)} /></dd></div>
             </dl>
-          </div>
-          <div className="quotation-intro">
-            <input aria-label="Judul penawaran" className="print-editable quotation-work-title" value={workTitle} onChange={(event) => setWorkTitle(event.target.value)} />
-            <p>Dengan hormat,</p>
-            <p>Bersama surat penawaran ini kami dari CV. DJ3 Engineering bermaksud menawarkan jasa konstruksi / pembangunan<br className="quotation-desktop-break" /> di Instansi Bapak / Ibu Pimpin.</p>
-            <div className="quotation-customer"><strong>Nama Customer:</strong><input aria-label="Nama customer" className="print-editable quotation-work-subtitle" value={customerName} onChange={(event) => setCustomerName(event.target.value)} /></div>
           </div>
         </header>
 
@@ -244,19 +216,6 @@ export function ProjectPrintPage() {
           {missingPriceCount > 0 && <p className="report-warning">{missingPriceCount} harga satuan belum diisi; total sementara hanya menjumlahkan item yang memiliki harga.</p>}
         </section>
 
-        <footer className="quotation-closing">
-          <p>Demikian penawaran harga yang kami sampaikan, atas perhatianya kami ucapkan terima kasih.</p>
-          <div className="quotation-notes">
-            <strong>NB:</strong>
-            <ol>{defaultNotes.map((note) => <li key={note}>{note}</li>)}</ol>
-          </div>
-          <div className="quotation-signature">
-            <p>Hormat kami,</p>
-            <div className="quotation-signature-space" />
-            <input aria-label="Nama penandatangan" className="print-editable quotation-signatory" value={signatory} onChange={(event) => setSignatory(event.target.value)} />
-          </div>
-          <div className="quotation-footer-line" />
-        </footer>
       </article>
     </section>
   );
