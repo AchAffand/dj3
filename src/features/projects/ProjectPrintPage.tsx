@@ -207,6 +207,7 @@ export function ProjectPrintPage() {
             <dl className="quotation-letter-meta">
               <div><dt>No</dt><dd><span aria-label="Nomor surat">{letterNumber}</span></dd></div>
               <div><dt>Tanggal</dt><dd><input aria-label="Tanggal surat" type="date" className="print-editable date-editable" value={letterDate} onChange={(event) => setLetterDate(event.target.value)} /><span className="print-only">{formattedLetterDate}</span></dd></div>
+              <div><dt>Hal</dt><dd><span aria-label="Halaman">1</span></dd></div>
             </dl>
           </div>
         </header>
