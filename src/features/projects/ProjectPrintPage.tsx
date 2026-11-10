@@ -262,13 +262,3 @@ export function ProjectPrintPage() {
   );
 }
 
-type RecapRow = {
-  materialCode: number;
-  name: string;
-  unit: string;
-  quantity: number;
-  unitPrice: number | null;
-  subtotal: number | null;
-  modelCodes: number[];
-  doorLeafType: string | null;
-}
