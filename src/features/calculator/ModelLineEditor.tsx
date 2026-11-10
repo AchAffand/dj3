@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, isDoorLeafMaterial, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -138,7 +138,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                 {line.priceCatalogId && model.materials.some((material) => /doorcloser/i.test(material.name)) && (
                   <p className="empty-inline">Harga Doorcloser belum tersedia di Master Harga HPM / INKA / DACON. Harga dapat diisi manual pada Rekap Material sampai item dan harga Doorcloser ditambahkan ke master.</p>
                 )}
-                {line.priceCatalogId && model.materials.some((material) => /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
+                {line.priceCatalogId && model.materials.some(isDoorLeafMaterial) && (() => {
                   const options = (budgetDetails.get(line.priceCatalogId)?.components ?? [])
                     .filter((component) => /^[R-X]$/.test(component.sourceColumn))
                     .sort((a, b) => a.position - b.position);
