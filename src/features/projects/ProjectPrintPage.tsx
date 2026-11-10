@@ -166,24 +166,6 @@ export function ProjectPrintPage() {
       }));
   }, [budgetCatalogs, budgetDetails, catalog, project]);
 
-  const sections = useMemo(() => {
-    const grouped = new Map<number, { type: string; rows: typeof recap }>();
-    for (const row of recap) {
-      const group = grouped.get(row.groupCode);
-      if (group) group.rows.push(row);
-      else grouped.set(row.groupCode, { type: row.type, rows: [row] });
-    }
-    return [...grouped.entries()].map(([groupCode, group], index) => ({
-      groupCode,
-      letter: String.fromCharCode(65 + index),
-      title: group.type === "LAINNYA" ? "Lain-lain" : group.type.charAt(0) + group.type.slice(1).toLowerCase(),
-      rows: group.rows,
-      subtotal: group.rows.some((row) => row.subtotal === null)
-        ? null
-        : group.rows.reduce((sum, row) => sum + (row.subtotal ?? 0), 0),
-    }));
-  }, [recap]);
-
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
   const missingPriceCount = recap.filter((row) => row.unitPrice === null).length;
   const formattedLetterDate = letterDate
@@ -236,12 +218,27 @@ export function ProjectPrintPage() {
         <section className="quotation-table-section" aria-label="Rencana anggaran biaya proyek">
           <table className="quotation-table">
             <colgroup><col /><col /><col /><col /><col /><col /><col /></colgroup>
-            <thead><tr><th>NO</th><th>ITEM</th><th>QTY</th><th>SATUAN</th><th>HARSAT</th><th>SUBTOTAL</th><th>KETERANGAN</th></tr></thead>
+            <thead>
+              <tr>
+                <th>TYPE</th><th>ITEM</th><th>QTY</th><th>HARGA SAT</th><th>SATUAN</th><th>SUB TOTAL</th><th>GRAND TOTAL</th>
+              </tr>
+            </thead>
             <tbody>
-              {sections.length ? sections.map((section) => (
-                <FragmentSection key={section.groupCode} letter={section.letter} title={section.title} rows={section.rows} subtotal={section.subtotal} />
+              {recap.length ? recap.map((row, index) => (
+                <tr key={`${row.groupCode}-${row.materialCode}-${row.unit}-${index}`}>
+                  <td>{row.type === "LAINNYA" ? "Lain-lain" : row.type.charAt(0) + row.type.slice(1).toLowerCase()}</td>
+                  <td>{row.name}{row.doorLeafType ? <small>{row.doorLeafType}</small> : null}</td>
+                  <td>{formatQuantity(row.quantity)}</td>
+                  <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
+                  <td>{row.unit}</td>
+                  <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
+                  <td />
+                </tr>
               )) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
-              <tr className="quotation-grand-total"><td colSpan={5} /><th colSpan={2}>TOTAL <strong>{formatRupiah(total)}</strong></th></tr>
+              <tr className="quotation-grand-total">
+                <th colSpan={6}>GRAND TOTAL</th>
+                <th>{formatRupiah(total)}</th>
+              </tr>
             </tbody>
           </table>
           {missingPriceCount > 0 && <p className="report-warning">{missingPriceCount} harga satuan belum diisi; total sementara hanya menjumlahkan item yang memiliki harga.</p>}
@@ -274,28 +271,4 @@ type RecapRow = {
   subtotal: number | null;
   modelCodes: number[];
   doorLeafType: string | null;
-}
-function FragmentSection({ letter, title, rows, subtotal }: {
-  letter: string;
-  title: string;
-  rows: RecapRow[];
-  subtotal: number | null;
-}) {
-  return (
-    <>
-      <tr className="quotation-section-heading"><th colSpan={7}>{letter}. Pekerjaan {title}</th></tr>
-      {rows.map((row, index) => (
-        <tr key={`${row.materialCode}-${row.unit}-${index}`}>
-          <td>{index + 1}</td>
-          <td>{row.name}{row.doorLeafType ? <small>{row.doorLeafType}</small> : null}</td>
-          <td>{formatQuantity(row.quantity)}</td>
-          <td>{row.unit}</td>
-          <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
-          <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
-          <td>{row.doorLeafType ?? "-"}</td>
-        </tr>
-      ))}
-      <tr className="quotation-section-subtotal"><td colSpan={5} /><th colSpan={2}>{subtotal === null ? "Sebagian harga belum diisi" : formatRupiah(subtotal)}</th></tr>
-    </>
-  );
 }
