@@ -200,8 +200,8 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .projects-empty p { max-width: 330px; margin: 7px 0 3px; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .print-actions { display: flex; justify-content: flex-end; gap: 9px; margin-bottom: 15px; }
 .print-actions .secondary-button { margin: 0; }
-.project-print-page { max-width: 980px; margin-inline: auto; }
-.project-report { position: relative; isolation: isolate; overflow: hidden; padding: 28px 30px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--shadow); }
+.project-print-page { width: 210mm; max-width: calc(100vw - 40px); min-height: 297mm; box-sizing: border-box; margin: 28px auto; }
+.project-report { position: relative; isolation: isolate; overflow: hidden; box-sizing: border-box; min-height: 297mm; padding: 14mm 12mm 13mm 16mm; border: 1px solid var(--line); border-radius: 2px; background: #fff; box-shadow: var(--shadow); }
 .project-report::before { position: absolute; z-index: -1; inset: 0; background-image: url("/dj3-engineering-logo.png"); background-repeat: no-repeat; background-position: center 54%; background-size: min(68%, 520px) auto; content: ""; opacity: .075; pointer-events: none; }
 .project-report > * { position: relative; z-index: 1; }
 .project-estimate-title { justify-content: center; min-height: 54px; text-align: center; }
@@ -540,25 +540,27 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .avatar { margin-left: 3px; }
   .content-area { padding: 27px 17px 42px; }
 }
-@page { size: A4 portrait; margin: 14mm; }
+@page { size: A4 portrait; margin: 12mm; }
 @media print {
-  body { min-width: 0; background: #fff; }
-  .sidebar, .topbar, .print-actions { display: none !important; }
-  .main-area { margin: 0; }
-  .content-area { width: 100%; padding: 0; }
-  .project-print-page { width: 100%; max-width: none; margin: 0; }
-  .project-report { padding: 0; border: 0; border-radius: 0; box-shadow: none; }
-  .project-report-header { padding: 0 0 12px; border: 0; }
-  .excel-recap-title-row h1 { font-size: 14px; }
-  .excel-recap-meta-row { min-height: 72px; }
-  .excel-recap-table th, .excel-recap-table td { padding: 4px 5px; }
-  .report-section { break-inside: auto; }
-  .report-model { break-inside: avoid; }
-  .report-table tr { break-inside: avoid; }
-  .report-table-wrap { overflow: visible; }
-  .report-table { font-size: 9px; }
-  .report-table th, .report-table td { padding: 6px 5px; }
-  .project-report-footer { margin-top: 18px; }
+  html, body { width: 100%; min-width: 0; margin: 0 !important; background: #fff !important; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sidebar, .topbar, .print-actions, .mobile-nav-drawer, .mobile-nav-backdrop { display: none !important; }
+  .main-area { width: 100%; min-height: 0; margin: 0 !important; }
+  .content-area { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+  .project-print-page { width: 100% !important; max-width: none !important; min-height: 0 !important; margin: 0 !important; }
+  .project-report { width: 100%; min-height: 0; overflow: visible; padding: 0 0 0 7mm; border: 0; border-radius: 0; box-shadow: none; }
+  .project-report::before { position: fixed; inset: 0; background-position: center center; background-size: 62% auto; opacity: .055; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .project-report-orange-rule { position: fixed; top: 0; bottom: 0; left: 0; width: 2mm; }
+  .print-editable { border: 0 !important; box-shadow: none !important; }
+  .date-editable, .subject-editable, .quotation-project-details .print-editable { display: none !important; }
+  .quotation-project-details .print-only, .quotation-letter-meta .print-only { display: inline !important; overflow-wrap: anywhere; }
+  .print-only { display: inline !important; }
+  .quotation-table { font-size: 8.5px; }
+  .quotation-table th, .quotation-table td { padding: 3.2px 4px; }
+  .quotation-table thead th { font-size: 8px; }
+  .quotation-grand-total, .quotation-table tr { break-inside: avoid; page-break-inside: avoid; }
+  .quotation-table-section { break-inside: auto; }
+  .report-warning { font-size: 7px; }
 }
 
 /* DJ3 monochrome identity */
@@ -1547,7 +1549,7 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .quotation-project-details .print-only { display: none; }
 .quotation-brand > img { display: block; width: 105px; height: 76px; object-fit: contain; object-position: left top; }
 .quotation-letter-meta { display: grid; align-content: start; gap: 5px; margin: 0; font-size: 10px; }
-.quotation-letter-meta > div { display: grid; grid-template-columns: 58px 1fr; gap: 4px; align-items: baseline; }
+.quotation-letter-meta > div { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 4px; align-items: baseline; }
 .quotation-letter-meta dt, .quotation-letter-meta dd { margin: 0; }
 .quotation-letter-meta dd { display: flex; gap: 4px; align-items: baseline; }
 .quotation-letter-meta dd::before { content: ":"; }
