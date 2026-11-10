@@ -81,7 +81,7 @@ export function ProjectPrintPage() {
     for (const line of project.lines) {
       const model = catalog.get(line.modelCode);
       const groupCode = model?.groupCode ?? 0;
-      const type = modelGroupLabel(groupCode, model?.groupName).toUpperCase();
+      const type = `${modelGroupLabel(groupCode, model?.groupName).toUpperCase()} ${line.modelCode}`;
       const selectedDoorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
         ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
         : null;
@@ -121,7 +121,7 @@ export function ProjectPrintPage() {
             : currentMasterPrice;
         const printedName = selectedWindowComponent?.label
           ?? (mappedComponent?.category.toLocaleLowerCase("id-ID") === "aksesori" ? mappedComponent.label : displayName);
-        const key = `${groupCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}:${selectedWindowComponent?.id ?? ""}`;
+        const key = `${groupCode}:${line.modelCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}:${selectedWindowComponent?.id ?? ""}`;
         const previous = materialTotals.get(key);
         if (previous) {
           previous.quantity += material.quantity * line.count;
@@ -143,7 +143,7 @@ export function ProjectPrintPage() {
       }
     }
     return [...materialTotals.values()]
-      .sort((left, right) => left.groupCode - right.groupCode || left.materialCode - right.materialCode)
+      .sort((left, right) => left.groupCode - right.groupCode || left.modelCodes[0] - right.modelCodes[0] || left.materialCode - right.materialCode)
       .map((row) => ({
         ...row,
         subtotal: row.unitPrice === null ? null : Math.round(row.quantity * row.unitPrice * 100) / 100,
@@ -196,17 +196,21 @@ export function ProjectPrintPage() {
               </tr>
             </thead>
             <tbody>
-              {recap.length ? recap.map((row, index) => (
-                <tr key={`${row.groupCode}-${row.materialCode}-${row.unit}-${index}`}>
-                  <td>{row.type === "LAINNYA" ? "Lain-lain" : row.type.charAt(0) + row.type.slice(1).toLowerCase()}</td>
-                  <td>{row.name}{row.doorLeafType ? <small>{row.doorLeafType}</small> : null}</td>
+              {recap.length ? recap.map((row, index) => {
+                const isFirstRowOfModel = index === 0
+                  || recap[index - 1].groupCode !== row.groupCode
+                  || recap[index - 1].modelCodes[0] !== row.modelCodes[0];
+                return (
+                <tr key={`${row.groupCode}-${row.modelCodes[0]}-${row.materialCode}-${row.unit}-${index}`}>
+                  <td>{isFirstRowOfModel ? (row.type === "LAINNYA" ? "Lain-lain" : row.type.charAt(0) + row.type.slice(1).toLowerCase()) : ""}</td>
+                  <td>{row.name}</td>
                   <td>{formatQuantity(row.quantity)}</td>
                   <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
                   <td>{row.unit}</td>
                   <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
                   <td />
                 </tr>
-              )) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
+              );}) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
               <tr className="quotation-grand-total">
                 <th colSpan={6}>GRAND TOTAL</th>
                 <th>{formatRupiah(total)}</th>
