@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppPageState } from "../../app/AppPageState";
 import { formatQuantity, formatRupiah } from "../../app/format";
@@ -232,7 +232,7 @@ export function ProjectPrintPage() {
                     .reduce((sum, item) => sum + (item.subtotal ?? 0), 0)
                   : null;
                 return (
-                  <>
+                  <Fragment key={`type-group-${groupKey}`}>
                     <tr key={`${row.groupCode}-${row.modelCodes[0]}-${row.materialCode}-${row.unit}-${index}`}>
                       <td>{isFirstRowOfModel ? (row.type === "LAINNYA" ? "Lain-lain" : row.type.charAt(0) + row.type.slice(1).toLowerCase()) : ""}</td>
                       <td>{row.name}</td>
@@ -247,7 +247,7 @@ export function ProjectPrintPage() {
                       <th>{formatRupiah(typeSubtotal ?? 0)}</th>
                       <th />
                     </tr>}
-                  </>
+                  </Fragment>
                 );}) : <tr><td colSpan={7}>Belum ada rincian pekerjaan</td></tr>}
               <tr className="quotation-grand-total">
                 <th colSpan={6}>GRAND TOTAL</th>
