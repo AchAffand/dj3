@@ -10,7 +10,7 @@ import { aggregateMaterials } from "../recap/aggregateMaterials";
 import { MaterialRecap } from "../recap/MaterialRecap";
 import { createProjectService, type ProjectDraft, type ProjectLineDraft } from "../projects/projectService";
 import { ModelLineEditor } from "./ModelLineEditor";
-import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, normalizeMaterialDisplayName } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, isDoorLeafMaterial, normalizeMaterialDisplayName } from "../../domain/budgets/pricing";
 import type { BudgetCatalogDetail } from "../../domain/budgets/types";
 
 function makeLine(modelCode: number): ProjectLineDraft {
@@ -125,6 +125,7 @@ export function CalculatorPage() {
   const recap = useMemo(() => aggregateMaterials(
     draft.lines.map((line) => ({
       materials: (results.get(line.id ?? `${line.modelCode}`)?.items ?? []).map((material) => {
+        const formulaMaterial = catalog.get(line.modelCode)?.materials.find((item) => item.code === material.materialCode);
         const detail = line.priceCatalogId ? budgetDetails.get(line.priceCatalogId) : undefined;
         const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
           ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
@@ -142,7 +143,7 @@ export function CalculatorPage() {
           material.name,
           material.unit,
           line.priceVariantId,
-          /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))
+          formulaMaterial && isDoorLeafMaterial(formulaMaterial)
             ? doorLeafColumn
             : null,
           accessoryColumn,

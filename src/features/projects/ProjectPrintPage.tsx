@@ -5,7 +5,7 @@ import { formatQuantity, formatRupiah } from "../../app/format";
 import { modelGroupLabel } from "../../domain/catalog/types";
 import type { Project } from "../../domain/projects/types";
 import { useAppServices } from "../../app/AppServices";
-import { budgetPriceForMaterial, excelColumnFromNumber } from "../../domain/budgets/pricing";
+import { budgetPriceForMaterial, excelColumnFromNumber, isDoorLeafMaterial } from "../../domain/budgets/pricing";
 
 function romanMonth(dateValue?: string) {
   const date = dateValue ? new Date(dateValue) : new Date();
@@ -95,12 +95,12 @@ export function ProjectPrintPage() {
         ? budgetDetails?.get(line.priceCatalogId)?.components.find((component) => component.sourceColumn === selectedDoorLeafColumn)?.label ?? null
         : null;
       for (const material of line.resultSnapshot.items) {
-        const isDoorLeaf = /daun pintu/i.test(material.name) && ["unit", "daun"].includes(material.unit.trim().toLocaleLowerCase("id-ID"));
+        const currentMaterial = model?.materials.find((item) => item.code === material.materialCode);
+        const isDoorLeaf = currentMaterial ? isDoorLeafMaterial(currentMaterial) : false;
         const doorLeafType = isDoorLeaf ? selectedDoorLeafType : null;
         const linePrice = line.priceCatalogId && line.priceVariantId
           ? project.prices.find((price) => price.materialCode === material.materialCode && price.catalogId === line.priceCatalogId && price.variantId === line.priceVariantId)
           : project.prices.find((price) => price.materialCode === material.materialCode && !price.catalogId);
-        const currentMaterial = model?.materials.find((item) => item.code === material.materialCode);
         const displayName = currentMaterial?.name ?? material.name;
         const detail = line.priceCatalogId ? budgetDetails?.get(line.priceCatalogId) : undefined;
         const variant = detail?.variants.find((item) => item.id === line.priceVariantId);
@@ -110,18 +110,24 @@ export function ProjectPrintPage() {
         const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
           ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
           : null;
+        const selectedDoorLeafPrice = isDoorLeaf && selectedDoorLeafColumn
+          ? budgetPriceForMaterial(detail, material.materialCode, displayName, material.unit, line.priceVariantId, selectedDoorLeafColumn)
+          : null;
         const selectedWindowPrice = /^jendela$/i.test(displayName.trim()) && windowColumn
           ? budgetPriceForMaterial(detail, material.materialCode, displayName, material.unit, line.priceVariantId, null, null, windowColumn)
           : null;
         const selectedWindowComponent = windowColumn
           ? detail?.components.find((component) => component.sourceColumn === windowColumn)
           : undefined;
-        const currentMasterPrice = selectedWindowPrice?.unitPrice
+        const currentMasterPrice = selectedDoorLeafPrice?.unitPrice
+          ?? selectedWindowPrice?.unitPrice
           ?? (variant && mappedComponent ? mappedComponent.prices[variant.key]?.amount ?? null : null);
         // A legacy project snapshot is keyed only by material/catalog/variant. For
         // window components the line-level selection is authoritative, not that shared snapshot.
-        const resolvedUnitPrice = selectedWindowPrice
-          ? selectedWindowPrice.unitPrice
+        const resolvedUnitPrice = selectedDoorLeafPrice
+          ? selectedDoorLeafPrice.unitPrice
+          : selectedWindowPrice
+            ? selectedWindowPrice.unitPrice
           : typeof linePrice?.unitPrice === "number" && Number.isFinite(linePrice.unitPrice)
             ? linePrice.unitPrice
             : currentMasterPrice;
