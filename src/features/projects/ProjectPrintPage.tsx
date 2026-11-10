@@ -84,8 +84,11 @@ export function ProjectPrintPage() {
       priceSource: string;
       modelCodes: number[];
       doorLeafType: string | null;
+      modelLineKey: string;
+      lineOrder: number;
     }>();
-    for (const line of project.lines) {
+    for (const [lineIndex, line] of project.lines.entries()) {
+      const modelLineKey = line.id ?? `line-${lineIndex}`;
       const model = catalog.get(line.modelCode);
       const groupCode = model?.groupCode ?? 0;
       const type = `${modelGroupLabel(groupCode, model?.groupName).toUpperCase()} ${line.modelCode}`;
@@ -134,7 +137,7 @@ export function ProjectPrintPage() {
             : currentMasterPrice;
         const printedName = selectedWindowComponent?.label
           ?? (mappedComponent?.category.toLocaleLowerCase("id-ID") === "aksesori" ? mappedComponent.label : displayName);
-        const key = `${groupCode}:${line.modelCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}:${selectedWindowComponent?.id ?? ""}`;
+        const key = `${modelLineKey}:${groupCode}:${line.modelCode}:${material.materialCode}:${material.unit}:${line.priceCatalogId ?? "manual"}:${line.priceVariantId ?? ""}:${doorLeafType ?? ""}:${selectedWindowComponent?.id ?? ""}`;
         const previous = materialTotals.get(key);
         if (previous) {
           previous.quantity += material.quantity * line.count;
@@ -152,11 +155,13 @@ export function ProjectPrintPage() {
             : "Harga manual",
           modelCodes: [line.modelCode],
           doorLeafType,
+          modelLineKey,
+          lineOrder: lineIndex,
         });
       }
     }
     return [...materialTotals.values()]
-      .sort((left, right) => left.groupCode - right.groupCode || left.modelCodes[0] - right.modelCodes[0] || left.materialCode - right.materialCode)
+      .sort((left, right) => left.groupCode - right.groupCode || left.modelCodes[0] - right.modelCodes[0] || left.lineOrder - right.lineOrder || left.materialCode - right.materialCode)
       .map((row) => ({
         ...row,
         subtotal: row.unitPrice === null ? null : Math.round(row.quantity * row.unitPrice * 100) / 100,
@@ -222,13 +227,13 @@ export function ProjectPrintPage() {
             </thead>
             <tbody>
               {recap.length ? recap.map((row, index) => {
-                const groupKey = `${row.groupCode}:${row.modelCodes[0]}`;
-                const previousGroupKey = index > 0 ? `${recap[index - 1].groupCode}:${recap[index - 1].modelCodes[0]}` : null;
-                const nextGroupKey = index < recap.length - 1 ? `${recap[index + 1].groupCode}:${recap[index + 1].modelCodes[0]}` : null;
+                const groupKey = row.modelLineKey;
+                const previousGroupKey = index > 0 ? recap[index - 1].modelLineKey : null;
+                const nextGroupKey = index < recap.length - 1 ? recap[index + 1].modelLineKey : null;
                 const isFirstRowOfModel = groupKey !== previousGroupKey;
                 const isLastRowOfModel = groupKey !== nextGroupKey;
                 const typeSubtotal = isLastRowOfModel
-                  ? recap.filter((item) => item.groupCode === row.groupCode && item.modelCodes[0] === row.modelCodes[0])
+                  ? recap.filter((item) => item.modelLineKey === row.modelLineKey)
                     .reduce((sum, item) => sum + (item.subtotal ?? 0), 0)
                   : null;
                 return (
