@@ -118,7 +118,7 @@ export function tatapanPriceOptions(detail: BudgetCatalogDetail | undefined) {
 }
 
 export function isTatapanMaterial(material: { name: string }) {
-  return /tatap(?:an|en|n)\s+samping/i.test(material.name.normalize("NFKC").trim().replace(/\s+/g, " "));
+  return /tat(?:apan|pen|apn)\\s+samping/i.test(material.name.normalize("NFKC").trim().replace(/\s+/g, " "));
 }
 
 export function budgetPriceForMaterial(
