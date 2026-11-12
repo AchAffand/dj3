@@ -1,7 +1,7 @@
 -- Split common glass and accessory pricing from aluminium-brand catalogues.
 -- Existing brand catalogues remain active for backwards compatibility.
 -- Shared glass prices use HPM / INKA / DACON as the initial source where names match;
--- the Alexindo-only Sealant item is retained as an additional glass-group item.
+-- Alexindo lists Sealant under Kaca; HPM lists it under finishing at a different price, so those remain separate.
 -- Shared accessory prices use the complete HPM / INKA / DACON list. The Alexindo
 -- Pivot spelling is already represented by the same pivot item and is not duplicated.
 
