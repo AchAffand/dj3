@@ -55,6 +55,8 @@ export function normalizeMaterialKey(name: string, unit: string): string {
 }
 export function isGlassMaterial(material: { name: string; unit?: string }): boolean {
   const name = material.name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  const unit = (material.unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("id-ID");
+  if (["m'", "m''", "m’", "m″"].includes(unit)) return false;
   if (/^kaca\s*\/\s*(acp|spndrel|spandrel)|^kaca\/acp\//.test(name)) return false;
   return /^(kaca|kaca jendela|kaca\/jendela|kaca temp(?:ered)?\s*12mm)$/.test(name)
     || /^kaca\s+(polos|es|riben|cermin|sunblast|tempered)\b/.test(name);
