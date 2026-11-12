@@ -78,18 +78,22 @@ export function BudgetWorkspacePage() {
     {selectionMode && <div className="budget-selection-toolbar"><span>{selectedCatalogIds.length} merek dipilih</span><button className="budget-bulk-delete-button" type="button" disabled={!selectedCatalogIds.length || deletingCatalogs} onClick={() => setConfirmDeleteOpen(true)}>{`Arsipkan Terpilih (${selectedCatalogIds.length})`}</button></div>}
     {deleteSuccess && <div className="notice-banner" role="status">{deleteSuccess}</div>}
     {deleteError && <div className="notice-banner error" role="alert">{deleteError}</div>}
-    {[
-      { title: "Aluminium", items: catalogs.filter((catalog) => !["kaca-umum", "aksesoris-umum"].includes(catalog.slug)) },
-      { title: "Aksesoris", items: catalogs.filter((catalog) => catalog.slug === "aksesoris-umum") },
-      { title: "Kaca", items: catalogs.filter((catalog) => catalog.slug === "kaca-umum") },
-    ].filter((group) => group.items.length > 0).map((group) => <section className="budget-catalog-section" key={group.title}>
-      <div className="section-title-row"><h2>{group.title}</h2></div>
-      <div className="budget-catalog-grid">{group.items.map((catalog) => <article className={`budget-catalog-card${selectionMode && selectedCatalogIds.includes(catalog.id) ? " is-selected" : ""}`} style={selectionMode && selectedCatalogIds.includes(catalog.id) ? { outline: "2px solid var(--color-primary, #2563eb)", outlineOffset: 2 } : undefined} key={catalog.id}>
-      {selectionMode && <label className="budget-catalog-select"><input type="checkbox" checked={selectedCatalogIds.includes(catalog.id)} disabled={["hpm-inka-dacon", "kaca-umum", "aksesoris-umum"].includes(catalog.slug)} onChange={() => toggleCatalogSelection(catalog.id)} /><span>{catalog.slug === "hpm-inka-dacon" ? "Template utama (dilindungi)" : ["kaca-umum", "aksesoris-umum"].includes(catalog.slug) ? "Kelompok utama (dilindungi)" : "Pilih merek"}</span></label>}
-      <div><p className="eyebrow">LEMBAR {String(catalog.position).padStart(2,"0")}</p><h2>{catalog.label}</h2><p>Harga, rumus, dan perhitungan untuk katalog ini.</p></div>
-      {!selectionMode && <div className="budget-card-actions"><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>Atur harga</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=items`)}>Tambah / Hapus Item</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=mappings`)}>Pemetaan item</button><button className="primary-button" type="button" onClick={() => navigate("/calculator")}>Gunakan di kalkulator</button></div>}
-    </article>)}</div>
-    </section>)}
+    {(() => {
+      const aluminiumCatalogs = catalogs.filter((catalog) => !["kaca-umum", "aksesoris-umum"].includes(catalog.slug));
+      const glassCatalog = catalogs.find((catalog) => catalog.slug === "kaca-umum");
+      const accessoryCatalog = catalogs.find((catalog) => catalog.slug === "aksesoris-umum");
+      const groups = [
+        { key: "aluminium", title: "Aluminium", description: "Kelola harga berdasarkan merek aluminium: Alexindo, HPM / INKA / DACON, dan YKK.", catalogs: aluminiumCatalogs },
+        { key: "accessories", title: "Aksesoris", description: "Satu kelompok harga aksesoris yang digunakan lintas merek dan dipilih per TYPE.", catalogs: accessoryCatalog ? [accessoryCatalog] : [] },
+        { key: "glass", title: "Kaca", description: "Satu kelompok harga kaca yang digunakan lintas merek dan dipilih per TYPE.", catalogs: glassCatalog ? [glassCatalog] : [] },
+      ];
+      return <div className="budget-catalog-grid budget-main-groups">{groups.map((group) => <article className="budget-catalog-card budget-main-group-card" key={group.key}>
+        <div><p className="eyebrow">KELOMPOK MASTER HARGA</p><h2>{group.title}</h2><p>{group.description}</p></div>
+        {group.key === "aluminium" ? <div className="budget-card-actions budget-brand-actions">{group.catalogs.map((catalog) => <button className="secondary-button" type="button" key={catalog.id} onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>{catalog.label}</button>)}</div>
+          : group.catalogs.length ? <div className="budget-card-actions"><button className="primary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=prices`)}>Kelola {group.title}</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=items`)}>Tambah / Hapus Item</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=mappings`)}>Pemetaan item</button></div>
+          : <p className="notice-banner">Katalog {group.title} belum tersedia.</p>}
+      </article>)}</div>;
+    })()}
     {confirmDeleteOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingCatalogs) setConfirmDeleteOpen(false); }}>
       <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-catalog-title">
         <p className="eyebrow">KONFIRMASI ARSIP</p>
