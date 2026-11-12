@@ -30,11 +30,6 @@ export function BudgetWorkspacePage() {
     finally { setLoading(false); }
   }, [repository]);
   useEffect(() => { void load(); }, [load]);
-  const toggleCatalogSelection = (id: string) => {
-    setSelectedCatalogIds((current) => current.includes(id)
-      ? current.filter((item) => item !== id)
-      : [...current, id]);
-  };
   const deleteSelectedCatalogs = async () => {
     if (!repository || !selectedCatalogIds.length || deletingCatalogs) return;
     const selectedNames = catalogs
