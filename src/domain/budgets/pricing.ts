@@ -70,7 +70,7 @@ export function isAccessoryMaterial(material: { name: string; unit?: string }): 
 export function glassPriceOptions(detail: BudgetCatalogDetail | undefined) {
   if (!detail) return [];
   return detail.components
-    .filter((component) => component.category === "Kaca" && !/^sealant\\b/i.test(component.label))
+    .filter((component) => component.category === "Kaca" && !/^sealant\b/i.test(component.label))
     .sort((a, b) => a.position - b.position);
 }
 
