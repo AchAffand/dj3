@@ -75,7 +75,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                     const variants = priceCatalogId ? budgetDetails.get(priceCatalogId)?.variants ?? [] : [];
                     const defaultVariant = variants.find((variant) => variant.key === "brown") ?? variants[0];
                     onChange(lineId, { ...line, priceCatalogId, priceVariantId: defaultVariant?.id ?? null });
-                  }}><option value="">Pilih katalog harga</option>{budgetCatalogs.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+                  }}><option value="">Pilih merek aluminium</option>{budgetCatalogs.filter((item) => !["kaca-umum", "aksesoris-umum"].includes(item.slug)).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
                   {line.priceCatalogId && <label className="dimension-field"><span>Warna / varian harga</span><select value={line.priceVariantId ?? ""} onChange={(event) => onChange(lineId, { ...line, priceVariantId: event.target.value || null })}><option value="">Pilih varian</option>{(budgetDetails.get(line.priceCatalogId)?.variants ?? []).map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}</select></label>}
                 </div>}
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
