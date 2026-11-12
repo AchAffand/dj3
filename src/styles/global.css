@@ -1569,6 +1569,9 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .quotation-table tbody td:nth-child(1), .quotation-table tbody td:nth-child(2) { text-align: left; }
 .quotation-table tbody td:nth-child(5) { text-align: center; }
 .quotation-table tbody td small { display: block; margin-top: 2px; font-size: 7px; font-style: italic; }
+.quotation-line-total { display: grid; gap: 2px; min-width: 0; }
+.quotation-line-total strong { display: block; white-space: nowrap; }
+.quotation-line-total small { display: block; font-size: 7px; line-height: 1.2; font-weight: 400; white-space: normal; color: #444; }
 .quotation-type-subtotal th { background: #FAFAFA; font-size: 8px; font-weight: 700; }
 .quotation-type-subtotal th:first-child { text-align: right; }
 .quotation-type-subtotal th:nth-child(2) { text-align: right; }
