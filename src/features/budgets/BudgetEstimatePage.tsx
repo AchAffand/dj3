@@ -8,7 +8,7 @@ import { calculateBudget } from "../../domain/budgets/calculateBudget";
 import { calculateExpression } from "../../domain/formulas/evaluate";
 import type { BudgetCatalogDetail, BudgetEstimate } from "../../domain/budgets/types";
 import { validateBudgetPriceFormula } from "../../domain/budgets/priceFormula";
-import { normalizeMaterialKey } from "../../domain/budgets/pricing";
+import { isAccessoryMaterial, isGlassMaterial, normalizeMaterialKey } from "../../domain/budgets/pricing";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const initial = (detail: BudgetCatalogDetail, authorLabel = ""): BudgetEstimate => ({
@@ -128,6 +128,11 @@ export function BudgetEstimatePage() {
   };
   const isSharedMaterialGroup = ["kaca-umum", "aksesoris-umum"].includes(catalogSlug);
   const visibleComponents = detail.components.filter((item) => isSharedMaterialGroup || !["Kaca", "Aksesori"].includes(item.category));
+  const visibleMaterialOptions = materialOptions.filter((item) => catalogSlug === "kaca-umum"
+    ? isGlassMaterial(item)
+    : catalogSlug === "aksesoris-umum"
+      ? isAccessoryMaterial(item)
+      : !isGlassMaterial(item) && !isAccessoryMaterial(item));
   const categories = [...new Set(visibleComponents.map((item) => item.category))];
   const saveMapping = async (item: { key: string; name: string; unit: string }, componentId: string | null) => {
     if (!repository) return;
@@ -163,7 +168,7 @@ export function BudgetEstimatePage() {
     </> : mappingsMode ? <>
       {!isCatalogAdmin && <div className="notice-banner">Akun ini hanya dapat melihat pemetaan. Perubahan memerlukan hak admin katalog.</div>}
       {message && <div className="notice-banner" role="status">{message}</div>}
-      <div className="budget-price-table-wrap"><table className="budget-price-table"><thead><tr><th>Item kalkulator</th><th>Satuan</th><th>Komponen sumber harga</th></tr></thead><tbody>{materialOptions.map((item) => {
+      <div className="budget-price-table-wrap"><table className="budget-price-table"><thead><tr><th>Item kalkulator</th><th>Satuan</th><th>Komponen sumber harga</th></tr></thead><tbody>{visibleMaterialOptions.map((item) => {
         const mapping = detail.mappings.find((entry) => entry.materialKey === item.key && entry.active);
         const mappedComponent = detail.components.some((component) => component.id === mapping?.componentId) ? mapping?.componentId ?? "" : "";
         return <tr key={item.key}><td><strong>{item.name}</strong></td><td>{item.unit || "-"}</td><td><select aria-label={`Komponen harga untuk ${item.name}`} disabled={!isCatalogAdmin || saving} value={mappedComponent} onChange={(event) => void saveMapping(item, event.target.value || null)}><option value="">Tidak dipetakan · isi manual di kalkulator</option>{visibleComponents.map((component) => <option key={component.id} value={component.id}>{component.label}</option>)}</select></td></tr>;
