@@ -70,7 +70,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
             {model && (
               <>
                 {budgetCatalogs.length > 0 && <div className="budget-source-fields">
-                  <label className="dimension-field"><span>Sumber harga</span><select value={line.priceCatalogId ?? ""} onChange={(event) => {
+                  <label className="dimension-field"><span>Merek aluminium</span><select value={line.priceCatalogId ?? ""} onChange={(event) => {
                     const priceCatalogId = event.target.value || null;
                     const variants = priceCatalogId ? budgetDetails.get(priceCatalogId)?.variants ?? [] : [];
                     const defaultVariant = variants.find((variant) => variant.key === "brown") ?? variants[0];
