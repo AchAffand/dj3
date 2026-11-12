@@ -143,7 +143,7 @@ export function budgetPriceForMaterial(
       priceVersion: price.version,
       expressionSnapshot: price.expression,
       componentId: component.id,
-      priceSourceLabel: `${detail.catalog.label} · ${variant.label}`,
+      priceSourceLabel: `${detail.catalog.label} · ${component.label} · ${variant.label}`,
     };
   } catch {
     return null;
