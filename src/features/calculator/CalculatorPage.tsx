@@ -177,10 +177,12 @@ export function CalculatorPage() {
           ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
           : `manual:${material.materialCode}`;
         const legacyOverride = draft.prices[legacyPriceKey];
-        const hasExplicitComponentSelection = typeof accessoryColumnValue === "number"
-          || typeof glassColumnValue === "number"
-          || typeof line.inputs.__doorLeafSourceColumn === "number"
-          || typeof line.inputs.__windowSourceColumn === "number";
+        const hasExplicitComponentSelection = Boolean(
+          (formulaMaterial && isAccessoryMaterial(formulaMaterial) && typeof accessoryColumnValue === "number")
+          || (formulaMaterial && isGlassMaterial(formulaMaterial) && typeof glassColumnValue === "number")
+          || (formulaMaterial && isDoorLeafMaterial(formulaMaterial) && typeof line.inputs.__doorLeafSourceColumn === "number")
+          || (/^jendela$/i.test(material.name.trim()) && typeof line.inputs.__windowSourceColumn === "number")
+        );
         const preserveLegacyOverride = !hasExplicitComponentSelection
           && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
         return {
