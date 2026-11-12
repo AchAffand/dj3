@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, isDoorLeafMaterial, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -70,12 +70,12 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
             {model && (
               <>
                 {budgetCatalogs.length > 0 && <div className="budget-source-fields">
-                  <label className="dimension-field"><span>Sumber harga</span><select value={line.priceCatalogId ?? ""} onChange={(event) => {
+                  <label className="dimension-field"><span>Merek aluminium</span><select value={line.priceCatalogId ?? ""} onChange={(event) => {
                     const priceCatalogId = event.target.value || null;
                     const variants = priceCatalogId ? budgetDetails.get(priceCatalogId)?.variants ?? [] : [];
                     const defaultVariant = variants.find((variant) => variant.key === "brown") ?? variants[0];
                     onChange(lineId, { ...line, priceCatalogId, priceVariantId: defaultVariant?.id ?? null });
-                  }}><option value="">Pilih katalog harga</option>{budgetCatalogs.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+                  }}><option value="">Pilih merek aluminium</option>{budgetCatalogs.filter((item) => !["kaca-umum", "aksesoris-umum"].includes(item.slug)).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
                   {line.priceCatalogId && <label className="dimension-field"><span>Warna / varian harga</span><select value={line.priceVariantId ?? ""} onChange={(event) => onChange(lineId, { ...line, priceVariantId: event.target.value || null })}><option value="">Pilih varian</option>{(budgetDetails.get(line.priceCatalogId)?.variants ?? []).map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}</select></label>}
                 </div>}
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
@@ -86,7 +86,9 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                     if (/^handle$/.test(name) && !["pcs", "set"].includes(unit)) return false;
                     return /engsel kupu|^(handel|handle)\s*\+\s*kunci$|^handle$|kunci sliding/i.test(name);
                   });
-                  const detail = budgetDetails.get(line.priceCatalogId ?? "");
+                  const accessoryCatalog = budgetCatalogs.find((item) => item.slug === "aksesoris-umum");
+                  const detail = (accessoryCatalog ? budgetDetails.get(accessoryCatalog.id) : undefined)
+                    ?? budgetDetails.get(line.priceCatalogId ?? "");
                   return accessories.length ? <div className="budget-source-fields accessory-source-fields">
                     {accessories.map((material) => {
                       const options = accessoryPriceOptions(detail, material.name);
@@ -108,6 +110,34 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       </label>;
                     })}
                   </div> : null;
+                })()}
+                {(() => {
+                  const glassCatalog = budgetCatalogs.find((item) => item.slug === "kaca-umum");
+                  const glassDetail = glassCatalog ? budgetDetails.get(glassCatalog.id) : undefined;
+                  const glassMaterials = model.materials.filter(isGlassMaterial);
+                  const options = glassPriceOptions(glassDetail);
+                  if (!glassMaterials.length || !options.length) return null;
+                  return <div className="budget-source-fields glass-source-fields">
+                    {glassMaterials.map((material) => {
+                      const inputKey = "__budgetGlass_" + material.code;
+                      const selected = line.inputs[inputKey];
+                      const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected);
+                      return <label className="dimension-field" key={material.code}>
+                        <span>{normalizeMaterialDisplayName(material.name)} · Jenis kaca</span>
+                        <select aria-label={"Jenis kaca " + material.name + " " + material.code}
+                          value={selectedOption?.sourceColumn ?? ""}
+                          onChange={(event) => {
+                            const inputs: InputVariables = { ...line.inputs };
+                            if (!event.target.value) delete inputs[inputKey];
+                            else inputs[inputKey] = excelColumnToNumber(event.target.value);
+                            onChange(lineId, { ...line, inputs });
+                          }}>
+                          <option value="">Pilih jenis kaca</option>
+                          {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
+                        </select>
+                      </label>;
+                    })}
+                  </div>;
                 })()}
                 {line.priceCatalogId && model.groupCode === 20000 && model.materials.some((material) => /^jendela$/i.test(material.name.trim()) && ["m\u0027", "m’"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
                   const options = windowPriceOptions(budgetDetails.get(line.priceCatalogId));
@@ -136,7 +166,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                   ) : null;
                 })()}
                 {line.priceCatalogId && model.materials.some((material) => /doorcloser/i.test(material.name)) && (
-                  <p className="empty-inline">Harga Doorcloser belum tersedia di Master Harga HPM / INKA / DACON. Harga dapat diisi manual pada Rekap Material sampai item dan harga Doorcloser ditambahkan ke master.</p>
+                  <p className="empty-inline">Harga Doorcloser belum diisi. Admin dapat melengkapinya melalui Master Harga → Aksesoris, atau isi sementara di Rekap Material.</p>
                 )}
                 {line.priceCatalogId && model.materials.some(isDoorLeafMaterial) && (() => {
                   const options = (budgetDetails.get(line.priceCatalogId)?.components ?? [])

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessoryPriceOptions, budgetPriceForMaterial, windowPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, glassPriceOptions, isAccessoryMaterial, isGlassMaterial, windowPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
 import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
@@ -110,5 +110,58 @@ describe("model accessory price mapping", () => {
     const result = budgetPriceForMaterial(detail, 20106, "Engsel casmat", "pcs", "brown-id");
     expect(result?.componentId).toBe("casement");
     expect(result?.unitPrice).toBe(100000);
+  });
+});
+
+describe("independent glass and accessory catalog selection", () => {
+  const glassDetail: BudgetCatalogDetail = {
+    catalog: { id: "glass-catalog", slug: "kaca-umum", label: "Kaca", position: 4, active: true },
+    variants: [{ id: "glass-standard", key: "standar", label: "Standar", position: 1 }],
+    rules: [],
+    mappings: [],
+    components: [
+      { id: "glass-clear", key: "glass_01", sourceColumn: "A", label: "KACA POLOS 5 MM / M2", unit: "", category: "Kaca", position: 1, prices: { standar: { amount: 300000, expression: null, version: 1 } } },
+      { id: "glass-tempered", key: "glass_02", sourceColumn: "B", label: "KACA TEMPERED 8 MM / M2", unit: "", category: "Kaca", position: 2, prices: { standar: { amount: 850000, expression: null, version: 1 } } },
+    ],
+  };
+
+  const accessoryDetail: BudgetCatalogDetail = {
+    catalog: { id: "accessory-catalog", slug: "aksesoris-umum", label: "Aksesoris", position: 5, active: true },
+    variants: [{ id: "accessory-standard", key: "standar", label: "Standar", position: 1 }],
+    rules: [],
+    mappings: [],
+    components: [
+      { id: "hinge-four", key: "col_bc", sourceColumn: "BC", label: "Engsel Kupu 4 inch", unit: "pcs", category: "Aksesori", position: 1, prices: { standar: { amount: 55000, expression: null, version: 1 } } },
+      { id: "hinge-km", key: "col_bi", sourceColumn: "BI", label: "Engsel Kupu KM", unit: "pcs", category: "Aksesori", position: 2, prices: { standar: { amount: 35000, expression: null, version: 1 } } },
+    ],
+  };
+
+  it("identifies glass materials without capturing combined ACP/spandrel materials", () => {
+    expect(isGlassMaterial({ name: "Kaca", unit: "m\"" })).toBe(true);
+    expect(isGlassMaterial({ name: "kaca/jendela", unit: "m\"" })).toBe(true);
+    expect(isGlassMaterial({ name: "kaca/acp/spndrel/pintu", unit: "m\"" })).toBe(false);
+    expect(isGlassMaterial({ name: "Kaca", unit: "m'" })).toBe(false);
+  });
+
+  it("recognizes accessories that still need a price entered by an administrator", () => {
+    expect(isAccessoryMaterial({ name: "Doorcloser", unit: "set" })).toBe(true);
+    expect(isAccessoryMaterial({ name: "Kunci Folding", unit: "set" })).toBe(true);
+    expect(isAccessoryMaterial({ name: "Engsel Pintu", unit: "set" })).toBe(true);
+    expect(isAccessoryMaterial({ name: "Handle", unit: "m'" })).toBe(false);
+  });
+
+  it("offers independent glass choices and calculates the selected glass item", () => {
+    expect(glassPriceOptions(glassDetail).map((item) => item.sourceColumn)).toEqual(["A", "B"]);
+    const selected = budgetPriceForMaterial(glassDetail, 20201, "Kaca", 'm"', "glass-standard", null, null, null, "B");
+    expect(selected?.componentId).toBe("glass-tempered");
+    expect(selected?.unitPrice).toBe(850000);
+    expect(selected?.priceKey).toBe("glass-catalog:glass-standard:20201:glass-tempered");
+  });
+
+  it("uses the shared accessory catalog while retaining individual accessory options", () => {
+    expect(accessoryPriceOptions(accessoryDetail, "Engsel kupu").map((item) => item.sourceColumn)).toEqual(["BC", "BI"]);
+    const selected = budgetPriceForMaterial(accessoryDetail, 10105, "Engsel kupu", "pcs", "accessory-standard", null, "BI");
+    expect(selected?.componentId).toBe("hinge-km");
+    expect(selected?.unitPrice).toBe(35000);
   });
 });

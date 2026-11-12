@@ -53,15 +53,51 @@ export function normalizeMaterialKey(name: string, unit: string): string {
   const normalizedUnit = unit.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
   return `${canonicalMaterialName(name)}|${normalizedUnit}`;
 }
+export function isGlassMaterial(material: { name: string; unit?: string }): boolean {
+  const name = material.name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  const unit = (material.unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("id-ID");
+  if (["m'", "m''", "m’", "m″"].includes(unit)) return false;
+  if (/^kaca\s*\/\s*(acp|spndrel|spandrel)|^kaca\/acp\//.test(name)) return false;
+  return /^(kaca|kaca jendela|kaca\/jendela|kaca temp(?:ered)?\s*12mm)$/.test(name)
+    || /^kaca\s+(polos|es|riben|cermin|sunblast|tempered)\b/.test(name);
+}
+
+export function isAccessoryMaterial(material: { name: string; unit?: string }): boolean {
+  const name = canonicalMaterialName(material.name);
+  const unit = (material.unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("id-ID");
+  if (name === "handle" && !["pcs", "set"].includes(unit)) return false;
+  return /rambuncis|engsel|handel|handle|kunci sliding|kunci folding|kunci ra|flushbolt|bracket|rell sliding|rel sliding|roda (?:sliding|atas|bawah)|doorcloser/.test(name);
+}
+
+export function glassPriceOptions(detail: BudgetCatalogDetail | undefined) {
+  if (!detail) return [];
+  return detail.components
+    .filter((component) => component.category === "Kaca" && !/^sealant\b/i.test(component.label))
+    .sort((a, b) => a.position - b.position);
+}
+
 export function accessoryPriceOptions(detail: BudgetCatalogDetail | undefined, materialName: string) {
   if (!detail) return [];
-  const name = materialName.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  const name = canonicalMaterialName(materialName);
   let allowedColumns: string[] = [];
   if (name.includes("engsel kupu")) allowedColumns = ["BC", "BI"];
   else if (name.includes("kunci sliding")) allowedColumns = ["BN", "BO"];
   else if (/^(handel|handle)\s*\+\s*kunci$/.test(name) || /^handle$/.test(name)) {
     allowedColumns = ["BD", "BE", "BF", "BG", "BH", "BJ", "BM", "BR"];
-  }
+  } else if (name.includes("engsel casement")) allowedColumns = ["BB"];
+  else if (name.includes("rambuncis")) allowedColumns = ["BA"];
+  else if (name.includes("flushbolt")) allowedColumns = ["BK"];
+  else if (name.includes("bracket")) allowedColumns = ["BS"];
+  else if (name.includes("handel mangkok")) allowedColumns = ["BM"];
+  else if (name.includes("kunci ra")) allowedColumns = ["BO"];
+  else if (name.includes("rell sliding") || name.includes("rel sliding")) allowedColumns = ["BL"];
+  else if (name.includes("roda sliding")) allowedColumns = ["BP"];
+  else if (name.includes("roda atas")) allowedColumns = ["BT"];
+  else if (name.includes("roda bawah")) allowedColumns = ["BU"];
+  else if (name.includes("doorcloser")) allowedColumns = ["BV"];
+  else if (name.includes("kunci folding")) allowedColumns = ["BW"];
+  else if (name.includes("engsel pintu")) allowedColumns = ["BY"];
+  else if (name === "engsel") allowedColumns = ["BX"];
   return detail.components
     .filter((component) => allowedColumns.includes(component.sourceColumn))
     .sort((a, b) => a.position - b.position);
@@ -83,6 +119,7 @@ export function budgetPriceForMaterial(
   doorLeafSourceColumn?: string | null,
   accessorySourceColumn?: string | null,
   windowSourceColumn?: string | null,
+  glassSourceColumn?: string | null,
 ) {
   if (!detail || !variantId) return null;
   const mapping = detail.mappings.find((item) => item.materialKey === normalizeMaterialKey(name, unit) && item.active);
@@ -95,21 +132,24 @@ export function budgetPriceForMaterial(
   const selectedWindow = windowSourceColumn && ["AA", "AB", "AC"].includes(windowSourceColumn)
     ? detail.components.find((item) => item.sourceColumn === windowSourceColumn)
     : undefined;
-  const component = selectedDoorLeaf ?? selectedAccessory ?? selectedWindow ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
+  const selectedGlass = glassSourceColumn && /^[A-Z]$/.test(glassSourceColumn)
+    ? detail.components.find((item) => item.sourceColumn === glassSourceColumn)
+    : undefined;
+  const component = selectedDoorLeaf ?? selectedAccessory ?? selectedWindow ?? selectedGlass ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
   const variant = detail.variants.find((item) => item.id === variantId);
   if (!component || !variant) return null;
   const price = component.prices[variant.key];
   if (!price || (price.amount === null && !price.expression)) return null;
   try {
     return {
-      priceKey: `${detail.catalog.id}:${variant.id}:${materialCode}`,
+      priceKey: `${detail.catalog.id}:${variant.id}:${materialCode}:${component.id}`,
       catalogId: detail.catalog.id,
       variantId: variant.id,
       unitPrice: resolveBudgetPrice(detail, component.id, variant.id),
       priceVersion: price.version,
       expressionSnapshot: price.expression,
       componentId: component.id,
-      priceSourceLabel: `${detail.catalog.label} · ${variant.label}`,
+      priceSourceLabel: `${detail.catalog.label} · ${component.label} · ${variant.label}`,
     };
   } catch {
     return null;

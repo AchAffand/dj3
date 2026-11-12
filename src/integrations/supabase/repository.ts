@@ -314,7 +314,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
           unit_snapshot: price.unit,
           unit_price: price.unitPrice,
         })),
-        p_price_snapshots: [...new Map(input.prices.filter((price) => price.catalogId && price.variantId).map((price) => [`${price.materialCode}:${price.catalogId}:${price.variantId}`, price])).values()].map((price) => ({
+        p_price_snapshots: [...new Map(input.prices.filter((price) => price.catalogId && price.variantId).map((price) => [`${price.materialCode}:${price.catalogId}:${price.variantId}:${price.componentId ?? "legacy"}`, price])).values()].map((price) => ({
           material_code: price.materialCode, catalog_id: price.catalogId, variant_id: price.variantId,
           name_snapshot: price.name, unit_snapshot: price.unit, unit_price: price.unitPrice,
           component_id: price.componentId ?? null, price_version: price.priceVersion ?? null, expression_snapshot: price.expressionSnapshot ?? null,
