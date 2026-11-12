@@ -10,7 +10,7 @@ import { aggregateMaterials } from "../recap/aggregateMaterials";
 import { MaterialRecap } from "../recap/MaterialRecap";
 import { createProjectService, type ProjectDraft, type ProjectLineDraft } from "../projects/projectService";
 import { ModelLineEditor } from "./ModelLineEditor";
-import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, isAccessoryMaterial, isDoorLeafMaterial, isGlassMaterial, normalizeMaterialDisplayName } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, isAccessoryMaterial, isDoorLeafMaterial, isGlassMaterial, isTatapanMaterial, normalizeMaterialDisplayName } from "../../domain/budgets/pricing";
 import type { BudgetCatalogDetail } from "../../domain/budgets/types";
 
 function makeLine(modelCode: number): ProjectLineDraft {
@@ -149,6 +149,8 @@ export function CalculatorPage() {
           : accessoryPriceOptions(accessoryDetail, material.name)[0]?.sourceColumn ?? null;
         const glassColumnValue = line.inputs[`__budgetGlass_${material.materialCode}`];
         const glassColumn = typeof glassColumnValue === "number" ? excelColumnFromNumber(glassColumnValue) : null;
+        const tatapanColumnValue = line.inputs[`__budgetTatapan_${material.materialCode}`];
+        const tatapanColumn = typeof tatapanColumnValue === "number" ? excelColumnFromNumber(tatapanColumnValue) : null;
         const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
           ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
           : null;
@@ -171,6 +173,7 @@ export function CalculatorPage() {
           useAccessoryCatalog ? accessoryColumn : null,
           /^jendela$/i.test(material.name.trim()) ? windowColumn : null,
           useGlassCatalog ? glassColumn : null,
+          formulaMaterial && isTatapanMaterial(formulaMaterial) ? tatapanColumn : null,
         );
         const variant = priceDetail?.variants.find((item) => item.id === sharedVariantId);
         const legacyPriceKey = brandDetail && line.priceVariantId
@@ -181,6 +184,7 @@ export function CalculatorPage() {
           (formulaMaterial && isAccessoryMaterial(formulaMaterial) && typeof accessoryColumnValue === "number")
           || (formulaMaterial && isGlassMaterial(formulaMaterial) && typeof glassColumnValue === "number")
           || (formulaMaterial && isDoorLeafMaterial(formulaMaterial) && typeof line.inputs.__doorLeafSourceColumn === "number")
+          || (formulaMaterial && isTatapanMaterial(formulaMaterial) && typeof tatapanColumnValue === "number")
           || (/^jendela$/i.test(material.name.trim()) && typeof line.inputs.__windowSourceColumn === "number")
         );
         const preserveLegacyOverride = !hasExplicitComponentSelection

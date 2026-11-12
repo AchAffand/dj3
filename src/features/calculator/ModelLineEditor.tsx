@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, isTatapanMaterial, normalizeMaterialDisplayName, tatapanPriceOptions, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -133,6 +133,32 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                             onChange(lineId, { ...line, inputs });
                           }}>
                           <option value="">Pilih jenis kaca</option>
+                          {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
+                        </select>
+                      </label>;
+                    })}
+                  </div>;
+                })()}
+
+                {line.priceCatalogId && model.materials.some(isTatapanMaterial) && (() => {
+                  const options = tatapanPriceOptions(budgetDetails.get(line.priceCatalogId));
+                  if (options.length !== 2) return null;
+                  return <div className="budget-source-fields tatapan-source-field">
+                    {model.materials.filter(isTatapanMaterial).map((material) => {
+                      const inputKey = "__budgetTatapan_" + material.code;
+                      const selected = line.inputs[inputKey];
+                      const selectedColumn = typeof selected === "number" ? excelColumnFromNumber(selected) : "";
+                      return <label className="dimension-field" key={material.code}>
+                        <span>{normalizeMaterialDisplayName(material.name)} · Jenis tatapan</span>
+                        <select aria-label={"Jenis tatapan " + material.name + " " + material.code}
+                          value={selectedColumn}
+                          onChange={(event) => {
+                            const inputs: InputVariables = { ...line.inputs };
+                            if (!event.target.value) delete inputs[inputKey];
+                            else inputs[inputKey] = excelColumnToNumber(event.target.value);
+                            onChange(lineId, { ...line, inputs });
+                          }}>
+                          <option value="">Pilih jenis tatapan</option>
                           {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
                         </select>
                       </label>;

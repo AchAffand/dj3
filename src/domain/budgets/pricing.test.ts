@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessoryPriceOptions, budgetPriceForMaterial, glassPriceOptions, isAccessoryMaterial, isGlassMaterial, windowPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, glassPriceOptions, isAccessoryMaterial, isGlassMaterial, isTatapanMaterial, tatapanPriceOptions, windowPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
 import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
@@ -36,6 +36,8 @@ const detail: BudgetCatalogDetail = {
     { id: "window-casement", key: "col_aa", sourceColumn: "AA", label: "JENDELA CASEMENT/ M'", unit: "", category: "Daun pintu", position: 12, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
     { id: "window-sliding", key: "col_ab", sourceColumn: "AB", label: "JENDELA SLIDING/ M'", unit: "", category: "Daun pintu", position: 13, prices: { brown: { amount: 185000, expression: null, version: 1 } } },
     { id: "window-pivot", key: "col_ac", sourceColumn: "AC", label: "DAUN JENDELA PIVOT / M'", unit: "", category: "Pintu dan jendela", position: 14, prices: { brown: { amount: 150000, expression: null, version: 1 } } },
+    { id: "tatapan-sliding", key: "col_m", sourceColumn: "M", label: "TATAPAN SLIDING / M'", unit: "M'", category: "Pekerjaan awal", position: 15, prices: { brown: { amount: 125000, expression: null, version: 1 } } },
+    { id: "tatapan-pivot", key: "col_n", sourceColumn: "N", label: "TATAPAN PIVOT / M'", unit: "M'", category: "Pekerjaan awal", position: 16, prices: { brown: { amount: 175000, expression: null, version: 1 } } },
   ],
 };
 
@@ -96,6 +98,17 @@ describe("model accessory price mapping", () => {
 
   it("offers the three supported window types in workbook order", () => {
     expect(windowPriceOptions(detail).map((item) => item.sourceColumn)).toEqual(["AA", "AB", "AC"]);
+  });
+
+  it("recognizes Tatapan samping spelling variants and offers Sliding or Pivot prices", () => {
+    expect(isTatapanMaterial({ name: "Tatapan samping" })).toBe(true);
+    expect(isTatapanMaterial({ name: "Tatpen samping" })).toBe(true);
+    expect(isTatapanMaterial({ name: "tatapn samping" })).toBe(true);
+    expect(tatapanPriceOptions(detail).map((item) => item.sourceColumn)).toEqual(["M", "N"]);
+    const sliding = budgetPriceForMaterial(detail, 31906, "Tatpen samping", "m'", "brown-id", null, null, null, null, "M");
+    const pivot = budgetPriceForMaterial(detail, 31906, "Tatpen samping", "m'", "brown-id", null, null, null, null, "N");
+    expect([sliding?.componentId, pivot?.componentId]).toEqual(["tatapan-sliding", "tatapan-pivot"]);
+    expect([sliding?.unitPrice, pivot?.unitPrice]).toEqual([125000, 175000]);
   });
 
   it("uses the explicitly selected window component even without a material mapping", () => {
