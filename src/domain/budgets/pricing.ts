@@ -62,6 +62,8 @@ export function isGlassMaterial(material: { name: string; unit?: string }): bool
 
 export function isAccessoryMaterial(material: { name: string; unit?: string }): boolean {
   const name = material.name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  const unit = (material.unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("id-ID");
+  if (name === "handle" && !["pcs", "set"].includes(unit)) return false;
   return /rambuncis|engsel casement|engsel kupu|handel|handle|kunci sliding|kunci ra|flushbolt|bracket|rell sliding|rel sliding|roda (?:sliding|atas|bawah)|doorcloser/.test(name);
 }
 
