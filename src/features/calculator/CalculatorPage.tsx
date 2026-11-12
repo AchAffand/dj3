@@ -177,7 +177,8 @@ export function CalculatorPage() {
           ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
           : `manual:${material.materialCode}`;
         const legacyOverride = draft.prices[legacyPriceKey];
-        const preserveLegacyOverride = (useGlassCatalog || useAccessoryCatalog)
+        const hasExplicitAccessorySelection = typeof accessoryColumnValue === "number";
+        const preserveLegacyOverride = useAccessoryCatalog && !hasExplicitAccessorySelection
           && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
         return {
           ...material,
