@@ -61,7 +61,7 @@ export function isGlassMaterial(material: { name: string; unit?: string }): bool
 }
 
 export function isAccessoryMaterial(material: { name: string; unit?: string }): boolean {
-  const name = material.name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  const name = canonicalMaterialName(material.name);
   const unit = (material.unit ?? "").normalize("NFKC").trim().toLocaleLowerCase("id-ID");
   if (name === "handle" && !["pcs", "set"].includes(unit)) return false;
   return /rambuncis|engsel|handel|handle|kunci sliding|kunci folding|kunci ra|flushbolt|bracket|rell sliding|rel sliding|roda (?:sliding|atas|bawah)|doorcloser/.test(name);
@@ -76,7 +76,7 @@ export function glassPriceOptions(detail: BudgetCatalogDetail | undefined) {
 
 export function accessoryPriceOptions(detail: BudgetCatalogDetail | undefined, materialName: string) {
   if (!detail) return [];
-  const name = materialName.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  const name = canonicalMaterialName(materialName);
   let allowedColumns: string[] = [];
   if (name.includes("engsel kupu")) allowedColumns = ["BC", "BI"];
   else if (name.includes("kunci sliding")) allowedColumns = ["BN", "BO"];
