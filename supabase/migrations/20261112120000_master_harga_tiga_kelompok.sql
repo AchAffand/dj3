@@ -388,4 +388,4 @@ begin
     set component_id = excluded.component_id,
         active = true;
 end;
-$;
+$$;
