@@ -139,7 +139,8 @@ describe("independent glass and accessory catalog selection", () => {
   it("identifies glass materials without capturing combined ACP/spandrel materials", () => {
     expect(isGlassMaterial({ name: "Kaca", unit: "m\"" })).toBe(true);
     expect(isGlassMaterial({ name: "kaca/jendela", unit: "m\"" })).toBe(true);
-    expect(isGlassMaterial({ name: "kaca/acp/spndrel/pintu", unit: "m\"" })).toBe(false);\n    expect(isGlassMaterial({ name: "Kaca", unit: "m\'" })).toBe(false);
+    expect(isGlassMaterial({ name: "kaca/acp/spndrel/pintu", unit: "m\"" })).toBe(false);
+    expect(isGlassMaterial({ name: "Kaca", unit: "m'" })).toBe(false);
   });
 
   it("recognizes accessories that still need a price entered by an administrator", () => {
