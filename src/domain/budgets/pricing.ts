@@ -54,14 +54,14 @@ export function normalizeMaterialKey(name: string, unit: string): string {
   return `${canonicalMaterialName(name)}|${normalizedUnit}`;
 }
 export function isGlassMaterial(material: { name: string; unit?: string }): boolean {
-  const name = material.name.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
-  if (/^kaca\\s*\\/\\s*(acp|spndrel|spandrel)|^kaca\\/acp\\//.test(name)) return false;
-  return /^(kaca|kaca jendela|kaca\\/jendela|kaca temp(?:ered)?\\s*12mm)$/.test(name)
-    || /^kaca\\s+(polos|es|riben|cermin|sunblast|tempered)\\b/.test(name);
+  const name = material.name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  if (/^kaca\s*\/\s*(acp|spndrel|spandrel)|^kaca\/acp\//.test(name)) return false;
+  return /^(kaca|kaca jendela|kaca\/jendela|kaca temp(?:ered)?\s*12mm)$/.test(name)
+    || /^kaca\s+(polos|es|riben|cermin|sunblast|tempered)\b/.test(name);
 }
 
 export function isAccessoryMaterial(material: { name: string; unit?: string }): boolean {
-  const name = material.name.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+  const name = material.name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
   return /rambuncis|engsel casement|engsel kupu|handel|handle|kunci sliding|kunci ra|flushbolt|bracket|rell sliding|rel sliding|roda (?:sliding|atas|bawah)|doorcloser/.test(name);
 }
 
@@ -74,11 +74,11 @@ export function glassPriceOptions(detail: BudgetCatalogDetail | undefined) {
 
 export function accessoryPriceOptions(detail: BudgetCatalogDetail | undefined, materialName: string) {
   if (!detail) return [];
-  const name = materialName.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+  const name = materialName.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
   let allowedColumns: string[] = [];
   if (name.includes("engsel kupu")) allowedColumns = ["BC", "BI"];
   else if (name.includes("kunci sliding")) allowedColumns = ["BN", "BO"];
-  else if (/^(handel|handle)\\s*\\+\\s*kunci$/.test(name) || /^handle$/.test(name)) {
+  else if (/^(handel|handle)\s*\+\s*kunci$/.test(name) || /^handle$/.test(name)) {
     allowedColumns = ["BD", "BE", "BF", "BG", "BH", "BJ", "BM", "BR"];
   } else if (name.includes("engsel casement")) allowedColumns = ["BB"];
   else if (name.includes("rambuncis")) allowedColumns = ["BA"];
