@@ -110,6 +110,17 @@ export function windowPriceOptions(detail: BudgetCatalogDetail | undefined) {
     .sort((a, b) => a.position - b.position);
 }
 
+export function tatapanPriceOptions(detail: BudgetCatalogDetail | undefined) {
+  if (!detail) return [];
+  return detail.components
+    .filter((component) => ["M", "N"].includes(component.sourceColumn))
+    .sort((a, b) => a.position - b.position);
+}
+
+export function isTatapanMaterial(material: { name: string }) {
+  return /tatap(?:an|en|n)\s+samping/i.test(material.name.normalize("NFKC").trim().replace(/\s+/g, " "));
+}
+
 export function budgetPriceForMaterial(
   detail: BudgetCatalogDetail | undefined,
   materialCode: number,
@@ -120,6 +131,7 @@ export function budgetPriceForMaterial(
   accessorySourceColumn?: string | null,
   windowSourceColumn?: string | null,
   glassSourceColumn?: string | null,
+  tatapanSourceColumn?: string | null,
 ) {
   if (!detail || !variantId) return null;
   const mapping = detail.mappings.find((item) => item.materialKey === normalizeMaterialKey(name, unit) && item.active);
@@ -135,7 +147,10 @@ export function budgetPriceForMaterial(
   const selectedGlass = glassSourceColumn && /^[A-Z]$/.test(glassSourceColumn)
     ? detail.components.find((item) => item.sourceColumn === glassSourceColumn)
     : undefined;
-  const component = selectedDoorLeaf ?? selectedAccessory ?? selectedWindow ?? selectedGlass ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
+  const selectedTatapan = tatapanSourceColumn && ["M", "N"].includes(tatapanSourceColumn)
+    ? detail.components.find((item) => item.sourceColumn === tatapanSourceColumn)
+    : undefined;
+  const component = selectedDoorLeaf ?? selectedAccessory ?? selectedWindow ?? selectedGlass ?? selectedTatapan ?? (mapping?.componentId ? detail.components.find((item) => item.id === mapping.componentId) : undefined);
   const variant = detail.variants.find((item) => item.id === variantId);
   if (!component || !variant) return null;
   const price = component.prices[variant.key];
