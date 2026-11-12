@@ -92,6 +92,10 @@ export function accessoryPriceOptions(detail: BudgetCatalogDetail | undefined, m
   else if (name.includes("roda sliding")) allowedColumns = ["BP"];
   else if (name.includes("roda atas")) allowedColumns = ["BT"];
   else if (name.includes("roda bawah")) allowedColumns = ["BU"];
+  else if (name.includes("doorcloser")) allowedColumns = ["BV"];
+  else if (name.includes("kunci folding")) allowedColumns = ["BW"];
+  else if (name.includes("engsel pintu")) allowedColumns = ["BY"];
+  else if (name === "engsel") allowedColumns = ["BX"];
   return detail.components
     .filter((component) => allowedColumns.includes(component.sourceColumn))
     .sort((a, b) => a.position - b.position);
