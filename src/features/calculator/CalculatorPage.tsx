@@ -177,8 +177,11 @@ export function CalculatorPage() {
           ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
           : `manual:${material.materialCode}`;
         const legacyOverride = draft.prices[legacyPriceKey];
-        const hasExplicitAccessorySelection = typeof accessoryColumnValue === "number";
-        const preserveLegacyOverride = useAccessoryCatalog && !hasExplicitAccessorySelection
+        const hasExplicitComponentSelection = typeof accessoryColumnValue === "number"
+          || typeof glassColumnValue === "number"
+          || typeof line.inputs.__doorLeafSourceColumn === "number"
+          || typeof line.inputs.__windowSourceColumn === "number";
+        const preserveLegacyOverride = !hasExplicitComponentSelection
           && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
         return {
           ...material,
