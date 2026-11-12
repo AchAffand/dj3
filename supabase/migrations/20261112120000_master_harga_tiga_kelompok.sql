@@ -339,5 +339,53 @@ begin
   on conflict (catalog_id, material_key) do update
     set component_id = excluded.component_id,
         active = true;
+
+  -- Formula materials that have no priced source row yet remain visible in
+  -- the shared accessory group, ready for an administrator to fill in.
+  insert into public.budget_components (
+    catalog_id, component_key, source_column, label, unit,
+    category, position, active, group_label
+  )
+  select
+    v_accessory_catalog,
+    item.component_key,
+    item.source_column,
+    item.label,
+    item.unit,
+    'Aksesori',
+    (select coalesce(max(position), 0) from public.budget_components where catalog_id = v_accessory_catalog)
+      + row_number() over (order by item.sort_order)::integer,
+    true,
+    'AKSESORIS UMUM'
+  from (values
+    ('manual_doorcloser', 'BV', 'Doorcloser', 'set', 1),
+    ('manual_kunci_folding', 'BW', 'Kunci Folding', 'set', 2),
+    ('manual_engsel', 'BX', 'Engsel', 'set', 3),
+    ('manual_engsel_pintu', 'BY', 'Engsel Pintu', 'set', 4)
+  ) as item(component_key, source_column, label, unit, sort_order)
+  on conflict (catalog_id, component_key) do nothing;
+
+  insert into public.budget_material_mappings (
+    catalog_id, material_key, material_name, material_unit, component_id, active
+  )
+  select
+    v_accessory_catalog,
+    item.material_key,
+    item.material_name,
+    item.material_unit,
+    component.id,
+    true
+  from (values
+    ('doorcloser|set', 'Doorcloser', 'set', 'manual_doorcloser'),
+    ('kunci folding|set', 'Kunci Folding', 'set', 'manual_kunci_folding'),
+    ('engsel|set', 'Engsel', 'set', 'manual_engsel'),
+    ('engsel pintu|set', 'Engsel Pintu', 'set', 'manual_engsel_pintu')
+  ) as item(material_key, material_name, material_unit, component_key)
+  join public.budget_components component
+    on component.catalog_id = v_accessory_catalog
+   and component.component_key = item.component_key
+  on conflict (catalog_id, material_key) do update
+    set component_id = excluded.component_id,
+        active = true;
 end;
-$$;
+$;
