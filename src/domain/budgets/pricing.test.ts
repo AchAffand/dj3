@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessoryPriceOptions, budgetPriceForMaterial, glassPriceOptions, isGlassMaterial, windowPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
+import { accessoryPriceOptions, budgetPriceForMaterial, glassPriceOptions, isAccessoryMaterial, isGlassMaterial, windowPriceOptions, excelColumnFromNumber, excelColumnToNumber, normalizeMaterialDisplayName, normalizeMaterialKey } from "./pricing";
 import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
@@ -140,6 +140,13 @@ describe("independent glass and accessory catalog selection", () => {
     expect(isGlassMaterial({ name: "Kaca", unit: "m\"" })).toBe(true);
     expect(isGlassMaterial({ name: "kaca/jendela", unit: "m\"" })).toBe(true);
     expect(isGlassMaterial({ name: "kaca/acp/spndrel/pintu", unit: "m\"" })).toBe(false);
+  });
+
+  it("recognizes accessories that still need a price entered by an administrator", () => {
+    expect(isAccessoryMaterial({ name: "Doorcloser", unit: "set" })).toBe(true);
+    expect(isAccessoryMaterial({ name: "Kunci Folding", unit: "set" })).toBe(true);
+    expect(isAccessoryMaterial({ name: "Engsel Pintu", unit: "set" })).toBe(true);
+    expect(isAccessoryMaterial({ name: "Handle", unit: "m'" })).toBe(false);
   });
 
   it("offers independent glass choices and calculates the selected glass item", () => {
