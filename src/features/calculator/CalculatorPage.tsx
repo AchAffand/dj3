@@ -26,7 +26,15 @@ function makeLine(modelCode: number): ProjectLineDraft {
 
 function priceMap(project: Project): Record<string, number | null | undefined> {
   const result: Record<string, number | null | undefined> = {};
-  for (const price of project.prices) result[price.catalogId && price.variantId ? `${price.catalogId}:${price.variantId}:${price.materialCode}` : `manual:${price.materialCode}`] = price.unitPrice;
+  for (const price of project.prices) {
+    if (price.catalogId && price.variantId) {
+      const legacyKey = `${price.catalogId}:${price.variantId}:${price.materialCode}`;
+      result[legacyKey] = price.unitPrice;
+      if (price.componentId) result[`${legacyKey}:${price.componentId}`] = price.unitPrice;
+    } else {
+      result[`manual:${price.materialCode}`] = price.unitPrice;
+    }
+  }
   return result;
 }
 
