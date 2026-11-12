@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, isDoorLeafMaterial, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
+import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, normalizeMaterialDisplayName, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -86,7 +86,9 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                     if (/^handle$/.test(name) && !["pcs", "set"].includes(unit)) return false;
                     return /engsel kupu|^(handel|handle)\s*\+\s*kunci$|^handle$|kunci sliding/i.test(name);
                   });
-                  const detail = budgetDetails.get(line.priceCatalogId ?? "");
+                  const accessoryCatalog = budgetCatalogs.find((item) => item.slug === "aksesoris-umum");
+                  const detail = (accessoryCatalog ? budgetDetails.get(accessoryCatalog.id) : undefined)
+                    ?? budgetDetails.get(line.priceCatalogId ?? "");
                   return accessories.length ? <div className="budget-source-fields accessory-source-fields">
                     {accessories.map((material) => {
                       const options = accessoryPriceOptions(detail, material.name);
@@ -108,6 +110,34 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       </label>;
                     })}
                   </div> : null;
+                })()}
+                {(() => {
+                  const glassCatalog = budgetCatalogs.find((item) => item.slug === "kaca-umum");
+                  const glassDetail = glassCatalog ? budgetDetails.get(glassCatalog.id) : undefined;
+                  const glassMaterials = model.materials.filter(isGlassMaterial);
+                  const options = glassPriceOptions(glassDetail);
+                  if (!glassMaterials.length || !options.length) return null;
+                  return <div className="budget-source-fields glass-source-fields">
+                    {glassMaterials.map((material) => {
+                      const inputKey = "__budgetGlass_" + material.code;
+                      const selected = line.inputs[inputKey];
+                      const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected);
+                      return <label className="dimension-field" key={material.code}>
+                        <span>{normalizeMaterialDisplayName(material.name)} · Jenis kaca</span>
+                        <select aria-label={"Jenis kaca " + material.name + " " + material.code}
+                          value={selectedOption?.sourceColumn ?? ""}
+                          onChange={(event) => {
+                            const inputs: InputVariables = { ...line.inputs };
+                            if (!event.target.value) delete inputs[inputKey];
+                            else inputs[inputKey] = excelColumnToNumber(event.target.value);
+                            onChange(lineId, { ...line, inputs });
+                          }}>
+                          <option value="">Pilih jenis kaca</option>
+                          {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
+                        </select>
+                      </label>;
+                    })}
+                  </div>;
                 })()}
                 {line.priceCatalogId && model.groupCode === 20000 && model.materials.some((material) => /^jendela$/i.test(material.name.trim()) && ["m\u0027", "m’"].includes(material.unit.trim().toLocaleLowerCase("id-ID"))) && (() => {
                   const options = windowPriceOptions(budgetDetails.get(line.priceCatalogId));
