@@ -84,11 +84,11 @@ export function BudgetWorkspacePage() {
       { title: "Kaca", items: catalogs.filter((catalog) => catalog.slug === "kaca-umum") },
     ].filter((group) => group.items.length > 0).map((group) => <section className="budget-catalog-section" key={group.title}>
       <div className="section-title-row"><h2>{group.title}</h2></div>
-      <div className="budget-catalog-grid">{{items.map((catalog) => <article className={`budget-catalog-card${selectionMode && selectedCatalogIds.includes(catalog.id) ? " is-selected" : ""}`} style={selectionMode && selectedCatalogIds.includes(catalog.id) ? { outline: "2px solid var(--color-primary, #2563eb)", outlineOffset: 2 } : undefined} key={catalog.id}>
+      <div className="budget-catalog-grid">{items.map((catalog) => <article className={`budget-catalog-card${selectionMode && selectedCatalogIds.includes(catalog.id) ? " is-selected" : ""}`} style={selectionMode && selectedCatalogIds.includes(catalog.id) ? { outline: "2px solid var(--color-primary, #2563eb)", outlineOffset: 2 } : undefined} key={catalog.id}>
       {selectionMode && <label className="budget-catalog-select"><input type="checkbox" checked={selectedCatalogIds.includes(catalog.id)} disabled={catalog.slug === "hpm-inka-dacon"} onChange={() => toggleCatalogSelection(catalog.id)} /><span>{catalog.slug === "hpm-inka-dacon" ? "Template utama (dilindungi)" : "Pilih merek"}</span></label>}
       <div><p className="eyebrow">LEMBAR {String(catalog.position).padStart(2,"0")}</p><h2>{catalog.label}</h2><p>Harga, rumus, dan perhitungan untuk katalog ini.</p></div>
       {!selectionMode && <div className="budget-card-actions"><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>Atur harga</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=items`)}>Tambah / Hapus Item</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=mappings`)}>Pemetaan item</button><button className="primary-button" type="button" onClick={() => navigate("/calculator")}>Gunakan di kalkulator</button></div>}
-    </article>)}}</div>
+    </article>)}</div>
     </section>)}
     {confirmDeleteOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingCatalogs) setConfirmDeleteOpen(false); }}>
       <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-catalog-title">
