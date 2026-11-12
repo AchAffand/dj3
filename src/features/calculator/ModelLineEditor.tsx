@@ -166,7 +166,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                   ) : null;
                 })()}
                 {line.priceCatalogId && model.materials.some((material) => /doorcloser/i.test(material.name)) && (
-                  <p className="empty-inline">Harga Doorcloser belum tersedia di Master Harga HPM / INKA / DACON. Harga dapat diisi manual pada Rekap Material sampai item dan harga Doorcloser ditambahkan ke master.</p>
+                  <p className="empty-inline">Harga Doorcloser belum diisi. Admin dapat melengkapinya melalui Master Harga → Aksesoris, atau isi sementara di Rekap Material.</p>
                 )}
                 {line.priceCatalogId && model.materials.some(isDoorLeafMaterial) && (() => {
                   const options = (budgetDetails.get(line.priceCatalogId)?.components ?? [])
