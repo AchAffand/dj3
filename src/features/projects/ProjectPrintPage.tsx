@@ -222,7 +222,7 @@ export function ProjectPrintPage() {
             <colgroup><col /><col /><col /><col /><col /><col /><col /></colgroup>
             <thead>
               <tr>
-                <th>TYPE</th><th>ITEM</th><th>QTY</th><th>HARGA SAT</th><th>SATUAN</th><th>SUB TOTAL</th><th>GRAND TOTAL</th>
+                <th>TYPE</th><th>ITEM</th><th>QTY</th><th>HARGA SAT / UNIT</th><th>SATUAN</th><th>SUB TOTAL</th><th>GRAND TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -244,7 +244,7 @@ export function ProjectPrintPage() {
                       <td>{formatQuantity(row.quantity)}</td>
                       <td>{row.unitPrice === null ? "—" : formatRupiah(row.unitPrice)}</td>
                       <td>{row.unit}</td>
-                      <td>{row.subtotal === null ? "—" : formatRupiah(row.subtotal)}</td>
+                      <td>{row.subtotal === null || row.unitPrice === null ? "—" : <div className="quotation-line-total"><strong>{formatRupiah(row.subtotal)}</strong><small>{formatRupiah(row.unitPrice)} × {formatQuantity(row.quantity)} {row.unit}</small></div>}</td>
                       <td />
                     </tr>
                     {isLastRowOfModel && <tr key={`subtotal-${groupKey}`} className="quotation-type-subtotal">
