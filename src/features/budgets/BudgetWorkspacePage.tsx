@@ -14,6 +14,7 @@ export function BudgetWorkspacePage() {
   const [error, setError] = useState<string | null>(null);
   const [brandName, setBrandName] = useState("");
   const [editingCatalog, setEditingCatalog] = useState<BudgetCatalog | null>(null);
+  const [showBrandForm, setShowBrandForm] = useState(false);
   const [archivingCatalog, setArchivingCatalog] = useState<BudgetCatalog | null>(null);
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -39,6 +40,7 @@ export function BudgetWorkspacePage() {
     setBrandName("");
     setFormError(null);
     setEditingCatalog(null);
+    setShowBrandForm(true);
     setNotice(null);
   };
 
@@ -46,12 +48,14 @@ export function BudgetWorkspacePage() {
     setBrandName(catalog.label);
     setFormError(null);
     setEditingCatalog(catalog);
+    setShowBrandForm(true);
     setNotice(null);
   };
 
   const closeForm = () => {
     if (saving) return;
     setEditingCatalog(null);
+    setShowBrandForm(false);
     setBrandName("");
     setFormError(null);
   };
@@ -76,6 +80,7 @@ export function BudgetWorkspacePage() {
         setNotice({ tone: "success", message: `Merk “${label}” berhasil ditambahkan ke kelompok Aluminium.` });
       }
       setEditingCatalog(null);
+      setShowBrandForm(false);
       setBrandName("");
       await load();
     } catch (cause) {
@@ -174,28 +179,20 @@ export function BudgetWorkspacePage() {
       </article>
     </div>
 
-    {isCatalogAdmin && !editingCatalog && !brandName && false && null}
-
-    {isCatalogAdmin && <button className="budget-hidden-create-trigger" type="button" onClick={openCreate} aria-hidden="true" tabIndex={-1} />}
-
-    {isCatalogAdmin && brandName !== undefined && (editingCatalog || brandName === "") && false && null}
-
-    {isCatalogAdmin && (editingCatalog || formError) && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }}>
+    {isCatalogAdmin && showBrandForm && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }}>
       <form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="budget-brand-form-title" onSubmit={(event) => void saveBrand(event)}>
         <p className="eyebrow">MASTER HARGA · ALUMINIUM</p>
-        <h2 id="budget-brand-form-title">Ubah nama merk</h2>
-        <p>Nama yang ditampilkan akan berubah. Kode katalog dan tautan riwayat proyek tetap dipertahankan.</p>
+        <h2 id="budget-brand-form-title">{editingCatalog ? "Ubah nama merk" : "Tambah merk baru"}</h2>
+        <p>{editingCatalog ? "Nama yang ditampilkan akan berubah. Kode katalog dan tautan riwayat proyek tetap dipertahankan." : "Merk baru akan dibuat di kelompok Aluminium dengan item dan struktur harga mengikuti template HPM / INKA / DACON. Harga tetap kosong untuk diisi sendiri."}</p>
         <label htmlFor="budget-brand-name">Nama merk</label>
-        <input id="budget-brand-name" autoFocus value={brandName} onChange={(event) => setBrandName(event.target.value)} maxLength={80} required />
+        <input id="budget-brand-name" autoFocus placeholder="Masukkan nama merk" value={brandName} onChange={(event) => setBrandName(event.target.value)} maxLength={80} required />
         {formError && <div className="notice-banner error" role="alert">{formError}</div>}
         <div className="budget-modal-actions">
           <button className="secondary-button" type="button" disabled={saving} onClick={closeForm}>Batal</button>
-          <button className="primary-button" type="submit" disabled={saving || !brandName.trim()}>{saving ? "Menyimpan…" : "Simpan Perubahan"}</button>
+          <button className="primary-button" type="submit" disabled={saving || !brandName.trim()}>{saving ? "Menyimpan…" : editingCatalog ? "Simpan Perubahan" : "Tambah Merk"}</button>
         </div>
       </form>
     </div>}
-
-    {isCatalogAdmin && !editingCatalog && brandName === "" && false && null}
 
     {isCatalogAdmin && archivingCatalog && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !archiving) setArchivingCatalog(null); }}>
       <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="budget-brand-archive-title">
