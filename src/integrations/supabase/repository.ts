@@ -367,19 +367,21 @@ export function createSupabaseRepository(client: SupabaseClient) {
       return data;
     },
 
+    async updateBudgetCatalogLabel(catalogId: string, label: string): Promise<void> {
+      const { error } = await client.rpc("update_budget_catalog_label", {
+        p_catalog_id: catalogId,
+        p_label: label.trim(),
+      });
+      throwIfError(error);
+    },
+
     async archiveBudgetCatalogs(ids: string[]): Promise<void> {
       const uniqueIds = [...new Set(ids)].filter(Boolean);
       if (!uniqueIds.length) return;
-      const { data, error } = await client
-        .from("budget_catalogs")
-        .update({ active: false, updated_at: new Date().toISOString() })
-        .in("id", uniqueIds)
-        .neq("slug", "hpm-inka-dacon")
-        .select("id");
+      const { error } = await client.rpc("archive_budget_catalogs", {
+        p_catalog_ids: uniqueIds,
+      });
       throwIfError(error);
-      if ((data ?? []).length !== uniqueIds.length) {
-        throw new Error("Sebagian merek tidak dapat dihapus. Template HPM / INKA / DACON dilindungi.");
-      }
     },
 
     async loadBudgetCatalog(slug: string): Promise<BudgetCatalogDetail | null> {
