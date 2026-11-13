@@ -122,6 +122,14 @@ Pemeriksaan per component_key:
 - Tidak ada mapping aktif pada katalog Kaca; ini sesuai SQL migrasi tersebut yang tidak menambahkan mapping kaca.
 - Jangan menghapus atau mengubah item `xxxx` dalam rekonsiliasi migration history.
 
+
+
+#### Verifikasi tambahan data seed
+
+- Seluruh 13 item kaca seed dibandingkan ulang terhadap sumber sesuai prioritas migrasi (HPM brown, lalu Alexindo base untuk item yang tidak ada di HPM): 0 perbedaan harga.
+- Seluruh 18 mapping aktif sumber HPM/INKA/DACON ditemukan pada katalog Aksesoris umum.
+- Katalog Aksesoris memiliki 22 mapping aktif total; 4 mapping tambahan sesuai empat item manual yang ditambahkan migrasi.
+
 ### Koreksi Tatapan Samping: aman untuk kolom nama, tetapi mengubah nama 10 baris
 
 Audit remote:
