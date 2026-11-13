@@ -69,6 +69,10 @@ create table if not exists public.master_item_prices (
   brand_id uuid,
   variant_id uuid,
   amount numeric(18,2) check (amount is null or amount >= 0),
+  expression text,
+  source_cell text,
+  source_formula text,
+  source_value text,
   version integer not null default 1 check (version > 0),
   is_current boolean not null default true,
   source_label text,
@@ -84,6 +88,11 @@ create table if not exists public.master_item_prices (
 );
 
 -- NULL-aware uniqueness is implemented with partial indexes for broad PostgreSQL compatibility.
+create unique index if not exists master_item_prices_version_uidx
+  on public.master_item_prices(item_id,
+    coalesce(brand_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    coalesce(variant_id, '00000000-0000-0000-0000-000000000000'::uuid), version);
+
 create unique index if not exists master_item_prices_current_item_only_uidx
   on public.master_item_prices(item_id)
   where is_current and brand_id is null and variant_id is null;
