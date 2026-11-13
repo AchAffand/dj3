@@ -203,8 +203,10 @@ on conflict (group_key) do nothing;
 insert into public.master_brands(brand_key,label,position)
 values
  ('alexindo','Alexindo',10),
- ('hpm-inka-dacon','HPM / INKA / DACON',20),
- ('ykk','YKK',30)
+ ('hpm','HPM',20),
+ ('inka','INKA',30),
+ ('dacon','DACON',40),
+ ('ykk','YKK',50)
 on conflict (brand_key) do nothing;
 
 -- All new tables are protected by RLS. Master reads are limited to active records;
