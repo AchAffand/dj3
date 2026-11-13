@@ -4,117 +4,210 @@ import { AppPageState } from "../../app/AppPageState";
 import { useAppServices } from "../../app/AppServices";
 import type { BudgetCatalog } from "../../domain/budgets/types";
 
+const PROTECTED_CATALOG_SLUGS = new Set(["alexindo", "hpm-inka-dacon", "ykk", "kaca-umum", "aksesoris-umum"]);
+
 export function BudgetWorkspacePage() {
   const { repository, isCatalogAdmin } = useAppServices();
   const navigate = useNavigate();
   const [catalogs, setCatalogs] = useState<BudgetCatalog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [newBrandName, setNewBrandName] = useState("");
-  const [showBrandForm, setShowBrandForm] = useState(false);
-  const [creatingBrand, setCreatingBrand] = useState(false);
-  const [brandError, setBrandError] = useState<string | null>(null);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedCatalogIds, setSelectedCatalogIds] = useState<string[]>([]);
-  const [deletingCatalogs, setDeletingCatalogs] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [brandName, setBrandName] = useState("");
+  const [editingCatalog, setEditingCatalog] = useState<BudgetCatalog | null>(null);
+  const [archivingCatalog, setArchivingCatalog] = useState<BudgetCatalog | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+
   const load = useCallback(async () => {
     if (!repository) { setLoading(false); return; }
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
-      const catalogRows = await repository.listBudgetCatalogs();
-      setCatalogs(catalogRows);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Master harga belum dapat dimuat."); }
-    finally { setLoading(false); }
+      setCatalogs(await repository.listBudgetCatalogs());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Master harga belum dapat dimuat.");
+    } finally {
+      setLoading(false);
+    }
   }, [repository]);
+
   useEffect(() => { void load(); }, [load]);
-  const deleteSelectedCatalogs = async () => {
-    if (!repository || !selectedCatalogIds.length || deletingCatalogs) return;
-    const selectedNames = catalogs
-      .filter((catalog) => selectedCatalogIds.includes(catalog.id))
-      .map((catalog) => catalog.label);
-    setDeletingCatalogs(true);
-    setDeleteError(null);
-    setDeleteSuccess(null);
+
+  const openCreate = () => {
+    setBrandName("");
+    setFormError(null);
+    setEditingCatalog(null);
+    setNotice(null);
+  };
+
+  const openEdit = (catalog: BudgetCatalog) => {
+    setBrandName(catalog.label);
+    setFormError(null);
+    setEditingCatalog(catalog);
+    setNotice(null);
+  };
+
+  const closeForm = () => {
+    if (saving) return;
+    setEditingCatalog(null);
+    setBrandName("");
+    setFormError(null);
+  };
+
+  const saveBrand = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!repository || saving) return;
+    const label = brandName.trim();
+    if (!label) { setFormError("Nama merk wajib diisi."); return; }
+    setSaving(true);
+    setFormError(null);
+    setNotice(null);
     try {
-      await repository.archiveBudgetCatalogs(selectedCatalogIds);
-      setSelectedCatalogIds([]);
-      setSelectionMode(false);
-      setConfirmDeleteOpen(false);
-      setDeleteSuccess(`${selectedNames.length} merek berhasil diarsipkan dari daftar aktif.`);
+      if (editingCatalog) {
+        await repository.updateBudgetCatalogLabel(editingCatalog.id, label);
+        setNotice({ tone: "success", message: `Nama merk berhasil diperbarui menjadi “${label}”.` });
+      } else {
+        const slug = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        if (!slug) throw new Error("Nama merk tidak dapat dijadikan kode katalog.");
+        await repository.createBudgetCatalog(label, slug);
+        setNotice({ tone: "success", message: `Merk “${label}” berhasil ditambahkan ke kelompok Aluminium.` });
+      }
+      setEditingCatalog(null);
+      setBrandName("");
       await load();
     } catch (cause) {
-      setDeleteError(cause instanceof Error ? cause.message : "Merek yang dipilih gagal diarsipkan.");
+      setFormError(cause instanceof Error ? cause.message : "Perubahan merk gagal disimpan.");
     } finally {
-      setDeletingCatalogs(false);
+      setSaving(false);
     }
   };
-  const createBrand = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!repository || !newBrandName.trim()) return;
-    const slug = newBrandName.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    if (!slug) { setBrandError("Nama merk tidak dapat dijadikan kode katalog."); return; }
-    setCreatingBrand(true); setBrandError(null);
+
+  const confirmArchive = async () => {
+    if (!repository || !archivingCatalog || archiving) return;
+    setArchiving(true);
+    setNotice(null);
     try {
-      await repository.createBudgetCatalog(newBrandName.trim(), slug);
-      setNewBrandName(""); setShowBrandForm(false);
+      await repository.archiveBudgetCatalogs([archivingCatalog.id]);
+      setArchivingCatalog(null);
+      setNotice({ tone: "success", message: `Merk “${archivingCatalog.label}” berhasil diarsipkan. Data dan riwayat proyek tetap disimpan.` });
       await load();
     } catch (cause) {
-      setBrandError(cause instanceof Error ? cause.message : "Merek baru gagal dibuat.");
-    } finally { setCreatingBrand(false); }
+      setNotice({ tone: "error", message: cause instanceof Error ? cause.message : "Merk gagal diarsipkan." });
+    } finally {
+      setArchiving(false);
+    }
   };
+
   if (loading) return <AppPageState title="Memuat Master Harga" detail="Katalog dan perkiraan sedang dibuka." />;
   if (error) return <AppPageState title="Master Harga belum dapat dimuat" detail={error} tone="error" actionLabel="Coba lagi" onAction={() => void load()} />;
+
+  const aluminiumCatalogs = catalogs.filter((catalog) => !["kaca-umum", "aksesoris-umum"].includes(catalog.slug));
+  const glassCatalog = catalogs.find((catalog) => catalog.slug === "kaca-umum");
+  const accessoryCatalog = catalogs.find((catalog) => catalog.slug === "aksesoris-umum");
+
   return <section className="page-content">
-    <div className="page-heading-row"><div className="page-intro"><p className="eyebrow">ANGGARAN KUSEN</p><h1>Master Harga</h1><p className="page-description">Kelola tarif Excel, tentukan pemetaan item, lalu gunakan otomatis saat menghitung proyek kusen.</p></div>{isCatalogAdmin && <div className="budget-catalog-toolbar">{selectionMode && <button className="secondary-button" type="button" onClick={() => setSelectedCatalogIds(catalogs.filter((item) => !["hpm-inka-dacon", "kaca-umum", "aksesoris-umum"].includes(item.slug)).map((item) => item.id))}>Pilih semua</button>}<button className="secondary-button" type="button" onClick={() => { setSelectionMode((current) => !current); setSelectedCatalogIds([]); setDeleteError(null); setDeleteSuccess(null); }}>{selectionMode ? "Batal pilih" : "Pilih untuk arsipkan"}</button><button className="primary-button" type="button" onClick={() => { setBrandError(null); setShowBrandForm(true); }}>+ Tambah Merk</button></div>}</div>
-    {selectionMode && <div className="budget-selection-toolbar"><span>{selectedCatalogIds.length} merek dipilih</span><button className="budget-bulk-delete-button" type="button" disabled={!selectedCatalogIds.length || deletingCatalogs} onClick={() => setConfirmDeleteOpen(true)}>{`Arsipkan Terpilih (${selectedCatalogIds.length})`}</button></div>}
-    {deleteSuccess && <div className="notice-banner" role="status">{deleteSuccess}</div>}
-    {deleteError && <div className="notice-banner error" role="alert">{deleteError}</div>}
-    {(() => {
-      const aluminiumCatalogs = catalogs.filter((catalog) => !["kaca-umum", "aksesoris-umum"].includes(catalog.slug));
-      const glassCatalog = catalogs.find((catalog) => catalog.slug === "kaca-umum");
-      const accessoryCatalog = catalogs.find((catalog) => catalog.slug === "aksesoris-umum");
-      const groups = [
-        { key: "aluminium", title: "Aluminium", description: "Kelola harga berdasarkan merek aluminium: Alexindo, HPM / INKA / DACON, dan YKK.", catalogs: aluminiumCatalogs },
-        { key: "accessories", title: "Aksesoris", description: "Satu kelompok harga aksesoris yang digunakan lintas merek dan dipilih per TYPE.", catalogs: accessoryCatalog ? [accessoryCatalog] : [] },
-        { key: "glass", title: "Kaca", description: "Satu kelompok harga kaca yang digunakan lintas merek dan dipilih per TYPE.", catalogs: glassCatalog ? [glassCatalog] : [] },
-      ];
-      return <div className="budget-catalog-grid budget-main-groups">{groups.map((group) => <article className="budget-catalog-card budget-main-group-card" key={group.key}>
-        <div><p className="eyebrow">KELOMPOK MASTER HARGA</p><h2>{group.title}</h2><p>{group.description}</p></div>
-        {group.key === "aluminium" ? <div className="budget-card-actions budget-brand-actions">{group.catalogs.map((catalog) => <button className="secondary-button" type="button" key={catalog.id} onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>{catalog.label}</button>)}</div>
-          : group.catalogs.length ? <div className="budget-card-actions"><button className="primary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=prices`)}>Kelola {group.title}</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=items`)}>Tambah / Hapus Item</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=mappings`)}>Pemetaan item</button></div>
-          : <p className="notice-banner">Katalog {group.title} belum tersedia.</p>}
-      </article>)}</div>;
-    })()}
-    {confirmDeleteOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingCatalogs) setConfirmDeleteOpen(false); }}>
-      <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-catalog-title">
-        <p className="eyebrow">KONFIRMASI ARSIP</p>
-        <h2 id="confirm-delete-catalog-title">Arsipkan merek terpilih?</h2>
-        <p>Merek berikut akan disembunyikan dari daftar Master Harga aktif:</p>
-        <ul className="budget-delete-list">{catalogs.filter((catalog) => selectedCatalogIds.includes(catalog.id)).map((catalog) => <li key={catalog.id}>{catalog.label}</li>)}</ul>
-        <p className="budget-delete-help">Katalog hanya diarsipkan, bukan dihapus permanen. Riwayat perkiraan dan referensi proyek lama tetap aman. Nomor lembar yang sudah tidak aktif dapat digunakan kembali oleh merek baru. Template HPM / INKA / DACON dilindungi.</p>
-        <div className="budget-modal-actions">
-          <button className="secondary-button" type="button" disabled={deletingCatalogs} onClick={() => setConfirmDeleteOpen(false)}>Batal</button>
-          <button className="budget-bulk-delete-button" type="button" disabled={deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Mengarsipkan…" : "Ya, arsipkan merek"}</button>
-        </div>
+    <div className="page-heading-row">
+      <div className="page-intro">
+        <p className="eyebrow">ANGGARAN KUSEN</p>
+        <h1>Master Harga</h1>
+        <p className="page-description">Kelola tarif Excel, tentukan pemetaan item, lalu gunakan otomatis saat menghitung proyek kusen.</p>
       </div>
-    </div>}
-    {showBrandForm && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !creatingBrand) setShowBrandForm(false); }}>
-      <form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="new-budget-brand-title" onSubmit={(event) => void createBrand(event)}>
-        <p className="eyebrow">MASTER HARGA</p>
-        <h2 id="new-budget-brand-title">Tambah merk baru</h2>
-        <p>Masukkan nama merk yang ingin kamu gunakan. Item, kategori, varian, rumus, dan pemetaan akan disalin dari template HPM / INKA / DACON. Harga tiap item tetap kosong agar bisa kamu isi sesuai merk baru.</p>
-        <label htmlFor="new-budget-brand-name">Nama merk</label>
-        <input id="new-budget-brand-name" autoFocus value={newBrandName} onChange={(event) => setNewBrandName(event.target.value)} placeholder="Masukkan nama merk" maxLength={80} required />
-        {brandError && <div className="notice-banner" role="alert">{brandError}</div>}
-        <div className="formula-modal-actions">
-          <button className="secondary-button" type="button" disabled={creatingBrand} onClick={() => setShowBrandForm(false)}>Batal</button>
-          <button className="primary-button" type="submit" disabled={creatingBrand || !newBrandName.trim()}>{creatingBrand ? "Menyimpan…" : "Simpan Merk"}</button>
+      {isCatalogAdmin && <div className="budget-catalog-toolbar">
+        <button className="primary-button" type="button" onClick={openCreate}>+ Tambah Merk</button>
+      </div>}
+    </div>
+
+    {notice && <div className={`notice-banner ${notice.tone === "error" ? "error" : ""}`} role={notice.tone === "error" ? "alert" : "status"}>{notice.message}</div>}
+
+    <div className="budget-catalog-grid budget-main-groups">
+      <article className="budget-catalog-card budget-main-group-card">
+        <div>
+          <p className="eyebrow">KELOMPOK MASTER HARGA</p>
+          <h2>Aluminium</h2>
+          <p>Kelola harga berdasarkan merk aluminium. Merk tambahan akan muncul di kelompok ini.</p>
+        </div>
+        <div className="budget-brand-list">
+          {aluminiumCatalogs.map((catalog) => {
+            const protectedCatalog = PROTECTED_CATALOG_SLUGS.has(catalog.slug);
+            return <div className="budget-brand-row" key={catalog.id}>
+              <button className="secondary-button budget-brand-open" type="button" onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>{catalog.label}</button>
+              {isCatalogAdmin && <div className="budget-brand-actions">
+                {!protectedCatalog && <>
+                  <button className="secondary-button" type="button" onClick={() => openEdit(catalog)}>Ubah Nama</button>
+                  <button className="budget-brand-archive" type="button" onClick={() => { setArchivingCatalog(catalog); setNotice(null); }}>Arsipkan</button>
+                </>}
+                {protectedCatalog && <span className="budget-brand-protected">Merk utama</span>}
+              </div>}
+            </div>;
+          })}
+          {!aluminiumCatalogs.length && <p className="notice-banner">Belum ada merk Aluminium aktif.</p>}
+        </div>
+      </article>
+
+      <article className="budget-catalog-card budget-main-group-card">
+        <div>
+          <p className="eyebrow">KELOMPOK MASTER HARGA</p>
+          <h2>Aksesoris</h2>
+          <p>Satu kelompok harga aksesoris yang digunakan lintas merk dan dipilih per TYPE.</p>
+        </div>
+        {accessoryCatalog ? <div className="budget-card-actions">
+          <button className="primary-button" type="button" onClick={() => navigate(`/master-harga/${accessoryCatalog.slug}?mode=prices`)}>Kelola Aksesoris</button>
+          <button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${accessoryCatalog.slug}?mode=items`)}>Tambah / Hapus Item</button>
+          <button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${accessoryCatalog.slug}?mode=mappings`)}>Pemetaan item</button>
+        </div> : <p className="notice-banner">Katalog Aksesoris belum tersedia.</p>}
+      </article>
+
+      <article className="budget-catalog-card budget-main-group-card">
+        <div>
+          <p className="eyebrow">KELOMPOK MASTER HARGA</p>
+          <h2>Kaca</h2>
+          <p>Satu kelompok harga kaca yang digunakan lintas merk dan dipilih per TYPE.</p>
+        </div>
+        {glassCatalog ? <div className="budget-card-actions">
+          <button className="primary-button" type="button" onClick={() => navigate(`/master-harga/${glassCatalog.slug}?mode=prices`)}>Kelola Kaca</button>
+          <button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${glassCatalog.slug}?mode=items`)}>Tambah / Hapus Item</button>
+          <button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${glassCatalog.slug}?mode=mappings`)}>Pemetaan item</button>
+        </div> : <p className="notice-banner">Katalog Kaca belum tersedia.</p>}
+      </article>
+    </div>
+
+    {isCatalogAdmin && !editingCatalog && !brandName && false && null}
+
+    {isCatalogAdmin && <button className="budget-hidden-create-trigger" type="button" onClick={openCreate} aria-hidden="true" tabIndex={-1} />}
+
+    {isCatalogAdmin && brandName !== undefined && (editingCatalog || brandName === "") && false && null}
+
+    {isCatalogAdmin && (editingCatalog || formError) && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }}>
+      <form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="budget-brand-form-title" onSubmit={(event) => void saveBrand(event)}>
+        <p className="eyebrow">MASTER HARGA · ALUMINIUM</p>
+        <h2 id="budget-brand-form-title">Ubah nama merk</h2>
+        <p>Nama yang ditampilkan akan berubah. Kode katalog dan tautan riwayat proyek tetap dipertahankan.</p>
+        <label htmlFor="budget-brand-name">Nama merk</label>
+        <input id="budget-brand-name" autoFocus value={brandName} onChange={(event) => setBrandName(event.target.value)} maxLength={80} required />
+        {formError && <div className="notice-banner error" role="alert">{formError}</div>}
+        <div className="budget-modal-actions">
+          <button className="secondary-button" type="button" disabled={saving} onClick={closeForm}>Batal</button>
+          <button className="primary-button" type="submit" disabled={saving || !brandName.trim()}>{saving ? "Menyimpan…" : "Simpan Perubahan"}</button>
         </div>
       </form>
+    </div>}
+
+    {isCatalogAdmin && !editingCatalog && brandName === "" && false && null}
+
+    {isCatalogAdmin && archivingCatalog && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !archiving) setArchivingCatalog(null); }}>
+      <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="budget-brand-archive-title">
+        <p className="eyebrow">KONFIRMASI ARSIP</p>
+        <h2 id="budget-brand-archive-title">Arsipkan merk ini?</h2>
+        <p>Merk <strong>{archivingCatalog.label}</strong> akan disembunyikan dari pilihan aktif di Master Harga.</p>
+        <p className="budget-delete-help">Data harga, item, pemetaan, dan snapshot proyek lama tidak dihapus. Merk utama bawaan dilindungi dari pengarsipan.</p>
+        <div className="budget-modal-actions">
+          <button className="secondary-button" type="button" disabled={archiving} onClick={() => setArchivingCatalog(null)}>Batal</button>
+          <button className="budget-bulk-delete-button" type="button" disabled={archiving} onClick={() => void confirmArchive()}>{archiving ? "Mengarsipkan…" : "Ya, arsipkan merk"}</button>
+        </div>
+      </div>
     </div>}
   </section>;
 }
