@@ -1,6 +1,8 @@
 -- Rebuild Aluminium brand CRUD with guarded rename and soft-archive operations.
 -- Brand rows are never hard-deleted so estimates and historical snapshots remain valid.
 
+grant update (label, updated_at) on public.budget_catalogs to authenticated;
+
 create or replace function public.update_budget_catalog_label(
   p_catalog_id uuid,
   p_label text
