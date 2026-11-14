@@ -3,7 +3,7 @@ import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
 import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, isTatapanMaterial, normalizeMaterialDisplayName, tatapanPriceOptions, windowPriceOptions } from "../../domain/budgets/pricing";
+import { excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, isTatapanMaterial, normalizeMaterialDisplayName, tatapanPriceOptions, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -69,48 +69,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
 
             {model && (
               <>
-                {budgetCatalogs.length > 0 && <div className="budget-source-fields">
-                  <label className="dimension-field"><span>Merek aluminium</span><select value={line.priceCatalogId ?? ""} onChange={(event) => {
-                    const priceCatalogId = event.target.value || null;
-                    const variants = priceCatalogId ? budgetDetails.get(priceCatalogId)?.variants ?? [] : [];
-                    const defaultVariant = variants.find((variant) => variant.key === "brown") ?? variants[0];
-                    onChange(lineId, { ...line, priceCatalogId, priceVariantId: defaultVariant?.id ?? null });
-                  }}><option value="">Pilih merek aluminium</option>{budgetCatalogs.filter((item) => !["kaca-umum", "aksesoris-umum"].includes(item.slug)).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-                  {line.priceCatalogId && <label className="dimension-field"><span>Warna / varian harga</span><select value={line.priceVariantId ?? ""} onChange={(event) => onChange(lineId, { ...line, priceVariantId: event.target.value || null })}><option value="">Pilih varian</option>{(budgetDetails.get(line.priceCatalogId)?.variants ?? []).map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}</select></label>}
-                </div>}
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
-                {(() => {
-                  const accessories = model.materials.filter((material) => {
-                    const name = material.name.toLocaleLowerCase("id-ID");
-                    const unit = material.unit.trim().toLocaleLowerCase("id-ID");
-                    if (/^handle$/.test(name) && !["pcs", "set"].includes(unit)) return false;
-                    return /engsel kupu|^(handel|handle)\s*\+\s*kunci$|^handle$|kunci sliding/i.test(name);
-                  });
-                  const accessoryCatalog = budgetCatalogs.find((item) => item.slug === "aksesoris-umum");
-                  const detail = (accessoryCatalog ? budgetDetails.get(accessoryCatalog.id) : undefined)
-                    ?? budgetDetails.get(line.priceCatalogId ?? "");
-                  return accessories.length ? <div className="budget-source-fields accessory-source-fields">
-                    {accessories.map((material) => {
-                      const options = accessoryPriceOptions(detail, material.name);
-                      if (options.length < 2) return null;
-                      const inputKey = "__budgetAccessory_" + material.code;
-                      const selected = line.inputs[inputKey];
-                      const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected) ?? options[0];
-                      return <label className="dimension-field" key={material.code}>
-                        <span>{normalizeMaterialDisplayName(material.name)} · Variasi</span>
-                        <select aria-label={"Variasi " + material.name + " " + material.code} value={selectedOption.sourceColumn}
-                          onChange={(event) => {
-                            const component = options.find((item) => item.sourceColumn === event.target.value);
-                            if (!component) return;
-                            const inputs: InputVariables = { ...line.inputs, [inputKey]: excelColumnToNumber(component.sourceColumn) };
-                            onChange(lineId, { ...line, inputs });
-                          }}>
-                          {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
-                        </select>
-                      </label>;
-                    })}
-                  </div> : null;
-                })()}
                 {(() => {
                   const glassCatalog = budgetCatalogs.find((item) => item.slug === "kaca-umum");
                   const glassDetail = glassCatalog ? budgetDetails.get(glassCatalog.id) : undefined;
