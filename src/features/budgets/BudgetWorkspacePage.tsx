@@ -64,7 +64,7 @@ export function BudgetWorkspacePage() {
     setDeleteSuccess(null);
     try {
       const aluminiumCatalogs = (await repository.listBudgetCatalogs())
-        .filter((catalog) => !["kaca-umum", "aksesoris-umum"].includes(catalog.slug));
+        .filter((catalog) => ["hpm-inka-dacon", "alexindo", "ykk"].includes(catalog.slug));
       let archived = 0;
       for (const catalog of aluminiumCatalogs) {
         const detail = await repository.loadBudgetCatalog(catalog.slug);
