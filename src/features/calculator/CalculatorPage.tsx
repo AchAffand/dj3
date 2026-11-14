@@ -47,7 +47,11 @@ function priceMap(project: Project): Record<string, number | null | undefined> {
 }
 
 export function CalculatorPage() {
-  const { repository, catalog, loadingCatalog, catalogError, reloadCatalog, budgetCatalogs = [], budgetError, loadingBudgets, reloadBudgets } = useAppServices();
+  const {
+    repository, catalog, loadingCatalog, catalogError, reloadCatalog,
+    budgetCatalogs = [], budgetError, loadingBudgets, reloadBudgets,
+    masterItemOptions = [], loadingMasterItems = false, masterItemError, reloadMasterItems,
+  } = useAppServices();
   const budgetDetails = useAppServices().budgetDetails ?? new Map<string, BudgetCatalogDetail>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -183,6 +187,13 @@ export function CalculatorPage() {
         formulaMaterial && isTatapanMaterial(formulaMaterial) ? tatapanColumn : null,
       );
       const variant = priceDetail?.variants.find((item) => item.id === sharedVariantId);
+      const selectedMaterialItem = line.materialItems?.find((item) =>
+        item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode,
+      );
+      const hasNormalizedSelection = Boolean(selectedMaterialItem?.masterItemId);
+      const normalizedPriceKey = hasNormalizedSelection
+        ? `normalized:${selectedMaterialItem!.masterItemId}:${selectedMaterialItem!.selectedBrandId ?? ""}:${selectedMaterialItem!.selectedVariantId ?? ""}:${selectedMaterialItem!.priceVersionSnapshot ?? ""}:${material.materialCode}`
+        : null;
       const legacyPriceKey = brandDetail && line.priceVariantId
         ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
         : `manual:${material.materialCode}`;
@@ -194,18 +205,32 @@ export function CalculatorPage() {
         || (formulaMaterial && isTatapanMaterial(formulaMaterial) && typeof tatapanColumnValue === "number")
         || (/^jendela$/i.test(material.name.trim()) && typeof line.inputs.__windowSourceColumn === "number")
       );
-      const preserveLegacyOverride = !hasExplicitComponentSelection
+      const preserveLegacyOverride = !hasNormalizedSelection && !hasExplicitComponentSelection
         && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
+      const normalizedUnitPrice = selectedMaterialItem?.unitPriceSnapshot ?? null;
+      const normalizedName = selectedMaterialItem?.itemNameSnapshot || material.name;
+      const normalizedUnit = selectedMaterialItem?.unitSnapshot || material.unit;
+      const normalizedSourceLabel = [
+        selectedMaterialItem?.itemNameSnapshot,
+        selectedMaterialItem?.brandNameSnapshot,
+        selectedMaterialItem?.variantNameSnapshot,
+      ].filter(Boolean).join(" · ");
       return {
         ...material,
-        priceKey: mapped?.priceKey ?? legacyPriceKey,
-        catalogId: priceDetail && variant ? priceDetail.catalog.id : null,
-        variantId: variant?.id ?? null,
-        unitPrice: preserveLegacyOverride ? legacyOverride : mapped?.unitPrice ?? null,
-        priceVersion: mapped?.priceVersion ?? null,
-        expressionSnapshot: mapped?.expressionSnapshot ?? null,
-        componentId: mapped?.componentId ?? null,
-        priceSourceLabel: priceDetail && variant ? `${priceDetail.catalog.label} · ${variant.label}` : "Harga manual",
+        name: hasNormalizedSelection ? normalizedName : material.name,
+        unit: hasNormalizedSelection ? normalizedUnit : material.unit,
+        priceKey: normalizedPriceKey ?? mapped?.priceKey ?? legacyPriceKey,
+        catalogId: hasNormalizedSelection ? null : priceDetail && variant ? priceDetail.catalog.id : null,
+        variantId: hasNormalizedSelection ? null : variant?.id ?? null,
+        unitPrice: hasNormalizedSelection
+          ? normalizedUnitPrice
+          : preserveLegacyOverride ? legacyOverride : mapped?.unitPrice ?? null,
+        priceVersion: hasNormalizedSelection ? selectedMaterialItem?.priceVersionSnapshot ?? null : mapped?.priceVersion ?? null,
+        expressionSnapshot: hasNormalizedSelection ? null : mapped?.expressionSnapshot ?? null,
+        componentId: hasNormalizedSelection ? null : mapped?.componentId ?? null,
+        priceSourceLabel: hasNormalizedSelection
+          ? normalizedSourceLabel || "Master Item"
+          : priceDetail && variant ? `${priceDetail.catalog.label} · ${variant.label}` : "Harga manual",
       };
     });
     return { lineId: line.id ?? `${line.modelCode}`, modelCount: line.count, materials };
@@ -337,6 +362,7 @@ export function CalculatorPage() {
 
       {message && <div className={`notice-banner ${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>{message.text}</div>}
       {budgetError && <div className="notice-banner error" role="alert">Master harga tidak dapat dimuat: {budgetError} <button className="secondary-button" type="button" disabled={loadingBudgets} onClick={() => void reloadBudgets?.()}>{loadingBudgets ? "Memuat…" : "Coba lagi"}</button></div>}
+      {masterItemError && <div className="notice-banner error" role="alert">Pilihan Master Item tidak dapat dimuat: {masterItemError} <button className="secondary-button" type="button" disabled={loadingMasterItems} onClick={() => void reloadMasterItems?.()}>{loadingMasterItems ? "Memuat…" : "Coba lagi"}</button></div>}
 
       <div className="calculator-layout">
         <section className="calculator-left-column">
@@ -371,6 +397,8 @@ export function CalculatorPage() {
               onRemove={removeLine}
               budgetCatalogs={budgetCatalogs}
               budgetDetails={budgetDetails}
+              masterItemOptions={masterItemOptions}
+              loadingMasterItems={loadingMasterItems}
             />
           ) : (
             <div className="empty-models"><strong>Belum ada model</strong><p>Tambahkan setidaknya satu model pintu untuk mulai menghitung.</p></div>
