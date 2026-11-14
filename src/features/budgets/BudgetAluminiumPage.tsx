@@ -7,7 +7,7 @@ const brandOrder = ["hpm-inka-dacon", "alexindo", "ykk"];
 const brandLabel = (slug: string, label: string) => slug === "hpm-inka-dacon" ? "HPM" : label;
 
 export function BudgetAluminiumPage() {
-  const { budgetCatalogs = [], budgetDetails = new Map(), loadingBudgets, budgetError } = useAppServices();
+  const { budgetCatalogs = [], budgetDetails, loadingBudgets, budgetError } = useAppServices();
   const navigate = useNavigate();
   if (loadingBudgets) return <AppPageState title="Memuat Master Harga Aluminium" detail="Harga semua merek sedang disiapkan." />;
   if (budgetError) return <AppPageState title="Master Harga belum dapat dimuat" detail={budgetError} tone="error" actionLabel="Kembali" onAction={() => navigate("/master-harga")} />;
@@ -22,7 +22,7 @@ export function BudgetAluminiumPage() {
     </div>
     <div className="budget-price-groups budget-excel-layout">
       {catalogs.map((catalog) => {
-        const detail = budgetDetails.get(catalog.id);
+        const detail = budgetDetails?.get(catalog.id);
         if (!detail) return null;
         const components = detail.components;
         return <section className="budget-price-group" key={catalog.id}>
