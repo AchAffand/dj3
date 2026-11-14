@@ -37,3 +37,23 @@ export type BudgetCatalogDetail = { catalog: BudgetCatalog; components: BudgetCo
 export type BudgetComponentResult = { componentId: string; quantity: number; unitRate: number | null; amount: number | null; error?: string };
 export type BudgetLineResult = { position: number; subtotal: number; components: BudgetComponentResult[]; errors: string[] };
 export type BudgetCalculation = { lines: BudgetLineResult[]; grandTotal: number; errors: string[] };
+
+export type MasterItemOption = {
+  id: string;
+  materialCode: number;
+  modelCode: number | null;
+  itemId: string;
+  itemKey: string;
+  itemLabel: string;
+  unit: string;
+  groupLabel: string | null;
+  brandId: string | null;
+  brandLabel: string | null;
+  variantId: string | null;
+  variantLabel: string | null;
+  unitPrice: number | null;
+  priceExpression: string | null;
+  priceVersion: number | null;
+  isDefault: boolean;
+  position: number;
+};
