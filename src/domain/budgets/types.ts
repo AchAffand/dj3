@@ -46,6 +46,7 @@ export type MasterItemOption = {
   itemKey: string;
   itemLabel: string;
   unit: string;
+  unitOverride: string;
   groupLabel: string | null;
   brandId: string | null;
   brandLabel: string | null;
