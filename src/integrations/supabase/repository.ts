@@ -218,10 +218,14 @@ function resolveMasterItemPrice(
   const variables = new Proxy<Record<string, number | undefined>>({}, {
     get: (_target, property) => {
       if (typeof property !== "string" || !property.startsWith("price_")) return undefined;
+      const contextItemKey = itemKeys.get(entry.itemId) ?? "";
+      const contextPrefix = contextItemKey.includes(":") ? contextItemKey.slice(0, contextItemKey.lastIndexOf(":")) : "";
       for (const candidate of entries) {
-        const itemKey = itemKeys.get(candidate.itemId);
+        const candidateItemKey = itemKeys.get(candidate.itemId);
+        const itemAlias = candidateItemKey?.split(":").at(-1);
+        const candidatePrefix = candidateItemKey?.includes(":") ? candidateItemKey.slice(0, candidateItemKey.lastIndexOf(":")) : "";
         const variantKey = candidate.variantId ? variantKeys.get(candidate.variantId) : null;
-        if (!itemKey || !variantKey || property !== `price_${itemKey}_${variantKey}`) continue;
+        if (!itemAlias || !variantKey || (contextPrefix && candidatePrefix !== contextPrefix) || property !== `price_${itemAlias}_${variantKey}`) continue;
         const preferred = entries.find((item) => item.itemId === candidate.itemId && item.brandId === brandId && item.variantId === candidate.variantId)
           ?? entries.find((item) => item.itemId === candidate.itemId && item.brandId === null && item.variantId === candidate.variantId)
           ?? candidate;
@@ -477,7 +481,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
       const itemKeys = new Map<string, string>();
       for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) {
         items.set(String(row.id), row);
-        itemKeys.set(String(row.id), String(row.item_key).split(":").at(-1) || String(row.item_key));
+        itemKeys.set(String(row.id), String(row.item_key));
       }
       const brands = new Map<string, string>();
       for (const row of (brandResult.data ?? []) as unknown as Record<string, unknown>[]) brands.set(String(row.id), String(row.label));
