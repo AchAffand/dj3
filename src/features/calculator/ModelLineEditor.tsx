@@ -47,18 +47,18 @@ function uniqueOptions(options: readonly MasterItemOption[], key: (option: Maste
 
 function selectionForOption(
   line: ProjectLineDraft,
-  material: { code: number; name: string; unit: string; quantity: number },
+  material: { materialCode: number; name: string; unit: string; quantity: number },
   option: MasterItemOption,
   position: number,
 ): ProjectLineDraft {
   const existing = line.materialItems ?? [];
-  const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === material.code);
+  const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode);
   const unit = option.unitOverride.trim() || material.unit;
   const price = option.unitPrice;
   const next = {
     id: previous?.id ?? createMaterialSelectionId(),
     sourceType: "formula" as const,
-    formulaMaterialCode: material.code,
+    formulaMaterialCode: material.materialCode,
     masterItemId: option.itemId,
     selectedBrandId: option.brandId,
     selectedVariantId: option.variantId,
@@ -152,7 +152,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const inputKey = "__budgetAccessory_" + material.code;
                       const selected = line.inputs[inputKey];
                       const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected) ?? options[0];
-                      return <label className="dimension-field" key={material.code}>
+                      return <label className="dimension-field" key={material.materialCode}>
                         <span>{normalizeMaterialDisplayName(material.name)} · Variasi</span>
                         <select aria-label={"Variasi " + material.name + " " + material.code} value={selectedOption.sourceColumn}
                           onChange={(event) => {
@@ -314,12 +314,12 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                     </div>
                     {result.items.map((material, materialIndex) => {
                       const options = masterItemOptions.filter((option) =>
-                        option.materialCode === material.code
+                        option.materialCode === material.materialCode
                         && (option.modelCode === null || option.modelCode === model.code),
                       );
                       if (!options.length) return null;
                       const saved = line.materialItems?.find((item) =>
-                        item.sourceType === "formula" && item.formulaMaterialCode === material.code,
+                        item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode,
                       );
                       const itemOptions = uniqueOptions(options, (option) => option.itemId);
                       const selectedItemId = saved?.masterItemId && itemOptions.some((option) => option.itemId === saved.masterItemId)
@@ -350,7 +350,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                           <label className="dimension-field">
                             <span>Master Item</span>
                             <select
-                              aria-label={`Master Item ${material.name} ${material.code}`}
+                              aria-label={`Master Item ${material.name} ${material.materialCode}`}
                               value={selectedItemId}
                               onChange={(event) => {
                                 const nextOptions = options.filter((option) => option.itemId === event.target.value);
