@@ -255,8 +255,8 @@ export function CalculatorPage() {
       ...current,
       lines: current.lines.map((line, index) => {
         const lineId = line.id ?? `${line.modelCode}-${index}`;
-        const source = row.sources.find((item) => item.lineId === lineId);
-        if (!source) return line;
+        const sourceMaterial = results.get(line.id ?? `${line.modelCode}`)?.items.find((item) => item.materialCode === row.materialCode);
+        if (!sourceMaterial) return line;
         const existing = line.materialItems ?? [];
         const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === row.materialCode);
         const price = option.unitPrice;
@@ -267,8 +267,8 @@ export function CalculatorPage() {
           masterItemId: option.itemId,
           selectedBrandId: option.brandId,
           selectedVariantId: option.variantId,
-          quantity: source.quantity,
-          unitSnapshot: option.unitOverride.trim() || row.unit,
+          quantity: sourceMaterial.quantity,
+          unitSnapshot: option.unitOverride.trim() || sourceMaterial.unit,
           itemNameSnapshot: option.itemLabel,
           groupNameSnapshot: option.groupLabel,
           brandNameSnapshot: option.brandLabel,
@@ -288,7 +288,7 @@ export function CalculatorPage() {
       }),
     }));
     setMessage(null);
-  }, []);
+  }, [results]);
 
   const removeLine = useCallback((lineId: string) => {
     setDraft((current) => ({
