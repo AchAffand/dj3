@@ -32,7 +32,7 @@ create table if not exists public.master_items (
   unit text not null default '',
   description text,
   legacy_catalog_id uuid references public.budget_catalogs(id) on delete set null,
-  legacy_component_id uuid unique references public.budget_components(id) on delete set null,
+  legacy_component_id uuid references public.budget_components(id) on delete set null,
   legacy_source_label text,
   active boolean not null default true,
   created_at timestamptz not null default now(),
