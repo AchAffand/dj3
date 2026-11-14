@@ -204,7 +204,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const inputKey = "__budgetTatapan_" + material.code;
                       const selected = line.inputs[inputKey];
                       const selectedColumn = typeof selected === "number" ? excelColumnFromNumber(selected) : "";
-                      return <label className="dimension-field" key={material.code}>
+                      return <label className="dimension-field" key={material.materialCode}>
                         <span>{normalizeMaterialDisplayName(material.name)} · Jenis tatapan</span>
                         <select aria-label={"Jenis tatapan " + material.name + " " + material.code}
                           value={selectedColumn}
