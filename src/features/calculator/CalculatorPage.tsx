@@ -17,11 +17,19 @@ function makeLine(modelCode: number): ProjectLineDraft {
   return {
     id: typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
-      : `line-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      : createMaterialItemId(),
     modelCode,
     inputs: {},
     count: 1,
   };
+}
+
+function createMaterialItemId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
 }
 
 function priceMap(project: Project): Record<string, number | null | undefined> {
@@ -39,7 +47,11 @@ function priceMap(project: Project): Record<string, number | null | undefined> {
 }
 
 export function CalculatorPage() {
-  const { repository, catalog, loadingCatalog, catalogError, reloadCatalog, budgetCatalogs = [], budgetError, loadingBudgets, reloadBudgets } = useAppServices();
+  const {
+    repository, catalog, loadingCatalog, catalogError, reloadCatalog,
+    budgetCatalogs = [], budgetError, loadingBudgets, reloadBudgets,
+    masterItemOptions = [], loadingMasterItems = false, masterItemError, reloadMasterItems,
+  } = useAppServices();
   const budgetDetails = useAppServices().budgetDetails ?? new Map<string, BudgetCatalogDetail>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -135,76 +147,99 @@ export function CalculatorPage() {
   const accessoryDetail = accessoryCatalog ? budgetDetails.get(accessoryCatalog.id) : undefined;
   const glassDetail = glassCatalog ? budgetDetails.get(glassCatalog.id) : undefined;
 
+  const resolvedLines = useMemo(() => draft.lines.map((line) => {
+    const materials = (results.get(line.id ?? `${line.modelCode}`)?.items ?? []).map((material) => {
+      const formulaMaterial = catalog.get(line.modelCode)?.materials.find((item) => item.code === material.materialCode);
+      const brandDetail = line.priceCatalogId ? budgetDetails.get(line.priceCatalogId) : undefined;
+      const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
+        ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
+        : null;
+      const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
+      const accessoryColumn = typeof accessoryColumnValue === "number"
+        ? excelColumnFromNumber(accessoryColumnValue)
+        : accessoryPriceOptions(accessoryDetail, material.name)[0]?.sourceColumn ?? null;
+      const glassColumnValue = line.inputs[`__budgetGlass_${material.materialCode}`];
+      const glassColumn = typeof glassColumnValue === "number" ? excelColumnFromNumber(glassColumnValue) : null;
+      const tatapanColumnValue = line.inputs[`__budgetTatapan_${material.materialCode}`];
+      const tatapanColumn = typeof tatapanColumnValue === "number" ? excelColumnFromNumber(tatapanColumnValue) : null;
+      const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
+        ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
+        : null;
+      const useGlassCatalog = Boolean(formulaMaterial && isGlassMaterial(formulaMaterial) && glassColumn && glassDetail);
+      const useAccessoryCatalog = Boolean(formulaMaterial && isAccessoryMaterial(formulaMaterial)
+        && accessoryDetail && accessoryPriceOptions(accessoryDetail, material.name).length);
+      const priceDetail = useGlassCatalog ? glassDetail
+        : useAccessoryCatalog ? accessoryDetail
+        : brandDetail;
+      const sharedVariantId = priceDetail?.catalog.slug === "kaca-umum" || priceDetail?.catalog.slug === "aksesoris-umum"
+        ? priceDetail.variants[0]?.id
+        : line.priceVariantId;
+      const mapped = budgetPriceForMaterial(
+        priceDetail,
+        material.materialCode,
+        material.name,
+        material.unit,
+        sharedVariantId,
+        formulaMaterial && isDoorLeafMaterial(formulaMaterial) ? doorLeafColumn : null,
+        useAccessoryCatalog ? accessoryColumn : null,
+        /^jendela$/i.test(material.name.trim()) ? windowColumn : null,
+        useGlassCatalog ? glassColumn : null,
+        formulaMaterial && isTatapanMaterial(formulaMaterial) ? tatapanColumn : null,
+      );
+      const variant = priceDetail?.variants.find((item) => item.id === sharedVariantId);
+      const selectedMaterialItem = line.materialItems?.find((item) =>
+        item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode,
+      );
+      const hasNormalizedSelection = Boolean(selectedMaterialItem?.masterItemId);
+      const normalizedPriceKey = hasNormalizedSelection
+        ? `normalized:${selectedMaterialItem!.masterItemId}:${selectedMaterialItem!.selectedBrandId ?? ""}:${selectedMaterialItem!.selectedVariantId ?? ""}:${selectedMaterialItem!.priceVersionSnapshot ?? ""}:${material.materialCode}`
+        : null;
+      const legacyPriceKey = brandDetail && line.priceVariantId
+        ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
+        : `manual:${material.materialCode}`;
+      const legacyOverride = draft.prices[legacyPriceKey];
+      const hasExplicitComponentSelection = Boolean(
+        (formulaMaterial && isAccessoryMaterial(formulaMaterial) && typeof accessoryColumnValue === "number")
+        || (formulaMaterial && isGlassMaterial(formulaMaterial) && typeof glassColumnValue === "number")
+        || (formulaMaterial && isDoorLeafMaterial(formulaMaterial) && typeof line.inputs.__doorLeafSourceColumn === "number")
+        || (formulaMaterial && isTatapanMaterial(formulaMaterial) && typeof tatapanColumnValue === "number")
+        || (/^jendela$/i.test(material.name.trim()) && typeof line.inputs.__windowSourceColumn === "number")
+      );
+      const preserveLegacyOverride = !hasNormalizedSelection && !hasExplicitComponentSelection
+        && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
+      const normalizedUnitPrice = selectedMaterialItem?.unitPriceSnapshot ?? null;
+      const normalizedName = selectedMaterialItem?.itemNameSnapshot || material.name;
+      const normalizedUnit = selectedMaterialItem?.unitSnapshot || material.unit;
+      const normalizedSourceLabel = [
+        selectedMaterialItem?.itemNameSnapshot,
+        selectedMaterialItem?.brandNameSnapshot,
+        selectedMaterialItem?.variantNameSnapshot,
+      ].filter(Boolean).join(" · ");
+      return {
+        ...material,
+        name: hasNormalizedSelection ? normalizedName : material.name,
+        unit: hasNormalizedSelection ? normalizedUnit : material.unit,
+        priceKey: normalizedPriceKey ?? mapped?.priceKey ?? legacyPriceKey,
+        catalogId: hasNormalizedSelection ? null : priceDetail && variant ? priceDetail.catalog.id : null,
+        variantId: hasNormalizedSelection ? null : variant?.id ?? null,
+        unitPrice: hasNormalizedSelection
+          ? normalizedUnitPrice
+          : preserveLegacyOverride ? legacyOverride : mapped?.unitPrice ?? null,
+        priceVersion: hasNormalizedSelection ? selectedMaterialItem?.priceVersionSnapshot ?? null : mapped?.priceVersion ?? null,
+        expressionSnapshot: hasNormalizedSelection ? null : mapped?.expressionSnapshot ?? null,
+        componentId: hasNormalizedSelection ? null : mapped?.componentId ?? null,
+        priceSourceLabel: hasNormalizedSelection
+          ? normalizedSourceLabel || "Master Item"
+          : priceDetail && variant ? `${priceDetail.catalog.label} · ${variant.label}` : "Harga manual",
+      };
+    });
+    return { lineId: line.id ?? `${line.modelCode}`, modelCount: line.count, materials };
+  }), [accessoryDetail, budgetDetails, catalog, draft.lines, draft.prices, glassDetail, results]);
+
   const recap = useMemo(() => aggregateMaterials(
-    draft.lines.map((line) => ({
-      materials: (results.get(line.id ?? `${line.modelCode}`)?.items ?? []).map((material) => {
-        const formulaMaterial = catalog.get(line.modelCode)?.materials.find((item) => item.code === material.materialCode);
-        const brandDetail = line.priceCatalogId ? budgetDetails.get(line.priceCatalogId) : undefined;
-        const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
-          ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
-          : null;
-        const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
-        const accessoryColumn = typeof accessoryColumnValue === "number"
-          ? excelColumnFromNumber(accessoryColumnValue)
-          : accessoryPriceOptions(accessoryDetail, material.name)[0]?.sourceColumn ?? null;
-        const glassColumnValue = line.inputs[`__budgetGlass_${material.materialCode}`];
-        const glassColumn = typeof glassColumnValue === "number" ? excelColumnFromNumber(glassColumnValue) : null;
-        const tatapanColumnValue = line.inputs[`__budgetTatapan_${material.materialCode}`];
-        const tatapanColumn = typeof tatapanColumnValue === "number" ? excelColumnFromNumber(tatapanColumnValue) : null;
-        const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
-          ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
-          : null;
-        const useGlassCatalog = Boolean(formulaMaterial && isGlassMaterial(formulaMaterial) && glassColumn && glassDetail);
-        const useAccessoryCatalog = Boolean(formulaMaterial && isAccessoryMaterial(formulaMaterial)
-          && accessoryDetail && accessoryPriceOptions(accessoryDetail, material.name).length);
-        const priceDetail = useGlassCatalog ? glassDetail
-          : useAccessoryCatalog ? accessoryDetail
-          : brandDetail;
-        const sharedVariantId = priceDetail?.catalog.slug === "kaca-umum" || priceDetail?.catalog.slug === "aksesoris-umum"
-          ? priceDetail.variants[0]?.id
-          : line.priceVariantId;
-        const mapped = budgetPriceForMaterial(
-          priceDetail,
-          material.materialCode,
-          material.name,
-          material.unit,
-          sharedVariantId,
-          formulaMaterial && isDoorLeafMaterial(formulaMaterial) ? doorLeafColumn : null,
-          useAccessoryCatalog ? accessoryColumn : null,
-          /^jendela$/i.test(material.name.trim()) ? windowColumn : null,
-          useGlassCatalog ? glassColumn : null,
-          formulaMaterial && isTatapanMaterial(formulaMaterial) ? tatapanColumn : null,
-        );
-        const variant = priceDetail?.variants.find((item) => item.id === sharedVariantId);
-        const legacyPriceKey = brandDetail && line.priceVariantId
-          ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
-          : `manual:${material.materialCode}`;
-        const legacyOverride = draft.prices[legacyPriceKey];
-        const hasExplicitComponentSelection = Boolean(
-          (formulaMaterial && isAccessoryMaterial(formulaMaterial) && typeof accessoryColumnValue === "number")
-          || (formulaMaterial && isGlassMaterial(formulaMaterial) && typeof glassColumnValue === "number")
-          || (formulaMaterial && isDoorLeafMaterial(formulaMaterial) && typeof line.inputs.__doorLeafSourceColumn === "number")
-          || (formulaMaterial && isTatapanMaterial(formulaMaterial) && typeof tatapanColumnValue === "number")
-          || (/^jendela$/i.test(material.name.trim()) && typeof line.inputs.__windowSourceColumn === "number")
-        );
-        const preserveLegacyOverride = !hasExplicitComponentSelection
-          && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
-        return {
-          ...material,
-          priceKey: mapped?.priceKey ?? legacyPriceKey,
-          catalogId: priceDetail && variant ? priceDetail.catalog.id : null,
-          variantId: variant?.id ?? null,
-          unitPrice: preserveLegacyOverride ? legacyOverride : mapped?.unitPrice ?? null,
-          priceVersion: mapped?.priceVersion ?? null,
-          expressionSnapshot: mapped?.expressionSnapshot ?? null,
-          componentId: mapped?.componentId ?? null,
-          priceSourceLabel: priceDetail && variant ? `${priceDetail.catalog.label} · ${variant.label}` : "Harga manual",
-        };
-      }),
-      modelCount: line.count,
-    })),
+    resolvedLines.map(({ materials, modelCount }) => ({ materials, modelCount })),
     draft.prices,
-  ), [accessoryDetail, budgetDetails, catalog, draft.lines, draft.prices, glassDetail, results]);
+  ), [draft.prices, resolvedLines]);
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
 
   const updateLine = useCallback((lineId: string, updated: ProjectLineDraft) => {
@@ -233,7 +268,42 @@ export function CalculatorPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const saved = await projectService.saveProject({ ...draft, recap });
+      const lines = draft.lines.map((line) => {
+        const resolved = resolvedLines.find((item) => item.lineId === (line.id ?? `${line.modelCode}`));
+        const existing = line.materialItems ?? [];
+        const formulaItems = (resolved?.materials ?? []).map((material, position) => {
+          const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode);
+          const configuredPrice = draft.prices[material.priceKey];
+          const effectiveUnitPrice = typeof configuredPrice === "number" && Number.isFinite(configuredPrice)
+            ? configuredPrice
+            : material.unitPrice;
+          const unitPriceSnapshot = typeof effectiveUnitPrice === "number" && Number.isFinite(effectiveUnitPrice) && effectiveUnitPrice >= 0
+            ? effectiveUnitPrice
+            : null;
+          return {
+            id: previous?.id ?? createMaterialItemId(),
+            sourceType: "formula" as const,
+            formulaMaterialCode: material.materialCode,
+            masterItemId: previous?.masterItemId ?? null,
+            selectedBrandId: previous?.selectedBrandId ?? null,
+            selectedVariantId: previous?.selectedVariantId ?? null,
+            quantity: material.quantity,
+            unitSnapshot: material.unit,
+            itemNameSnapshot: material.name,
+            groupNameSnapshot: previous?.groupNameSnapshot ?? null,
+            brandNameSnapshot: previous?.brandNameSnapshot ?? null,
+            variantNameSnapshot: previous?.variantNameSnapshot ?? null,
+            unitPriceSnapshot,
+            priceVersionSnapshot: typeof material.priceVersion === "number" && Number.isInteger(material.priceVersion) && material.priceVersion > 0
+              ? material.priceVersion
+              : null,
+            priceIsSet: unitPriceSnapshot !== null,
+            position,
+          };
+        });
+        return { ...line, materialItems: [...formulaItems, ...existing.filter((item) => item.sourceType === "manual")] };
+      });
+      const saved = await projectService.saveProject({ ...draft, lines, recap });
       setDraft({
         id: saved.project.id,
         name: saved.project.name,
@@ -292,6 +362,7 @@ export function CalculatorPage() {
 
       {message && <div className={`notice-banner ${message.tone}`} role={message.tone === "error" ? "alert" : "status"}>{message.text}</div>}
       {budgetError && <div className="notice-banner error" role="alert">Master harga tidak dapat dimuat: {budgetError} <button className="secondary-button" type="button" disabled={loadingBudgets} onClick={() => void reloadBudgets?.()}>{loadingBudgets ? "Memuat…" : "Coba lagi"}</button></div>}
+      {masterItemError && <div className="notice-banner error" role="alert">Pilihan Master Item tidak dapat dimuat: {masterItemError} <button className="secondary-button" type="button" disabled={loadingMasterItems} onClick={() => void reloadMasterItems?.()}>{loadingMasterItems ? "Memuat…" : "Coba lagi"}</button></div>}
 
       <div className="calculator-layout">
         <section className="calculator-left-column">
@@ -326,6 +397,8 @@ export function CalculatorPage() {
               onRemove={removeLine}
               budgetCatalogs={budgetCatalogs}
               budgetDetails={budgetDetails}
+              masterItemOptions={masterItemOptions}
+              loadingMasterItems={loadingMasterItems}
             />
           ) : (
             <div className="empty-models"><strong>Belum ada model</strong><p>Tambahkan setidaknya satu model pintu untuk mulai menghitung.</p></div>

@@ -1613,3 +1613,15 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .quotation-table-section { overflow-x: auto; }
   .quotation-table { min-width: 650px; }
 }
+
+.normalized-item-source-fields { margin-top: 12px; padding: 12px; border: 1px solid var(--border, #DCE2E8); border-radius: 10px; background: var(--surface-subtle, #F8FAFC); }
+.normalized-item-heading { margin-bottom: 8px; }
+.normalized-item-heading small, .normalized-item-row small { display: block; color: var(--muted, #64748B); font-size: 12px; line-height: 1.45; }
+.normalized-item-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 12px; padding: 10px 0; border-top: 1px solid var(--border, #DCE2E8); }
+.normalized-item-row > strong { grid-column: 1 / -1; font-size: 13px; }
+.normalized-item-row .dimension-field { min-width: 0; }
+.normalized-item-price { grid-column: 1 / -1; }
+@media (max-width: 680px) {
+  .normalized-item-source-fields { padding: 10px; }
+  .normalized-item-row { grid-template-columns: minmax(0, 1fr); }
+}
