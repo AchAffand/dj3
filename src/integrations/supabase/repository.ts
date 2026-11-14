@@ -147,8 +147,7 @@ function mapProject(row: Record<string, unknown>): Project {
     }),
     prices: [
       ...prices.map((price) => ({
-      materialCode: Number(price.material_code),
-      name: String(price.name_snapshot),
+      materialCode: Number(price.material_code),      name: String(price.name_snapshot),
       unit: String(price.unit_snapshot),
       unitPrice: typeof price.unit_price === "number" ? price.unit_price : null,
       catalogId: null,
@@ -297,8 +296,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     },
 
     async deleteProject(id: string): Promise<void> {
-      const { data, error } = await client.from("projects").delete().eq("id", id).select("id").maybeSingle();
-      throwIfError(error);
+      const { data, error } = await client.from("projects").delete().eq("id", id).select("id").maybeSingle();      throwIfError(error);
       if (!data) throw new Error("Proyek tidak ditemukan atau tidak dapat dihapus.");
     },
 
@@ -317,7 +315,8 @@ export function createSupabaseRepository(client: SupabaseClient) {
         p_project_id: input.id ?? null,
         p_name: input.name,
         p_location: input.location ?? "",
-        p_floor: input.floor ?? "",        p_lines: input.lines.map((line) => ({
+        p_floor: input.floor ?? "",
+        p_lines: input.lines.map((line) => ({
           id: line.id ?? null,
           model_code: line.modelCode,
           inputs: line.inputs,
@@ -447,8 +446,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     },
 
     async saveBudgetMaterialMapping(catalogId: string, materialKey: string, materialName: string, materialUnit: string, componentId: string | null): Promise<void> {
-      const { error } = await client.rpc("save_budget_material_mapping", { p_catalog_id: catalogId, p_material_key: materialKey, p_material_name: materialName, p_material_unit: materialUnit, p_component_id: componentId });
-      throwIfError(error);
+      const { error } = await client.rpc("save_budget_material_mapping", { p_catalog_id: catalogId, p_material_key: materialKey, p_material_name: materialName, p_material_unit: materialUnit, p_component_id: componentId });      throwIfError(error);
     },
 
     async saveBudgetComponent(input: { catalogId: string; id?: string; key?: string; label: string; unit: string; category: string; groupLabel: string }): Promise<string> {
