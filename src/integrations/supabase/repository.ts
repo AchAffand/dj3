@@ -477,7 +477,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
       const itemKeys = new Map<string, string>();
       for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) {
         items.set(String(row.id), row);
-        itemKeys.set(String(row.id), String(row.item_key));
+        itemKeys.set(String(row.id), String(row.item_key).split(":").at(-1) || String(row.item_key));
       }
       const brands = new Map<string, string>();
       for (const row of (brandResult.data ?? []) as unknown as Record<string, unknown>[]) brands.set(String(row.id), String(row.label));
@@ -491,7 +491,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
         itemId: String(row.item_id),
         brandId: typeof row.brand_id === "string" ? row.brand_id : null,
         variantId: typeof row.variant_id === "string" ? row.variant_id : null,
-        amount: typeof row.amount === "number" ? row.amount : null,
+        amount: typeof row.amount === "number" ? row.amount : typeof row.amount === "string" && row.amount.trim() !== "" && Number.isFinite(Number(row.amount)) ? Number(row.amount) : null,
         expression: typeof row.expression === "string" ? row.expression : null,
         version: typeof row.version === "number" ? row.version : null,
       }));
