@@ -126,8 +126,7 @@ alter table public.formula_material_item_options
     references public.budget_material_mappings(id) on delete set null;
 
 create unique index if not exists master_items_legacy_component_id_uidx
-  on public.master_items (legacy_component_id)
-  where legacy_component_id is not null;
+  on public.master_items (legacy_component_id);
 
 
 create unique index if not exists formula_material_item_options_identity_uidx
