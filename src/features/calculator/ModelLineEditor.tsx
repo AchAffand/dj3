@@ -76,7 +76,7 @@ function selectionForOption(
   return {
     ...line,
     materialItems: [
-      ...existing.filter((item) => !(item.sourceType === "formula" && item.formulaMaterialCode === material.code)),
+      ...existing.filter((item) => !(item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode)),
       next,
     ],
   };
@@ -178,7 +178,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const inputKey = "__budgetGlass_" + material.code;
                       const selected = line.inputs[inputKey];
                       const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected);
-                      return <label className="dimension-field" key={material.code}>
+                      return <label className="dimension-field" key={material.materialCode}>
                         <span>{normalizeMaterialDisplayName(material.name)} · Jenis kaca</span>
                         <select aria-label={"Jenis kaca " + material.name + " " + material.code}
                           value={selectedOption?.sourceColumn ?? ""}
@@ -368,7 +368,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                             <label className="dimension-field">
                               <span>Brand</span>
                               <select
-                                aria-label={`Brand ${material.name} ${material.code}`}
+                                aria-label={`Brand ${material.name} ${material.materialCode}`}
                                 value={selectedBrandId}
                                 onChange={(event) => {
                                   const next = selectedItemOptions.find((option) => option.brandId === event.target.value && option.isDefault)
@@ -385,7 +385,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                             <label className="dimension-field">
                               <span>Varian / finishing</span>
                               <select
-                                aria-label={`Varian ${material.name} ${material.code}`}
+                                aria-label={`Varian ${material.name} ${material.materialCode}`}
                                 value={selectedVariantId}
                                 onChange={(event) => applyOption(brandScopedOptions.find((option) => option.variantId === event.target.value))}
                               >
