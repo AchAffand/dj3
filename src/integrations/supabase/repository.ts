@@ -452,9 +452,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
       }
       if (!optionRows.length) return [];
 
-      const itemIds = [...new Set(optionRows.map((row) => String(row.item_id)))];
       const brandIds = [...new Set(optionRows.map((row) => typeof row.brand_id === "string" ? row.brand_id : null).filter((id): id is string => Boolean(id)))];
-      const variantIds = [...new Set(optionRows.map((row) => typeof row.variant_id === "string" ? row.variant_id : null).filter((id): id is string => Boolean(id)))];
 
       const [itemResult, brandResult, variantResult, priceResult] = await Promise.all([
         client.from("master_items")
