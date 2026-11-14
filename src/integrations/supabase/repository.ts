@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DoorModel, InputVariableName } from "../../domain/catalog/types";
 import { parseFormula } from "../../domain/formulas/parser";
+import { calculateExpression } from "../../domain/formulas/evaluate";
 import type { ExpressionNode } from "../../domain/formulas/ast";
 import type {
   FormulaChange,
@@ -190,6 +191,48 @@ function mapBudgetDetail(catalog: BudgetCatalog, rows: Record<string, unknown>[]
     };
   });
   return { catalog, components, variants: [], rules: [], mappings: [] };
+}
+
+type MasterPriceEntry = { itemId: string; brandId: string | null; variantId: string | null; amount: number | null; expression: string | null; version: number | null };
+
+function resolveMasterItemPrice(
+  itemId: string,
+  brandId: string | null,
+  variantId: string | null,
+  entries: readonly MasterPriceEntry[],
+  itemKeys: ReadonlyMap<string, string>,
+  variantKeys: ReadonlyMap<string, string>,
+  stack = new Set<string>(),
+): number | null {
+  const exact = entries.find((entry) => entry.itemId === itemId && entry.brandId === brandId && entry.variantId === variantId);
+  const generic = entries.find((entry) => entry.itemId === itemId && entry.brandId === null && entry.variantId === variantId);
+  const fallback = entries.find((entry) => entry.itemId === itemId && entry.brandId === brandId && entry.variantId === null)
+    ?? entries.find((entry) => entry.itemId === itemId && entry.brandId === null && entry.variantId === null);
+  const entry = exact ?? generic ?? fallback;
+  if (!entry) return null;
+  if (typeof entry.amount === "number" && Number.isFinite(entry.amount)) return entry.amount;
+  if (!entry.expression) return null;
+  const key = `${entry.itemId}:${entry.brandId ?? ""}:${entry.variantId ?? ""}`;
+  if (stack.has(key)) throw new Error("Rumus harga Master Item mengandung referensi berulang.");
+  const nextStack = new Set(stack).add(key);
+  const variables = new Proxy<Record<string, number | undefined>>({}, {
+    get: (_target, property) => {
+      if (typeof property !== "string" || !property.startsWith("price_")) return undefined;
+      for (const candidate of entries) {
+        const itemKey = itemKeys.get(candidate.itemId);
+        const variantKey = candidate.variantId ? variantKeys.get(candidate.variantId) : null;
+        if (!itemKey || !variantKey || property !== `price_${itemKey}_${variantKey}`) continue;
+        const preferred = entries.find((item) => item.itemId === candidate.itemId && item.brandId === brandId && item.variantId === candidate.variantId)
+          ?? entries.find((item) => item.itemId === candidate.itemId && item.brandId === null && item.variantId === candidate.variantId)
+          ?? candidate;
+        return resolveMasterItemPrice(preferred.itemId, preferred.brandId, preferred.variantId, entries, itemKeys, variantKeys, nextStack) ?? undefined;
+      }
+      return undefined;
+    },
+  });
+  const value = calculateExpression(entry.expression, variables);
+  if (!Number.isFinite(value) || value < 0) throw new Error("Harga Master Item menghasilkan nilai yang tidak valid.");
+  return value;
 }
 
 export function createSupabaseRepository(client: SupabaseClient) {
