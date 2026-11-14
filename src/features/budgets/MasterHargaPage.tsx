@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { AppPageState } from "../../app/AppPageState";
 import { useAppServices } from "../../app/AppServices";
-import type { MasterPriceGroup, MasterPriceWorkbookPayload } from "../../domain/budgets/types";
+import type { MasterPriceEntry, MasterPriceGroup, MasterPriceWorkbookPayload } from "../../domain/budgets/types";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
   style: "currency",
