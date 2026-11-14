@@ -1623,3 +1623,24 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 .budget-price-matrix th small { margin-top: 4px; color: #777; font-size: 8px; font-weight: 500; }
 .budget-price-matrix td { min-width: 132px; }
 .budget-price-matrix .budget-price-value { max-width: none; white-space: nowrap; }
+
+
+/* Brand blocks on the combined Excel-style Aluminium price sheet. */
+.budget-aluminium-brand-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+.budget-aluminium-brand-heading h2 { margin: 0; }
+.budget-aluminium-brand-heading .secondary-button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.budget-aluminium-brand-heading + .budget-price-table-wrap { margin-top: 0; }
+@media (max-width: 600px) {
+  .budget-aluminium-brand-heading { align-items: flex-start; flex-direction: column; }
+}
