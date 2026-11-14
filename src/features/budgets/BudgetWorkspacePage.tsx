@@ -24,6 +24,8 @@ export function BudgetWorkspacePage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmClearAluminiumOpen, setConfirmClearAluminiumOpen] = useState(false);
+  const [clearingAluminium, setClearingAluminium] = useState(false);
   const load = useCallback(async () => {
     if (!repository) { setLoading(false); return; }
     setLoading(true); setError(null);
@@ -53,6 +55,32 @@ export function BudgetWorkspacePage() {
       setDeleteError(cause instanceof Error ? cause.message : "Merek yang dipilih gagal diarsipkan.");
     } finally {
       setDeletingCatalogs(false);
+    }
+  };
+  const clearAluminiumItems = async () => {
+    if (!repository || clearingAluminium) return;
+    setClearingAluminium(true);
+    setDeleteError(null);
+    setDeleteSuccess(null);
+    try {
+      const aluminiumCatalogs = (await repository.listBudgetCatalogs())
+        .filter((catalog) => ["hpm-inka-dacon", "alexindo", "ykk"].includes(catalog.slug));
+      let archived = 0;
+      for (const catalog of aluminiumCatalogs) {
+        const detail = await repository.loadBudgetCatalog(catalog.slug);
+        for (const component of detail?.components ?? []) {
+          await repository.archiveBudgetComponent(catalog.id, component.id);
+          archived += 1;
+        }
+      }
+      setConfirmClearAluminiumOpen(false);
+      setDeleteSuccess(`${archived} item Aluminium berhasil dikeluarkan dari daftar aktif. Riwayat proyek tetap tersimpan.`);
+      await load();
+    } catch (cause) {
+      setDeleteError(cause instanceof Error ? cause.message : "Item Aluminium gagal dikosongkan seluruhnya. Periksa kembali daftar item.");
+      await load();
+    } finally {
+      setClearingAluminium(false);
     }
   };
   const createBrand = async (event: FormEvent<HTMLFormElement>) => {
@@ -88,11 +116,22 @@ export function BudgetWorkspacePage() {
       ];
       return <div className="budget-catalog-grid budget-main-groups">{groups.map((group) => <article className="budget-catalog-card budget-main-group-card" key={group.key}>
         <div><p className="eyebrow">KELOMPOK MASTER HARGA</p><h2>{group.title}</h2><p>{group.description}</p></div>
-        {group.key === "aluminium" ? <div className="budget-card-actions budget-brand-actions">{group.catalogs.map((catalog) => <button className="secondary-button" type="button" key={catalog.id} onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>{catalogDisplayLabel(catalog)}</button>)}</div>
+        {group.key === "aluminium" ? <div className="budget-card-actions"><button className="primary-button" type="button" onClick={() => navigate("/master-harga/aluminium")}>Kelola Item</button><button className="secondary-button" type="button" disabled={!isCatalogAdmin || clearingAluminium} onClick={() => setConfirmClearAluminiumOpen(true)}>Hapus Kelompok</button></div>
           : group.catalogs.length ? <div className="budget-card-actions"><button className="primary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=prices`)}>Kelola {group.title}</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=items`)}>Tambah / Hapus Item</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=mappings`)}>Pemetaan item</button></div>
           : <p className="notice-banner">Katalog {group.title} belum tersedia.</p>}
       </article>)}</div>;
     })()}
+    {confirmClearAluminiumOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !clearingAluminium) setConfirmClearAluminiumOpen(false); }}>
+      <div className="budget-modal" role="alertdialog" aria-modal="true" aria-labelledby="clear-aluminium-title">
+        <p className="eyebrow">KONFIRMASI KELOMPOK</p>
+        <h2 id="clear-aluminium-title">Kosongkan seluruh item Aluminium?</h2>
+        <p>Semua item aktif dari merek HPM, Alexindo, dan YKK akan dikeluarkan dari daftar Master Harga. Katalog merek tetap ada dan proyek lama tetap menyimpan snapshot harga.</p>
+        <div className="budget-modal-actions">
+          <button className="secondary-button" type="button" disabled={clearingAluminium} onClick={() => setConfirmClearAluminiumOpen(false)}>Batal</button>
+          <button className="budget-bulk-delete-button" type="button" disabled={clearingAluminium} onClick={() => void clearAluminiumItems()}>{clearingAluminium ? "Mengosongkan…" : "Ya, hapus seluruh item"}</button>
+        </div>
+      </div>
+    </div>}
     {confirmDeleteOpen && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingCatalogs) setConfirmDeleteOpen(false); }}>
       <div className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-catalog-title">
         <p className="eyebrow">KONFIRMASI ARSIP</p>
