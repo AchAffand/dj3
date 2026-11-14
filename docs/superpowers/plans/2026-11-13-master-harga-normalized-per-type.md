@@ -71,7 +71,7 @@ Kolom legacy menjadi jejak asal dan bukan ketergantungan runtime permanen.
 - `active boolean`
 - `position integer`
 
-Seed awal brand: Alexindo, HPM/INKA/DACON, YKK. Merek lain dapat ditambahkan tanpa membuat kelompok baru.
+Seed awal brand: Alexindo, HPM, INKA, DACON, dan YKK sebagai entitas terpisah. Label katalog lama “HPM / INKA / DACON” tidak otomatis dipetakan ke salah satu merek; relasi merek per item harus diverifikasi terlebih dahulu. Merek lain dapat ditambahkan tanpa membuat kelompok baru.
 
 ### 4. `master_item_variants`
 - `id uuid primary key`
@@ -99,8 +99,9 @@ Ini memungkinkan item umum tanpa merek dan item yang tersedia dari beberapa mere
 - `item_id uuid references master_items`
 - `brand_id uuid nullable`
 - `variant_id uuid nullable`
-- `amount numeric nullable check amount >= 0`
+- `amount numeric nullable check amount >= 0` (tanpa pembatas presisi agar QTY/harga tidak terpotong)
 - `expression text nullable`
+- `source_cell`, `source_formula`, `source_value` nullable untuk menjaga jejak sumber seperti katalog lama
 - `version integer not null`
 - `is_current boolean not null`
 - `source_label text nullable`

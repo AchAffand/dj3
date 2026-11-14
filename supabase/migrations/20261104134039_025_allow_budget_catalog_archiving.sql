@@ -1,0 +1,1 @@
+grant update (active, updated_at) on public.budget_catalogs to authenticated;
