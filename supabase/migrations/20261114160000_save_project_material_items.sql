@@ -441,8 +441,10 @@ create policy "catalog admins manage master item variants"
 create policy "authenticated read active item brand options"
   on public.master_item_brand_options for select to authenticated
   using (
-    active
-    and exists (select 1 from public.master_items item where item.id = item_id and item.active)
+    (active and exists (
+      select 1 from public.master_items item
+      where item.id = master_item_brand_options.item_id and item.active
+    ))
     or (select private.is_catalog_admin())
   );
 create policy "catalog admins manage item brand options"
@@ -453,7 +455,10 @@ create policy "catalog admins manage item brand options"
 create policy "authenticated read active master item prices"
   on public.master_item_prices for select to authenticated
   using (
-    exists (select 1 from public.master_items item where item.id = item_id and item.active)
+    (is_current and exists (
+      select 1 from public.master_items item
+      where item.id = master_item_prices.item_id and item.active
+    ))
     or (select private.is_catalog_admin())
   );
 create policy "catalog admins manage master item prices"
