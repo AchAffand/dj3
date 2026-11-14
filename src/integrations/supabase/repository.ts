@@ -114,16 +114,37 @@ function mapProject(row: Record<string, unknown>): Project {
     floor: typeof row.floor === "string" ? row.floor : "",
     createdAt: typeof row.created_at === "string" ? row.created_at : undefined,
     updatedAt: typeof row.updated_at === "string" ? row.updated_at : undefined,
-    lines: lines.map((line) => ({
-      id: String(line.id),
-      modelCode: Number(line.model_code),
-      inputs: (line.inputs ?? {}) as Project["lines"][number]["inputs"],
-      count: Number(line.model_count),
-      formulaSnapshot: (line.formula_snapshot ?? []) as Project["lines"][number]["formulaSnapshot"],
-      resultSnapshot: (line.result_snapshot ?? { items: [], errors: [] }) as Project["lines"][number]["resultSnapshot"],
-      priceCatalogId: typeof line.price_catalog_id === "string" ? line.price_catalog_id : null,
-      priceVariantId: typeof line.price_variant_id === "string" ? line.price_variant_id : null,
-    })),
+    lines: lines.map((line) => {
+      const materialRows = (line.project_line_material_items as Record<string, unknown>[] | null) ?? [];
+      return {
+        id: String(line.id),
+        modelCode: Number(line.model_code),
+        inputs: (line.inputs ?? {}) as Project["lines"][number]["inputs"],
+        count: Number(line.model_count),
+        formulaSnapshot: (line.formula_snapshot ?? []) as Project["lines"][number]["formulaSnapshot"],
+        resultSnapshot: (line.result_snapshot ?? { items: [], errors: [] }) as Project["lines"][number]["resultSnapshot"],
+        priceCatalogId: typeof line.price_catalog_id === "string" ? line.price_catalog_id : null,
+        priceVariantId: typeof line.price_variant_id === "string" ? line.price_variant_id : null,
+        materialItems: materialRows.map((item) => ({
+          id: String(item.id),
+          sourceType: String(item.source_type) as "formula" | "manual",
+          formulaMaterialCode: typeof item.formula_material_code === "number" ? item.formula_material_code : null,
+          masterItemId: typeof item.master_item_id === "string" ? item.master_item_id : null,
+          selectedBrandId: typeof item.selected_brand_id === "string" ? item.selected_brand_id : null,
+          selectedVariantId: typeof item.selected_variant_id === "string" ? item.selected_variant_id : null,
+          quantity: Number(item.quantity),
+          unitSnapshot: String(item.unit_snapshot ?? ""),
+          itemNameSnapshot: String(item.item_name_snapshot ?? ""),
+          groupNameSnapshot: typeof item.group_name_snapshot === "string" ? item.group_name_snapshot : null,
+          brandNameSnapshot: typeof item.brand_name_snapshot === "string" ? item.brand_name_snapshot : null,
+          variantNameSnapshot: typeof item.variant_name_snapshot === "string" ? item.variant_name_snapshot : null,
+          unitPriceSnapshot: typeof item.unit_price_snapshot === "number" ? item.unit_price_snapshot : null,
+          priceVersionSnapshot: typeof item.price_version_snapshot === "number" ? item.price_version_snapshot : null,
+          priceIsSet: Boolean(item.price_is_set),
+          position: Number(item.position ?? 0),
+        })),
+      };
+    }),
     prices: [
       ...prices.map((price) => ({
       materialCode: Number(price.material_code),
@@ -147,7 +168,6 @@ function mapProject(row: Record<string, unknown>): Project {
 function mapBudgetCatalog(row: Record<string, unknown>): BudgetCatalog {
   return { id: String(row.id), slug: String(row.slug), label: String(row.label), position: Number(row.position), active: Boolean(row.active) };
 }
-
 function mapBudgetDetail(catalog: BudgetCatalog, rows: Record<string, unknown>[]): BudgetCatalogDetail {
   const components: BudgetComponent[] = rows.map((row) => {
     const priceRows = (row.budget_prices as Record<string, unknown>[] | null) ?? [];
@@ -285,7 +305,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     async loadProject(id: string): Promise<Project | null> {
       const { data, error } = await client
         .from("projects")
-        .select("id,name,location,floor,created_at,updated_at,project_model_lines(id,model_code,inputs,model_count,formula_snapshot,result_snapshot,price_catalog_id,price_variant_id),project_material_prices(material_code,name_snapshot,unit_snapshot,unit_price),project_line_price_snapshots(material_code,catalog_id,variant_id,name_snapshot,unit_snapshot,unit_price,component_id,price_version,expression_snapshot)")
+        .select("id,name,location,floor,created_at,updated_at,project_model_lines(id,model_code,inputs,model_count,formula_snapshot,result_snapshot,price_catalog_id,price_variant_id,project_line_material_items(id,source_type,formula_material_code,master_item_id,selected_brand_id,selected_variant_id,quantity,unit_snapshot,item_name_snapshot,group_name_snapshot,brand_name_snapshot,variant_name_snapshot,unit_price_snapshot,price_version_snapshot,price_is_set,position)),project_material_prices(material_code,name_snapshot,unit_snapshot,unit_price),project_line_price_snapshots(material_code,catalog_id,variant_id,name_snapshot,unit_snapshot,unit_price,component_id,price_version,expression_snapshot)")
         .eq("id", id)
         .maybeSingle();
       throwIfError(error);
@@ -293,12 +313,11 @@ export function createSupabaseRepository(client: SupabaseClient) {
     },
 
     async saveProject(input: ProjectInput): Promise<Project> {
-      const { data, error } = await client.rpc("save_project_with_budget_prices", {
+      const { data, error } = await client.rpc("save_project_with_material_items", {
         p_project_id: input.id ?? null,
         p_name: input.name,
         p_location: input.location ?? "",
-        p_floor: input.floor ?? "",
-        p_lines: input.lines.map((line) => ({
+        p_floor: input.floor ?? "",        p_lines: input.lines.map((line) => ({
           id: line.id ?? null,
           model_code: line.modelCode,
           inputs: line.inputs,
@@ -319,6 +338,25 @@ export function createSupabaseRepository(client: SupabaseClient) {
           name_snapshot: price.name, unit_snapshot: price.unit, unit_price: price.unitPrice,
           component_id: price.componentId ?? null, price_version: price.priceVersion ?? null, expression_snapshot: price.expressionSnapshot ?? null,
         })),
+        p_material_items: input.lines.flatMap((line) => (line.materialItems ?? []).map((item) => ({
+          id: item.id,
+          project_model_line_id: line.id,
+          source_type: item.sourceType,
+          formula_material_code: item.formulaMaterialCode,
+          master_item_id: item.masterItemId,
+          selected_brand_id: item.selectedBrandId,
+          selected_variant_id: item.selectedVariantId,
+          quantity: item.quantity,
+          unit_snapshot: item.unitSnapshot,
+          item_name_snapshot: item.itemNameSnapshot,
+          group_name_snapshot: item.groupNameSnapshot,
+          brand_name_snapshot: item.brandNameSnapshot,
+          variant_name_snapshot: item.variantNameSnapshot,
+          unit_price_snapshot: item.unitPriceSnapshot,
+          price_version_snapshot: item.priceVersionSnapshot,
+          price_is_set: item.priceIsSet,
+          position: item.position,
+        }))),
       });
       throwIfError(error);
       const id = typeof data === "string" ? data : input.id;
@@ -447,8 +485,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
       const { data, error } = await client.from("budget_estimates").select("id,catalog_id,project_name,location,floor,report_date,author_label,grand_total,snapshot,budget_estimate_lines(position,description,unit_count,quantities,subtotal,result_snapshot)").eq("id", id).maybeSingle();
       throwIfError(error);
       if (!data) return null;
-      const row = data as unknown as Record<string, unknown>;
-      return {
+      const row = data as unknown as Record<string, unknown>;      return {
         id: String(row.id), catalogId: String(row.catalog_id), projectName: String(row.project_name), location: String(row.location ?? ""), floor: String(row.floor ?? ""), reportDate: String(row.report_date), authorLabel: String(row.author_label ?? ""), grandTotal: Number(row.grand_total), snapshot: (row.snapshot ?? {}) as Record<string, unknown>,
         lines: ((row.budget_estimate_lines as Record<string, unknown>[] | null) ?? []).map((line) => ({ position: Number(line.position), description: String(line.description ?? ""), unitCount: Number(line.unit_count), quantities: (line.quantities ?? {}) as Record<string, number> })),
       };
