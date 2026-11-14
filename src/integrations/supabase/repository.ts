@@ -225,7 +225,17 @@ function resolveMasterItemPrice(
         const itemAlias = candidateItemKey?.split(":").at(-1);
         const candidatePrefix = candidateItemKey?.includes(":") ? candidateItemKey.slice(0, candidateItemKey.lastIndexOf(":")) : "";
         const variantKey = candidate.variantId ? variantKeys.get(candidate.variantId) : null;
-        if (!itemAlias || !variantKey || (contextPrefix && candidatePrefix !== contextPrefix) || property !== `price_${itemAlias}_${variantKey}`) continue;
+        if (!itemAlias || !variantKey || (contextPrefix && candidatePrefix !== contextPrefix)) continue;
+        const variablePrefix = `price_${itemAlias}_`;
+        if (!property.startsWith(variablePrefix)) continue;
+        const requestedVariantKey = property.slice(variablePrefix.length);
+        const hasBaseVariant = entries.some((item) =>
+          item.itemId === candidate.itemId
+          && item.variantId !== null
+          && variantKeys.get(item.variantId) === "base",
+        );
+        const resolvedVariantKey = requestedVariantKey === "base" && !hasBaseVariant ? "brown" : requestedVariantKey;
+        if (variantKey !== resolvedVariantKey) continue;
         const preferred = entries.find((item) => item.itemId === candidate.itemId && item.brandId === brandId && item.variantId === candidate.variantId)
           ?? entries.find((item) => item.itemId === candidate.itemId && item.brandId === null && item.variantId === candidate.variantId)
           ?? candidate;
