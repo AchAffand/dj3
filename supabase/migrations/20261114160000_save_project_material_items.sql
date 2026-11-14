@@ -112,6 +112,24 @@ create table if not exists public.formula_material_item_options (
     references public.master_item_variants(id, item_id) on delete restrict
 );
 
+-- Keep this migration compatible with the earlier normalized schema migration
+-- (20261114120000), which creates the core tables before this import/RPC layer.
+alter table public.master_items
+  add column if not exists legacy_source_label text;
+alter table public.master_item_variants
+  add column if not exists legacy_variant_id uuid
+    references public.budget_variants(id) on delete set null;
+alter table public.formula_material_item_options
+  add column if not exists unit_override text not null default '';
+alter table public.formula_material_item_options
+  add column if not exists legacy_mapping_id uuid
+    references public.budget_material_mappings(id) on delete set null;
+
+create unique index if not exists master_items_legacy_component_id_uidx
+  on public.master_items (legacy_component_id)
+  where legacy_component_id is not null;
+
+
 create unique index if not exists formula_material_item_options_identity_uidx
   on public.formula_material_item_options (
     material_code,
@@ -132,8 +150,8 @@ create table if not exists public.project_line_material_items (
   source_type text not null check (source_type in ('formula','manual')),
   formula_material_code integer references public.materials(code) on delete restrict,
   master_item_id uuid references public.master_items(id) on delete restrict,
-  selected_brand_id uuid references public.master_brands(id) on delete set null,
-  selected_variant_id uuid references public.master_item_variants(id) on delete set null,
+  selected_brand_id uuid,
+  selected_variant_id uuid,
   quantity numeric not null check (quantity >= 0),
   unit_snapshot text not null,
   item_name_snapshot text not null,
@@ -148,8 +166,14 @@ create table if not exists public.project_line_material_items (
   updated_at timestamptz not null default now(),
   foreign key (project_model_line_id, project_id)
     references public.project_model_lines(id, project_id) on delete cascade,
+  foreign key (master_item_id, selected_brand_id)
+    references public.master_item_brand_options(item_id, brand_id) on delete restrict,
+  foreign key (selected_variant_id, master_item_id)
+    references public.master_item_variants(id, item_id) on delete restrict,
   check (
-    (source_type = 'formula' and formula_material_code is not null)
+    (source_type = 'formula' and formula_material_code is not null
+      and (selected_brand_id is null or master_item_id is not null)
+      and (selected_variant_id is null or master_item_id is not null))
     or
     (source_type = 'manual' and formula_material_code is null and master_item_id is not null)
   ),
