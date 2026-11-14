@@ -100,7 +100,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                   value={line.modelCode || ""}
                   onChange={(event) => {
                     const modelCode = Number(event.target.value);
-                    onChange(lineId, { ...line, modelCode, inputs: {}, formulaSnapshot: undefined, resultSnapshot: undefined });
+                    onChange(lineId, { ...line, modelCode, inputs: {}, formulaSnapshot: undefined, resultSnapshot: undefined, materialItems: (line.materialItems ?? []).filter((item) => item.sourceType === "manual") });
                   }}
                 >
                   <option value="" disabled>Pilih kode model</option>
@@ -329,14 +329,14 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const brandOptions = uniqueOptions(selectedItemOptions, (option) => option.brandId);
                       const selectedBrandId = saved?.selectedBrandId && brandOptions.some((option) => option.brandId === saved.selectedBrandId)
                         ? saved.selectedBrandId
-                        : (brandOptions.length === 1 ? brandOptions[0].brandId : "");
+                        : (brandOptions.length === 1 ? (brandOptions[0].brandId ?? "") : "");
                       const brandScopedOptions = selectedBrandId
                         ? selectedItemOptions.filter((option) => option.brandId === selectedBrandId)
                         : selectedItemOptions;
                       const variantOptions = uniqueOptions(brandScopedOptions, (option) => option.variantId);
                       const selectedVariantId = saved?.selectedVariantId && variantOptions.some((option) => option.variantId === saved.selectedVariantId)
                         ? saved.selectedVariantId
-                        : (variantOptions.length === 1 ? variantOptions[0].variantId : (variantOptions.find((option) => option.isDefault)?.variantId ?? ""));
+                        : (variantOptions.length === 1 ? (variantOptions[0].variantId ?? "") : (variantOptions.find((option) => option.isDefault)?.variantId ?? ""));
                       const needsBrandChoice = brandOptions.length > 1 && !selectedBrandId;
                       const needsVariantChoice = variantOptions.length > 1 && !selectedVariantId;
                       const selectedOption = needsBrandChoice || needsVariantChoice
@@ -391,6 +391,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                               <select
                                 aria-label={`Varian ${material.name} ${material.materialCode}`}
                                 value={selectedVariantId}
+                                disabled={needsBrandChoice}
                                 onChange={(event) => applyOption(brandScopedOptions.find((option) => option.variantId === event.target.value))}
                               >
                                 <option value="">Pilih varian</option>
