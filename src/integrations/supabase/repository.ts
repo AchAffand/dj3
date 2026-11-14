@@ -459,18 +459,15 @@ export function createSupabaseRepository(client: SupabaseClient) {
       const [itemResult, brandResult, variantResult, priceResult] = await Promise.all([
         client.from("master_items")
           .select("id,item_key,label,unit,active,master_item_groups(label)")
-          .in("id", itemIds)
           .eq("active", true),
         brandIds.length
           ? client.from("master_brands").select("id,label").in("id", brandIds)
           : Promise.resolve({ data: [], error: null }),
         client.from("master_item_variants")
           .select("id,item_id,variant_key,label,position,active")
-          .in("item_id", itemIds)
           .eq("active", true),
         client.from("master_item_prices")
           .select("item_id,brand_id,variant_id,amount,expression,version")
-          .in("item_id", itemIds)
           .eq("is_current", true),
       ]);
       throwIfError(itemResult.error);
