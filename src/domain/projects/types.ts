@@ -18,6 +18,25 @@ export type ProjectResultSnapshot = {
   errors: { materialCode: number; reason: string }[];
 };
 
+export type ProjectLineMaterialItemInput = {
+  id: string;
+  sourceType: "formula" | "manual";
+  formulaMaterialCode: number | null;
+  masterItemId: string | null;
+  selectedBrandId: string | null;
+  selectedVariantId: string | null;
+  quantity: number;
+  unitSnapshot: string;
+  itemNameSnapshot: string;
+  groupNameSnapshot: string | null;
+  brandNameSnapshot: string | null;
+  variantNameSnapshot: string | null;
+  unitPriceSnapshot: number | null;
+  priceVersionSnapshot: number | null;
+  priceIsSet: boolean;
+  position: number;
+};
+
 export type ProjectModelLineInput = {
   id?: string;
   modelCode: number;
@@ -27,6 +46,7 @@ export type ProjectModelLineInput = {
   resultSnapshot: ProjectResultSnapshot;
   priceCatalogId?: string | null;
   priceVariantId?: string | null;
+  materialItems?: ProjectLineMaterialItemInput[];
 };
 
 export type ProjectPriceInput = {

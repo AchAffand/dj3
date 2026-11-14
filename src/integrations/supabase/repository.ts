@@ -9,7 +9,7 @@ import type {
   ProjectInput,
   ProjectSummary,
 } from "../../domain/projects/types";
-import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping } from "../../domain/budgets/types";
+import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping, MasterItemOption } from "../../domain/budgets/types";
 
 type ModelRow = {
   code: number;
@@ -114,16 +114,37 @@ function mapProject(row: Record<string, unknown>): Project {
     floor: typeof row.floor === "string" ? row.floor : "",
     createdAt: typeof row.created_at === "string" ? row.created_at : undefined,
     updatedAt: typeof row.updated_at === "string" ? row.updated_at : undefined,
-    lines: lines.map((line) => ({
-      id: String(line.id),
-      modelCode: Number(line.model_code),
-      inputs: (line.inputs ?? {}) as Project["lines"][number]["inputs"],
-      count: Number(line.model_count),
-      formulaSnapshot: (line.formula_snapshot ?? []) as Project["lines"][number]["formulaSnapshot"],
-      resultSnapshot: (line.result_snapshot ?? { items: [], errors: [] }) as Project["lines"][number]["resultSnapshot"],
-      priceCatalogId: typeof line.price_catalog_id === "string" ? line.price_catalog_id : null,
-      priceVariantId: typeof line.price_variant_id === "string" ? line.price_variant_id : null,
-    })),
+    lines: lines.map((line) => {
+      const materialRows = (line.project_line_material_items as Record<string, unknown>[] | null) ?? [];
+      return {
+        id: String(line.id),
+        modelCode: Number(line.model_code),
+        inputs: (line.inputs ?? {}) as Project["lines"][number]["inputs"],
+        count: Number(line.model_count),
+        formulaSnapshot: (line.formula_snapshot ?? []) as Project["lines"][number]["formulaSnapshot"],
+        resultSnapshot: (line.result_snapshot ?? { items: [], errors: [] }) as Project["lines"][number]["resultSnapshot"],
+        priceCatalogId: typeof line.price_catalog_id === "string" ? line.price_catalog_id : null,
+        priceVariantId: typeof line.price_variant_id === "string" ? line.price_variant_id : null,
+        materialItems: materialRows.map((item) => ({
+          id: String(item.id),
+          sourceType: String(item.source_type) as "formula" | "manual",
+          formulaMaterialCode: typeof item.formula_material_code === "number" ? item.formula_material_code : null,
+          masterItemId: typeof item.master_item_id === "string" ? item.master_item_id : null,
+          selectedBrandId: typeof item.selected_brand_id === "string" ? item.selected_brand_id : null,
+          selectedVariantId: typeof item.selected_variant_id === "string" ? item.selected_variant_id : null,
+          quantity: Number(item.quantity),
+          unitSnapshot: String(item.unit_snapshot ?? ""),
+          itemNameSnapshot: String(item.item_name_snapshot ?? ""),
+          groupNameSnapshot: typeof item.group_name_snapshot === "string" ? item.group_name_snapshot : null,
+          brandNameSnapshot: typeof item.brand_name_snapshot === "string" ? item.brand_name_snapshot : null,
+          variantNameSnapshot: typeof item.variant_name_snapshot === "string" ? item.variant_name_snapshot : null,
+          unitPriceSnapshot: typeof item.unit_price_snapshot === "number" ? item.unit_price_snapshot : null,
+          priceVersionSnapshot: typeof item.price_version_snapshot === "number" ? item.price_version_snapshot : null,
+          priceIsSet: Boolean(item.price_is_set),
+          position: Number(item.position ?? 0),
+        })),
+      };
+    }),
     prices: [
       ...prices.map((price) => ({
       materialCode: Number(price.material_code),
@@ -285,7 +306,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     async loadProject(id: string): Promise<Project | null> {
       const { data, error } = await client
         .from("projects")
-        .select("id,name,location,floor,created_at,updated_at,project_model_lines(id,model_code,inputs,model_count,formula_snapshot,result_snapshot,price_catalog_id,price_variant_id),project_material_prices(material_code,name_snapshot,unit_snapshot,unit_price),project_line_price_snapshots(material_code,catalog_id,variant_id,name_snapshot,unit_snapshot,unit_price,component_id,price_version,expression_snapshot)")
+        .select("id,name,location,floor,created_at,updated_at,project_model_lines(id,model_code,inputs,model_count,formula_snapshot,result_snapshot,price_catalog_id,price_variant_id,project_line_material_items(id,source_type,formula_material_code,master_item_id,selected_brand_id,selected_variant_id,quantity,unit_snapshot,item_name_snapshot,group_name_snapshot,brand_name_snapshot,variant_name_snapshot,unit_price_snapshot,price_version_snapshot,price_is_set,position)),project_material_prices(material_code,name_snapshot,unit_snapshot,unit_price),project_line_price_snapshots(material_code,catalog_id,variant_id,name_snapshot,unit_snapshot,unit_price,component_id,price_version,expression_snapshot)")
         .eq("id", id)
         .maybeSingle();
       throwIfError(error);
@@ -293,7 +314,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
     },
 
     async saveProject(input: ProjectInput): Promise<Project> {
-      const { data, error } = await client.rpc("save_project_with_budget_prices", {
+      const { data, error } = await client.rpc("save_project_with_material_items", {
         p_project_id: input.id ?? null,
         p_name: input.name,
         p_location: input.location ?? "",
@@ -319,6 +340,25 @@ export function createSupabaseRepository(client: SupabaseClient) {
           name_snapshot: price.name, unit_snapshot: price.unit, unit_price: price.unitPrice,
           component_id: price.componentId ?? null, price_version: price.priceVersion ?? null, expression_snapshot: price.expressionSnapshot ?? null,
         })),
+        p_material_items: input.lines.flatMap((line) => (line.materialItems ?? []).map((item) => ({
+          id: item.id,
+          project_model_line_id: line.id,
+          source_type: item.sourceType,
+          formula_material_code: item.formulaMaterialCode,
+          master_item_id: item.masterItemId,
+          selected_brand_id: item.selectedBrandId,
+          selected_variant_id: item.selectedVariantId,
+          quantity: item.quantity,
+          unit_snapshot: item.unitSnapshot,
+          item_name_snapshot: item.itemNameSnapshot,
+          group_name_snapshot: item.groupNameSnapshot,
+          brand_name_snapshot: item.brandNameSnapshot,
+          variant_name_snapshot: item.variantNameSnapshot,
+          unit_price_snapshot: item.unitPriceSnapshot,
+          price_version_snapshot: item.priceVersionSnapshot,
+          price_is_set: item.priceIsSet,
+          position: item.position,
+        }))),
       });
       throwIfError(error);
       const id = typeof data === "string" ? data : input.id;
@@ -349,6 +389,95 @@ export function createSupabaseRepository(client: SupabaseClient) {
         createdBy: typeof row.created_by === "string" ? row.created_by : null,
         createdAt: String(row.created_at),
       }));
+    },
+
+    async listMasterItemOptions(): Promise<MasterItemOption[]> {
+      const optionRows: Record<string, unknown>[] = [];
+      const pageSize = 1000;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await client
+          .from("formula_material_item_options")
+          .select("id,material_code,model_code,item_id,brand_id,variant_id,unit_override,is_default,position,active")
+          .eq("active", true)
+          .order("material_code")
+          .order("position")
+          .range(offset, offset + pageSize - 1);
+        throwIfError(error);
+        const page = (data ?? []) as unknown as Record<string, unknown>[];
+        optionRows.push(...page);
+        if (page.length < pageSize) break;
+      }
+      if (!optionRows.length) return [];
+
+      const itemIds = [...new Set(optionRows.map((row) => String(row.item_id)))];
+      const brandIds = [...new Set(optionRows.map((row) => typeof row.brand_id === "string" ? row.brand_id : null).filter((id): id is string => Boolean(id)))];
+      const variantIds = [...new Set(optionRows.map((row) => typeof row.variant_id === "string" ? row.variant_id : null).filter((id): id is string => Boolean(id)))];
+
+      const [itemResult, brandResult, variantResult, priceResult] = await Promise.all([
+        client.from("master_items")
+          .select("id,item_key,label,unit,active,master_item_groups(label)")
+          .in("id", itemIds)
+          .eq("active", true),
+        brandIds.length
+          ? client.from("master_brands").select("id,label").in("id", brandIds)
+          : Promise.resolve({ data: [], error: null }),
+        variantIds.length
+          ? client.from("master_item_variants").select("id,item_id,label,position,active").in("id", variantIds).eq("active", true)
+          : Promise.resolve({ data: [], error: null }),
+        client.from("master_item_prices")
+          .select("item_id,brand_id,variant_id,amount,expression,version")
+          .in("item_id", itemIds)
+          .eq("is_current", true),
+      ]);
+      throwIfError(itemResult.error);
+      throwIfError(brandResult.error);
+      throwIfError(variantResult.error);
+      throwIfError(priceResult.error);
+
+      const items = new Map<string, Record<string, unknown>>();
+      for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) items.set(String(row.id), row);
+      const brands = new Map<string, string>();
+      for (const row of (brandResult.data ?? []) as unknown as Record<string, unknown>[]) brands.set(String(row.id), String(row.label));
+      const variants = new Map<string, Record<string, unknown>>();
+      for (const row of (variantResult.data ?? []) as unknown as Record<string, unknown>[]) variants.set(String(row.id), row);
+      const priceKey = (itemId: unknown, brandId: unknown, variantId: unknown) =>
+        `${String(itemId)}:${typeof brandId === "string" ? brandId : ""}:${typeof variantId === "string" ? variantId : ""}`;
+      const prices = new Map<string, Record<string, unknown>>();
+      for (const row of (priceResult.data ?? []) as unknown as Record<string, unknown>[]) {
+        prices.set(priceKey(row.item_id, row.brand_id, row.variant_id), row);
+      }
+
+      return optionRows.flatMap((row): MasterItemOption[] => {
+        const item = items.get(String(row.item_id));
+        if (!item) return [];
+        const groupRelation = Array.isArray(item.master_item_groups) ? item.master_item_groups[0] : item.master_item_groups;
+        const brandId = typeof row.brand_id === "string" ? row.brand_id : null;
+        const variantId = typeof row.variant_id === "string" ? row.variant_id : null;
+        const variant = variantId ? variants.get(variantId) : null;
+        const price = prices.get(priceKey(item.id, brandId, variantId));
+        return [{
+          id: String(row.id),
+          materialCode: Number(row.material_code),
+          modelCode: typeof row.model_code === "number" ? row.model_code : null,
+          itemId: String(item.id),
+          itemKey: String(item.item_key),
+          itemLabel: String(item.label),
+          unit: String(item.unit ?? ""),
+          unitOverride: String(row.unit_override ?? ""),
+          groupLabel: typeof (groupRelation as Record<string, unknown> | null)?.label === "string"
+            ? String((groupRelation as Record<string, unknown>).label)
+            : null,
+          brandId,
+          brandLabel: brandId ? brands.get(brandId) ?? null : null,
+          variantId,
+          variantLabel: variant ? String(variant.label) : null,
+          unitPrice: typeof price?.amount === "number" ? price.amount : null,
+          priceExpression: typeof price?.expression === "string" ? price.expression : null,
+          priceVersion: typeof price?.version === "number" ? price.version : null,
+          isDefault: Boolean(row.is_default),
+          position: variant ? Number(variant.position ?? row.position ?? 0) : Number(row.position ?? 0),
+        }];
+      });
     },
 
     async listBudgetCatalogs(): Promise<BudgetCatalog[]> {

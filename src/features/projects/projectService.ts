@@ -14,6 +14,7 @@ export type ProjectLineDraft = {
   resultSnapshot?: ProjectModelLineInput["resultSnapshot"];
   priceCatalogId?: string | null;
   priceVariantId?: string | null;
+  materialItems?: NonNullable<ProjectModelLineInput["materialItems"]>;
 };
 
 export type ProjectDraft = {
@@ -37,6 +38,14 @@ export type ProjectSaveResult = {
   total: number;
   missingPriceCount: number;
 };
+
+function createStableId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
+}
 
 function modelSnapshot(
   model: DoorModel,
@@ -110,7 +119,7 @@ export function createProjectService(
 
         const hasSavedSnapshot = Array.isArray(line.formulaSnapshot) && Array.isArray(line.resultSnapshot?.items);
         return {
-          id: line.id,
+          id: line.id ?? createStableId(),
           modelCode: line.modelCode,
           inputs: line.inputs,
           count: line.count,
@@ -118,6 +127,7 @@ export function createProjectService(
           resultSnapshot: hasSavedSnapshot ? line.resultSnapshot! : modelSnapshot(model, line.inputs, catalog),
           priceCatalogId: line.priceCatalogId ?? null,
           priceVariantId: line.priceVariantId ?? null,
+          materialItems: line.materialItems ?? [],
         };
       });
 
