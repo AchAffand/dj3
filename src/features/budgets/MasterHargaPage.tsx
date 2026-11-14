@@ -56,7 +56,7 @@ export function MasterHargaPage() {
         const normalizeItemName = (label: string) => label
           .normalize("NFKD")
           .replace(/[’']/g, "")
-          .replace(/\\s*\\/\\s*.*$/, "")
+          .replace(/\s*\/\s*.*$/, "")
           .replace(/[^A-Z0-9]+/g, " ")
           .trim()
           .toUpperCase();
@@ -64,7 +64,7 @@ export function MasterHargaPage() {
           .filter((item) => {
             if (item.sourceSheet?.trim().toUpperCase() !== "ALMUNIUM") return false;
             const normalized = normalizeItemName(item.label);
-            return aluminiumItemNames.some((name) => normalized === name || normalized.startsWith(name + " "));
+            return aluminiumItemNames.includes(normalized);
           })
           .sort((a, b) => excelColumnNumber(a.sourceCell) - excelColumnNumber(b.sourceCell));
         return { ...base, items };
