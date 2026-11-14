@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { featureRegistry } from "./features";
 import { ProjectPrintPage } from "../features/projects/ProjectPrintPage";
-import { BudgetEstimatePage } from "../features/budgets/BudgetEstimatePage";
+import { BudgetEstimatePage } from "../features/budgets/BudgetEstimatePage";\nimport { BudgetAluminiumPage } from "../features/budgets/BudgetAluminiumPage";
 import { BudgetPrintPage } from "../features/budgets/BudgetPrintPage";
 
 export function AppRoutes() {
@@ -9,7 +9,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to={featureRegistry[0].path} replace />} />
       <Route path="/projects/:projectId/print" element={<ProjectPrintPage />} />
-      <Route path="/master-harga/:catalogSlug" element={<BudgetEstimatePage />} />
+      <Route path="/master-harga/aluminium" element={<BudgetAluminiumPage />} />\n      <Route path="/master-harga/:catalogSlug" element={<BudgetEstimatePage />} />
       <Route path="/master-harga/:catalogSlug/estimates/:estimateId" element={<BudgetEstimatePage />} />
       <Route path="/master-harga/:catalogSlug/estimates/:estimateId/print" element={<BudgetPrintPage />} />
       {featureRegistry.map(({ id, path, component: Page }) => (
