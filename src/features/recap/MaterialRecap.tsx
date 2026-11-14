@@ -54,8 +54,11 @@ export function MaterialRecap({ rows, total, masterItemOptions = [], loadingMast
                 const savedVariantId = keyParts[3] ?? "";
                 const selectedVariantId = variantOptions.some((option) => option.variantId === savedVariantId)
                   ? savedVariantId : (variantOptions.length === 1 ? variantOptions[0].variantId ?? "" : "");
-                const selectedOption = brandScoped.find((option) => option.variantId === selectedVariantId)
-                  ?? brandScoped.find((option) => option.isDefault) ?? brandScoped[0];
+                const needsBrandChoice = brandOptions.length > 1 && !selectedBrandId;
+                const needsVariantChoice = variantOptions.length > 1 && !selectedVariantId;
+                const selectedOption = needsBrandChoice || needsVariantChoice ? undefined
+                  : brandScoped.find((option) => option.variantId === selectedVariantId)
+                    ?? brandScoped.find((option) => option.isDefault) ?? brandScoped[0];
                 const chooseItem = (itemId: string) => {
                   const candidates = options.filter((option) => option.itemId === itemId);
                   if (!candidates.length) return;
