@@ -147,7 +147,8 @@ function mapProject(row: Record<string, unknown>): Project {
     }),
     prices: [
       ...prices.map((price) => ({
-      materialCode: Number(price.material_code),      name: String(price.name_snapshot),
+      materialCode: Number(price.material_code),
+      name: String(price.name_snapshot),
       unit: String(price.unit_snapshot),
       unitPrice: typeof price.unit_price === "number" ? price.unit_price : null,
       catalogId: null,
@@ -167,6 +168,7 @@ function mapProject(row: Record<string, unknown>): Project {
 function mapBudgetCatalog(row: Record<string, unknown>): BudgetCatalog {
   return { id: String(row.id), slug: String(row.slug), label: String(row.label), position: Number(row.position), active: Boolean(row.active) };
 }
+
 function mapBudgetDetail(catalog: BudgetCatalog, rows: Record<string, unknown>[]): BudgetCatalogDetail {
   const components: BudgetComponent[] = rows.map((row) => {
     const priceRows = (row.budget_prices as Record<string, unknown>[] | null) ?? [];
@@ -296,7 +298,8 @@ export function createSupabaseRepository(client: SupabaseClient) {
     },
 
     async deleteProject(id: string): Promise<void> {
-      const { data, error } = await client.from("projects").delete().eq("id", id).select("id").maybeSingle();      throwIfError(error);
+      const { data, error } = await client.from("projects").delete().eq("id", id).select("id").maybeSingle();
+      throwIfError(error);
       if (!data) throw new Error("Proyek tidak ditemukan atau tidak dapat dihapus.");
     },
 
@@ -446,7 +449,8 @@ export function createSupabaseRepository(client: SupabaseClient) {
     },
 
     async saveBudgetMaterialMapping(catalogId: string, materialKey: string, materialName: string, materialUnit: string, componentId: string | null): Promise<void> {
-      const { error } = await client.rpc("save_budget_material_mapping", { p_catalog_id: catalogId, p_material_key: materialKey, p_material_name: materialName, p_material_unit: materialUnit, p_component_id: componentId });      throwIfError(error);
+      const { error } = await client.rpc("save_budget_material_mapping", { p_catalog_id: catalogId, p_material_key: materialKey, p_material_name: materialName, p_material_unit: materialUnit, p_component_id: componentId });
+      throwIfError(error);
     },
 
     async saveBudgetComponent(input: { catalogId: string; id?: string; key?: string; label: string; unit: string; category: string; groupLabel: string }): Promise<string> {
@@ -483,7 +487,8 @@ export function createSupabaseRepository(client: SupabaseClient) {
       const { data, error } = await client.from("budget_estimates").select("id,catalog_id,project_name,location,floor,report_date,author_label,grand_total,snapshot,budget_estimate_lines(position,description,unit_count,quantities,subtotal,result_snapshot)").eq("id", id).maybeSingle();
       throwIfError(error);
       if (!data) return null;
-      const row = data as unknown as Record<string, unknown>;      return {
+      const row = data as unknown as Record<string, unknown>;
+      return {
         id: String(row.id), catalogId: String(row.catalog_id), projectName: String(row.project_name), location: String(row.location ?? ""), floor: String(row.floor ?? ""), reportDate: String(row.report_date), authorLabel: String(row.author_label ?? ""), grandTotal: Number(row.grand_total), snapshot: (row.snapshot ?? {}) as Record<string, unknown>,
         lines: ((row.budget_estimate_lines as Record<string, unknown>[] | null) ?? []).map((line) => ({ position: Number(line.position), description: String(line.description ?? ""), unitCount: Number(line.unit_count), quantities: (line.quantities ?? {}) as Record<string, number> })),
       };
