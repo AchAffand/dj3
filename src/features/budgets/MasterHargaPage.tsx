@@ -33,12 +33,24 @@ export function MasterHargaPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const excelColumnNumber = (sourceCell: string | null): number => {
+    const match = sourceCell?.match(/([A-Z]+)\\$?\\d+$/i);
+    if (!match) return Number.MAX_SAFE_INTEGER;
+    return match[1].toUpperCase().split("").reduce((value, letter) => value * 26 + letter.charCodeAt(0) - 64, 0);
+  };
+
   const activeGroup = selectedGroup
     ? (() => {
         const base = groups.find((group) => group.key === selectedGroup);
         if (!base) return null;
         if (selectedGroup !== "aluminium") return base;
-        return { ...base, items: groups.filter((group) => ["aluminium", "jendela", "pintu"].includes(group.key)).flatMap((group) => group.items) };
+        // Aluminium must be sourced only from the ALMUNIUM worksheet. Do not
+        // mix in the separate Pintu/Kaca sheets just because their item types
+        // share legacy group keys.
+        const items = groups.flatMap((group) => group.items)
+          .filter((item) => item.sourceSheet?.trim().toUpperCase() === "ALMUNIUM")
+          .sort((a, b) => excelColumnNumber(a.sourceCell) - excelColumnNumber(b.sourceCell));
+        return { ...base, items };
       })()
     : null;
   const totalItems = groups.reduce((sum, group) => sum + group.items.length, 0);
@@ -85,7 +97,19 @@ export function MasterHargaPage() {
           return brands;
         }, new Map<string, { label: string; items: Map<string, MasterPriceGroup["items"][number]> }>() )).map(([brandKey, brand]) => {
           const items = Array.from(brand.items.values());
-          const variants = Array.from(new Map(items.flatMap((item) => item.prices.filter((p) => p.brandKey === brandKey).map((p) => [p.variantKey ?? "standar", p.variantLabel ?? "Standar"] as const))).entries());
+          const variants = Array.from(new Map(items.flatMap((item) => item.prices.filter((p) => p.brandKey === brandKey).map((p) => [p.variantKey ?? "standar", p.variantLabel ?? "Standar"] as const))).entries())
+            .sort((a, b) => {
+              const rank = (label: string) => {
+                const value = label.toLowerCase();
+                if (value.includes("standar") || value === "base") return 0;
+                if (value.includes("brown") || value.includes("anodize")) return 1;
+                if (value.includes("putih") || value.includes("cream")) return 2;
+                if (value.includes("coating")) return 3;
+                return 4;
+              };
+              return rank(a[1]) - rank(b[1]);
+            });
+          const brandRank = (key: string) => ({ hpm: 0, alexindo: 1, ykk: 2 }[key as "hpm" | "alexindo" | "ykk"] ?? 99);
           return <section className="budget-price-group" key={brandKey}>
             <h2>{brand.label}</h2>
             <div className="budget-price-table-wrap">
@@ -94,7 +118,7 @@ export function MasterHargaPage() {
                 <tbody>{variants.map(([variantKey, variantLabel]) => <tr key={variantKey}><th scope="row">{variantLabel}</th>{items.map((item) => {
                   const price = item.prices.find((p) => p.brandKey === brandKey && (p.variantKey ?? "standar") === variantKey);
                   return <td key={item.id}><span className="budget-price-value">{formatPrice(price)}</span></td>;
-                })}</tr>)}</tbody>
+                }).sort(([a], [b]) => brandRank(a) - brandRank(b))}</tr>)}</tbody>
               </table>
             </div>
           </section>;
