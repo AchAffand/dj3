@@ -17,7 +17,7 @@ function makeLine(modelCode: number): ProjectLineDraft {
   return {
     id: typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
-      : `line-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      : createMaterialItemId(),
     modelCode,
     inputs: {},
     count: 1,
@@ -257,13 +257,16 @@ export function CalculatorPage() {
             selectedVariantId: previous?.selectedVariantId ?? null,
             quantity: material.quantity,
             unitSnapshot: material.unit,
-            itemNameSnapshot: material.name,
-            groupNameSnapshot: previous?.groupNameSnapshot ?? null,
+            itemNameSnapshot: material.name,            groupNameSnapshot: previous?.groupNameSnapshot ?? null,
             brandNameSnapshot: previous?.brandNameSnapshot ?? null,
             variantNameSnapshot: previous?.variantNameSnapshot ?? null,
-            unitPriceSnapshot: material.unitPrice,
-            priceVersionSnapshot: material.priceVersion,
-            priceIsSet: typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice),
+            unitPriceSnapshot: typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice) && material.unitPrice >= 0
+              ? material.unitPrice
+              : null,
+            priceVersionSnapshot: typeof material.priceVersion === "number" && Number.isInteger(material.priceVersion) && material.priceVersion > 0
+              ? material.priceVersion
+              : null,
+            priceIsSet: typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice) && material.unitPrice >= 0,
             position,
           };
         });
