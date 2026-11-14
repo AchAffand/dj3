@@ -1644,3 +1644,50 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
 @media (max-width: 600px) {
   .budget-aluminium-brand-heading { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Normalized workbook-backed Master Harga. */
+.master-price-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+}
+.master-price-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+.master-price-summary span { color: var(--muted, #777); font-size: 11px; }
+.master-price-summary strong { font-size: 18px; }
+.master-price-import-button { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+.master-price-import-button input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.master-price-group-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 14px; }
+.master-price-group-tabs button {
+  display: inline-flex; align-items: center; gap: 9px; min-height: 38px;
+  padding: 0 13px; border: 1px solid var(--border, #ddd); border-radius: 9px;
+  background: var(--surface, #fff); color: inherit; cursor: pointer; font: inherit;
+}
+.master-price-group-tabs button.active { background: #171717; color: white; border-color: #171717; }
+.master-price-group-tabs button span { opacity: .7; font-size: 11px; }
+.master-price-sheet { padding: 20px; background: var(--surface, #fff); border: 1px solid var(--border, #e5e5e5); border-radius: 14px; }
+.master-price-sheet-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.master-price-sheet-heading h2 { margin: 0; }
+.master-price-sheet-heading p:not(.eyebrow) { margin: 5px 0 0; color: var(--muted, #777); font-size: 12px; }
+.master-price-sheet-heading input { width: min(280px, 100%); min-height: 38px; padding: 0 12px; border: 1px solid var(--border, #ddd); border-radius: 8px; background: transparent; color: inherit; }
+.master-price-table-wrap { max-height: 68vh; overflow: auto; }
+.master-price-table { min-width: 900px; }
+.master-price-table td { vertical-align: middle; }
+.master-price-table td small { color: var(--muted, #777); }
+.master-price-amount { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+.master-price-empty { padding: 20px; text-align: center; color: var(--muted, #777); }
+.master-price-footnote { margin-top: 14px; color: var(--muted, #777); font-size: 11px; }
+@media (max-width: 700px) {
+  .master-price-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .master-price-sheet-heading { align-items: stretch; flex-direction: column; }
+  .master-price-sheet { padding: 12px; }
+}
