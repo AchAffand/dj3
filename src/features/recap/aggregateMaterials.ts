@@ -13,9 +13,13 @@ export type RecapInputMaterial = {
   priceSourceLabel?: string;
 };
 
+export type RecapMaterialSource = { lineId: string; modelCode: number; quantity: number; };
+
 export type RecapLineInput = {
   materials: readonly RecapInputMaterial[];
   modelCount: number;
+  lineId: string;
+  modelCode: number;
 };
 
 export type MaterialRecapRow = {
@@ -32,6 +36,7 @@ export type MaterialRecapRow = {
   expressionSnapshot: string | null;
   componentId: string | null;
   priceSourceLabel: string;
+  sources: RecapMaterialSource[];
 };
 
 export function aggregateMaterials(
@@ -46,7 +51,7 @@ export function aggregateMaterials(
       const identity = `${material.materialCode}\u0000${material.unit}\u0000${priceKey}`;
       const row = totals.get(identity);
       const quantity = material.quantity * line.modelCount;
-      if (row) row.quantity += quantity;
+      if (row) { row.quantity += quantity; row.sources.push({ lineId: line.lineId, modelCode: line.modelCode, quantity: material.quantity }); }
       else totals.set(identity, {
         materialCode: material.materialCode,
         name: material.name,
@@ -59,6 +64,7 @@ export function aggregateMaterials(
         expressionSnapshot: material.expressionSnapshot ?? null,
         componentId: material.componentId ?? null,
         priceSourceLabel: material.priceSourceLabel ?? "Harga manual",
+        sources: [{ lineId: line.lineId, modelCode: line.modelCode, quantity: material.quantity }],
         // Older project snapshots can contain an explicit NULL from when a master-price
         // mapping was missing. Treat that as "no saved override" and fall back to the
         // currently resolved master price. A real numeric project override still wins.
@@ -79,7 +85,7 @@ export function aggregateMaterials(
       return {
         materialCode: row.materialCode, name: row.name, unit: row.unit, quantity: row.quantity, priceKey: row.priceKey,
         catalogId: row.catalogId, variantId: row.variantId, priceVersion: row.priceVersion,
-        expressionSnapshot: row.expressionSnapshot, componentId: row.componentId, priceSourceLabel: row.priceSourceLabel,
+        expressionSnapshot: row.expressionSnapshot, componentId: row.componentId, priceSourceLabel: row.priceSourceLabel, sources: row.sources,
         unitPrice,
         subtotal: unitPrice === null ? null : Math.round(row.quantity * unitPrice * 100) / 100,
       };
