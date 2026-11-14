@@ -34,7 +34,7 @@ export function MasterHargaPage() {
   useEffect(() => { void load(); }, [load]);
 
   const excelColumnNumber = (sourceCell: string | null): number => {
-    const match = sourceCell?.match(/([A-Z]+)\\$?\\d+$/i);
+    const match = sourceCell?.match(/([A-Z]+)\$?\d+$/i);
     if (!match) return Number.MAX_SAFE_INTEGER;
     return match[1].toUpperCase().split("").reduce((value, letter) => value * 26 + letter.charCodeAt(0) - 64, 0);
   };
@@ -54,6 +54,7 @@ export function MasterHargaPage() {
       })()
     : null;
   const totalItems = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const brandRank = (key: string) => ({ hpm: 0, alexindo: 1, ykk: 2 }[key as "hpm" | "alexindo" | "ykk"] ?? 99);
 
   if (loading) return <AppPageState title="Memuat Master Harga" detail="Membaca daftar item dan harga." />;
   if (error) return <AppPageState title="Master Harga belum dapat dimuat" detail={error} tone="error" actionLabel="Coba lagi" onAction={() => void load()} />;
@@ -95,34 +96,35 @@ export function MasterHargaPage() {
             brands.get(key)!.items.set(item.id, item);
           }
           return brands;
-        }, new Map<string, { label: string; items: Map<string, MasterPriceGroup["items"][number]> }>() )).map(([brandKey, brand]) => {
-          const items = Array.from(brand.items.values());
-          const variants = Array.from(new Map(items.flatMap((item) => item.prices.filter((p) => p.brandKey === brandKey).map((p) => [p.variantKey ?? "standar", p.variantLabel ?? "Standar"] as const))).entries())
-            .sort((a, b) => {
-              const rank = (label: string) => {
-                const value = label.toLowerCase();
-                if (value.includes("standar") || value === "base") return 0;
-                if (value.includes("brown") || value.includes("anodize")) return 1;
-                if (value.includes("putih") || value.includes("cream")) return 2;
-                if (value.includes("coating")) return 3;
-                return 4;
-              };
-              return rank(a[1]) - rank(b[1]);
-            });
-          const brandRank = (key: string) => ({ hpm: 0, alexindo: 1, ykk: 2 }[key as "hpm" | "alexindo" | "ykk"] ?? 99);
-          return <section className="budget-price-group" key={brandKey}>
-            <h2>{brand.label}</h2>
-            <div className="budget-price-table-wrap">
-              <table className="budget-price-table budget-price-matrix">
-                <thead><tr><th>Varian / Finishing</th>{items.map((item) => <th key={item.id}><strong>{item.label}</strong><small>{item.unit || "—"}</small></th>)}</tr></thead>
-                <tbody>{variants.map(([variantKey, variantLabel]) => <tr key={variantKey}><th scope="row">{variantLabel}</th>{items.map((item) => {
-                  const price = item.prices.find((p) => p.brandKey === brandKey && (p.variantKey ?? "standar") === variantKey);
-                  return <td key={item.id}><span className="budget-price-value">{formatPrice(price)}</span></td>;
-                }).sort(([a], [b]) => brandRank(a) - brandRank(b))}</tr>)}</tbody>
+        }, new Map<string, { label: string; items: Map<string, MasterPriceGroup["items"][number]> }>() ))
+          .sort(([a], [b]) => brandRank(a) - brandRank(b))
+          .map(([brandKey, brand]) => {
+            const items = Array.from(brand.items.values());
+            const variants = Array.from(new Map(items.flatMap((item) => item.prices.filter((p) => p.brandKey === brandKey).map((p) => [p.variantKey ?? "standar", p.variantLabel ?? "Standar"] as const))).entries())
+              .sort((a, b) => {
+                const rank = (label: string) => {
+                  const value = label.toLowerCase();
+                  if (value.includes("standar") || value === "base") return 0;
+                  if (value.includes("brown") || value.includes("anodize")) return 1;
+                  if (value.includes("putih") || value.includes("cream")) return 2;
+                  if (value.includes("coating")) return 3;
+                  return 4;
+                };
+                return rank(a[1]) - rank(b[1]);
+              });
+            return <section className="budget-price-group" key={brandKey}>
+              <h2>{brand.label}</h2>
+              <div className="budget-price-table-wrap">
+                <table className="budget-price-table budget-price-matrix">
+                  <thead><tr><th>Varian / Finishing</th>{items.map((item) => <th key={item.id}><strong>{item.label}</strong><small>{item.unit || "—"}</small></th>)}</tr></thead>
+                  <tbody>{variants.map(([variantKey, variantLabel]) => <tr key={variantKey}><th scope="row">{variantLabel}</th>{items.map((item) => {
+                    const price = item.prices.find((p) => p.brandKey === brandKey && (p.variantKey ?? "standar") === variantKey);
+                    return <td key={item.id}><span className="budget-price-value">{formatPrice(price)}</span></td>;
+                  })}</tr>)}</tbody>
               </table>
-            </div>
-          </section>;
-        })}
+              </div>
+            </section>;
+          })}
       </div> : <section className="budget-price-group">
         <div className="budget-price-table-wrap">
           <table className="budget-price-table">
