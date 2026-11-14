@@ -90,7 +90,7 @@ export function MaterialRecap({ rows, total, masterItemOptions = [], loadingMast
                           const next = brandScoped.find((option) => option.variantId === event.target.value);
                           if (next) onMasterItemChange(row, next);
                         }}><option value="">Pilih varian</option>{variantOptions.map((option) => <option key={option.variantId} value={option.variantId ?? ""}>{option.variantLabel}</option>)}</select></label>}
-                        {selectedOption && <small className="normalized-item-price">{selectedOption.unitPrice !== null ? `Harga master: ${formatRupiah(selectedOption.unitPrice)} / ${selectedOption.unitOverride || row.unit}` : selectedOption.priceExpression ? "Harga menggunakan ekspresi master; perlu pemetaan perhitungan lanjutan." : "Harga belum diisi pada Master Harga."}</small>}
+                        {selectedOption && <small className="normalized-item-price">{selectedOption.unitPrice !== null ? `Harga master: ${formatRupiah(selectedOption.unitPrice)} / ${selectedOption.unitOverride || row.unit}` : selectedOption.priceExpression ? "Rumus harga Master Item belum dapat dihitung; periksa referensi harga Master Harga." : "Harga belum diisi pada Master Harga."}</small>}
                       </div>}
                     </td>
                     <td className="recap-quantity">{formatQuantity(row.quantity)} <span>{row.unit}</span></td>
