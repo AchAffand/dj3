@@ -336,10 +336,14 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const variantOptions = uniqueOptions(brandScopedOptions, (option) => option.variantId);
                       const selectedVariantId = saved?.selectedVariantId && variantOptions.some((option) => option.variantId === saved.selectedVariantId)
                         ? saved.selectedVariantId
-                        : (variantOptions.length === 1 ? variantOptions[0].variantId : "");
-                      const selectedOption = brandScopedOptions.find((option) => option.variantId === selectedVariantId)
-                        ?? brandScopedOptions.find((option) => option.isDefault)
-                        ?? brandScopedOptions[0];
+                        : (variantOptions.length === 1 ? variantOptions[0].variantId : (variantOptions.find((option) => option.isDefault)?.variantId ?? ""));
+                      const needsBrandChoice = brandOptions.length > 1 && !selectedBrandId;
+                      const needsVariantChoice = variantOptions.length > 1 && !selectedVariantId;
+                      const selectedOption = needsBrandChoice || needsVariantChoice
+                        ? undefined
+                        : brandScopedOptions.find((option) => option.variantId === selectedVariantId)
+                          ?? brandScopedOptions.find((option) => option.isDefault)
+                          ?? brandScopedOptions[0];
                       const applyOption = (option: MasterItemOption | undefined) => {
                         if (!option) return;
                         onChange(lineId, selectionForOption(line, material, option, materialIndex));
