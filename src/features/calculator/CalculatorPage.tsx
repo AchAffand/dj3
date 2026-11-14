@@ -191,8 +191,17 @@ export function CalculatorPage() {
         item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode,
       );
       const hasNormalizedSelection = Boolean(selectedMaterialItem?.masterItemId);
+      const selectedMasterOption = hasNormalizedSelection
+        ? masterItemOptions.find((option) =>
+            option.materialCode === material.materialCode
+            && option.itemId === selectedMaterialItem!.masterItemId
+            && option.brandId === selectedMaterialItem!.selectedBrandId
+            && option.variantId === selectedMaterialItem!.selectedVariantId
+            && (option.modelCode === null || option.modelCode === line.modelCode),
+          )
+        : undefined;
       const normalizedPriceKey = hasNormalizedSelection
-        ? `normalized:${selectedMaterialItem!.masterItemId}:${selectedMaterialItem!.selectedBrandId ?? ""}:${selectedMaterialItem!.selectedVariantId ?? ""}:${selectedMaterialItem!.priceVersionSnapshot ?? ""}:${material.materialCode}`
+        ? `normalized:${selectedMaterialItem!.masterItemId}:${selectedMaterialItem!.selectedBrandId ?? ""}:${selectedMaterialItem!.selectedVariantId ?? ""}:${selectedMaterialItem!.priceVersionSnapshot ?? selectedMasterOption?.priceVersion ?? ""}:${material.materialCode}`
         : null;
       const legacyPriceKey = brandDetail && line.priceVariantId
         ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
@@ -207,13 +216,13 @@ export function CalculatorPage() {
       );
       const preserveLegacyOverride = !hasNormalizedSelection && !hasExplicitComponentSelection
         && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
-      const normalizedUnitPrice = selectedMaterialItem?.unitPriceSnapshot ?? null;
-      const normalizedName = selectedMaterialItem?.itemNameSnapshot || material.name;
-      const normalizedUnit = selectedMaterialItem?.unitSnapshot || material.unit;
+      const normalizedUnitPrice = selectedMaterialItem?.unitPriceSnapshot ?? selectedMasterOption?.unitPrice ?? null;
+      const normalizedName = selectedMaterialItem?.itemNameSnapshot || selectedMasterOption?.itemLabel || material.name;
+      const normalizedUnit = selectedMaterialItem?.unitSnapshot || selectedMasterOption?.unitOverride || selectedMasterOption?.unit || material.unit;
       const normalizedSourceLabel = [
         selectedMaterialItem?.itemNameSnapshot,
-        selectedMaterialItem?.brandNameSnapshot,
-        selectedMaterialItem?.variantNameSnapshot,
+        selectedMaterialItem?.brandNameSnapshot || selectedMasterOption?.brandLabel,
+        selectedMaterialItem?.variantNameSnapshot || selectedMasterOption?.variantLabel,
       ].filter(Boolean).join(" · ");
       return {
         ...material,
@@ -225,7 +234,7 @@ export function CalculatorPage() {
         unitPrice: hasNormalizedSelection
           ? normalizedUnitPrice
           : preserveLegacyOverride ? legacyOverride : mapped?.unitPrice ?? null,
-        priceVersion: hasNormalizedSelection ? selectedMaterialItem?.priceVersionSnapshot ?? null : mapped?.priceVersion ?? null,
+        priceVersion: hasNormalizedSelection ? selectedMaterialItem?.priceVersionSnapshot ?? selectedMasterOption?.priceVersion ?? null : mapped?.priceVersion ?? null,
         expressionSnapshot: hasNormalizedSelection ? null : mapped?.expressionSnapshot ?? null,
         componentId: hasNormalizedSelection ? null : mapped?.componentId ?? null,
         priceSourceLabel: hasNormalizedSelection
@@ -234,7 +243,7 @@ export function CalculatorPage() {
       };
     });
     return { lineId: line.id ?? `${line.modelCode}`, modelCode: line.modelCode, modelCount: line.count, materials };
-  }), [accessoryDetail, budgetDetails, catalog, draft.lines, draft.prices, glassDetail, results]);
+  }), [accessoryDetail, budgetDetails, catalog, draft.lines, draft.prices, glassDetail, masterItemOptions, results]);
 
   const recap = useMemo(() => aggregateMaterials(
     resolvedLines.map(({ materials, modelCount, lineId, modelCode }) => ({ materials, modelCount, lineId, modelCode })),
