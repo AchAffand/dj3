@@ -23,7 +23,9 @@ export function BudgetWorkspacePage() {
   const [deletingCatalogs, setDeletingCatalogs] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);\n  const [confirmClearAluminiumOpen, setConfirmClearAluminiumOpen] = useState(false);\n  const [clearingAluminium, setClearingAluminium] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmClearAluminiumOpen, setConfirmClearAluminiumOpen] = useState(false);
+  const [clearingAluminium, setClearingAluminium] = useState(false);
   const load = useCallback(async () => {
     if (!repository) { setLoading(false); return; }
     setLoading(true); setError(null);
