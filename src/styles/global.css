@@ -1613,3 +1613,13 @@ h1 { margin: 0; color: var(--ink); font-size: clamp(28px, 3vw, 37px); font-weigh
   .quotation-table-section { overflow-x: auto; }
   .quotation-table { min-width: 650px; }
 }
+
+/* Excel-style Master Harga matrix: item columns, finishing rows. */
+.budget-price-matrix { width: max-content; min-width: 100%; }
+.budget-price-matrix thead th { min-width: 132px; max-width: 210px; vertical-align: bottom; }
+.budget-price-matrix thead th:first-child { position: sticky; left: 0; z-index: 2; min-width: 150px; }
+.budget-price-matrix tbody th { position: sticky; left: 0; z-index: 1; min-width: 150px; white-space: nowrap; }
+.budget-price-matrix th strong, .budget-price-matrix th small { display: block; }
+.budget-price-matrix th small { margin-top: 4px; color: #777; font-size: 8px; font-weight: 500; }
+.budget-price-matrix td { min-width: 132px; }
+.budget-price-matrix .budget-price-value { max-width: none; white-space: nowrap; }
