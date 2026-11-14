@@ -248,6 +248,9 @@ export function CalculatorPage() {
         const existing = line.materialItems ?? [];
         const formulaItems = (resolved?.materials ?? []).map((material, position) => {
           const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode);
+          const unitPriceSnapshot = typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice) && material.unitPrice >= 0
+            ? material.unitPrice
+            : null;
           return {
             id: previous?.id ?? createMaterialItemId(),
             sourceType: "formula" as const,
@@ -257,16 +260,15 @@ export function CalculatorPage() {
             selectedVariantId: previous?.selectedVariantId ?? null,
             quantity: material.quantity,
             unitSnapshot: material.unit,
-            itemNameSnapshot: material.name,            groupNameSnapshot: previous?.groupNameSnapshot ?? null,
+            itemNameSnapshot: material.name,
+            groupNameSnapshot: previous?.groupNameSnapshot ?? null,
             brandNameSnapshot: previous?.brandNameSnapshot ?? null,
             variantNameSnapshot: previous?.variantNameSnapshot ?? null,
-            unitPriceSnapshot: typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice) && material.unitPrice >= 0
-              ? material.unitPrice
-              : null,
+            unitPriceSnapshot,
             priceVersionSnapshot: typeof material.priceVersion === "number" && Number.isInteger(material.priceVersion) && material.priceVersion > 0
               ? material.priceVersion
               : null,
-            priceIsSet: typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice) && material.unitPrice >= 0,
+            priceIsSet: unitPriceSnapshot !== null,
             position,
           };
         });
@@ -296,7 +298,8 @@ export function CalculatorPage() {
 
   if (loadingCatalog || loadingProject) {
     return <AppPageState title={loadingProject ? "Membuka proyek" : "Memuat katalog"} detail="Sebentar, data ruang kerja sedang disiapkan." />;
-  }  if (catalogError) {
+  }
+  if (catalogError) {
     return <AppPageState title="Katalog belum dapat dimuat" detail={catalogError} actionLabel="Coba lagi" onAction={() => void reloadCatalog()} tone="error" />;
   }
 
