@@ -33,7 +33,14 @@ export function MasterHargaPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const activeGroup = groups.find((group) => group.key === selectedGroup) ?? null;
+  const activeGroup = selectedGroup
+    ? (() => {
+        const base = groups.find((group) => group.key === selectedGroup);
+        if (!base) return null;
+        if (selectedGroup !== "aluminium") return base;
+        return { ...base, items: groups.filter((group) => ["aluminium", "jendela", "pintu"].includes(group.key)).flatMap((group) => group.items) };
+      })()
+    : null;
   const totalItems = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   if (loading) return <AppPageState title="Memuat Master Harga" detail="Membaca daftar item dan harga." />;
@@ -69,16 +76,7 @@ export function MasterHargaPage() {
         <button className="secondary-button" type="button" onClick={() => setSelectedGroup(null)}>Kembali</button>
       </div>
       {isAluminium ? <div className="budget-price-groups budget-excel-layout">
-        {groupItems.map((item) => item).reduce((brands, item) => {
-          for (const price of item.prices) {
-            const key = price.brandKey ?? "umum";
-            if (!brands.has(key)) brands.set(key, { label: price.brandLabel ?? "Umum", items: new Map<string, MasterPriceGroup["items"][number]>() });
-            brands.get(key)!.items.set(item.id, item);
-          }
-          return brands;
-        }, new Map<string, { label: string; items: Map<string, MasterPriceGroup["items"][number]> }>() )
-        .size === 0 ? <div className="budget-catalog-card">Belum ada item aktif.</div> :
-        Array.from(groupItems.reduce((brands, item) => {
+        {Array.from(groupItems.reduce((brands, item) => {
           for (const price of item.prices) {
             const key = price.brandKey ?? "umum";
             if (!brands.has(key)) brands.set(key, { label: price.brandLabel ?? "Umum", items: new Map<string, MasterPriceGroup["items"][number]>() });
