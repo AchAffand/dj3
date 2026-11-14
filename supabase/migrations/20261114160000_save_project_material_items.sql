@@ -279,7 +279,7 @@ with price_rows as (
     current_price.source_formula,
     current_price.source_value,
     current_price.updated_at,
-    (current_price.version = history.version) as is_current
+    coalesce(current_price.version = history.version, false) as is_current
   from public.budget_price_versions history
   left join public.budget_prices current_price
     on current_price.component_id = history.component_id
