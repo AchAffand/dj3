@@ -43,15 +43,15 @@ export function MasterHargaPage() {
 
   const activeGroup = groups.find((group) => group.key === selectedGroup) ?? groups[0];
   const visibleRows = useMemo(() => {
-    if (!activeGroup) return [];
+    const rows: { key: string; item: MasterPriceGroup["items"][number]; price: MasterPriceEntry | null }[] = [];
+    if (!activeGroup) return rows;
     const term = search.trim().toLocaleLowerCase("id-ID");
-    return activeGroup.items.flatMap((item) => {
-      if (term && ![item.label, item.unit, item.sourceSheet, item.sourceCell].some((value) => value?.toLocaleLowerCase("id-ID").includes(term))) return [];
-      if (!item.prices.length) {
-        return [{ key: item.id, item, price: null }];
-      }
-      return item.prices.map((price) => ({ key: price.id, item, price }));
-    });
+    for (const item of activeGroup.items) {
+      if (term && ![item.label, item.unit, item.sourceSheet, item.sourceCell].some((value) => value?.toLocaleLowerCase("id-ID").includes(term))) continue;
+      if (!item.prices.length) rows.push({ key: item.id, item, price: null });
+      else for (const price of item.prices) rows.push({ key: price.id, item, price });
+    }
+    return rows;
   }, [activeGroup, search]);
 
   const importWorkbook = async (event: ChangeEvent<HTMLInputElement>) => {
