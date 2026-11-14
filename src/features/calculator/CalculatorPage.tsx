@@ -11,7 +11,7 @@ import { MaterialRecap } from "../recap/MaterialRecap";
 import { createProjectService, type ProjectDraft, type ProjectLineDraft } from "../projects/projectService";
 import { ModelLineEditor } from "./ModelLineEditor";
 import { accessoryPriceOptions, budgetPriceForMaterial, excelColumnFromNumber, isAccessoryMaterial, isDoorLeafMaterial, isGlassMaterial, isTatapanMaterial, normalizeMaterialDisplayName } from "../../domain/budgets/pricing";
-import type { BudgetCatalogDetail } from "../../domain/budgets/types";
+import type { BudgetCatalogDetail, MasterItemOption } from "../../domain/budgets/types";
 
 function makeLine(modelCode: number): ProjectLineDraft {
   return {
@@ -233,11 +233,11 @@ export function CalculatorPage() {
           : priceDetail && variant ? `${priceDetail.catalog.label} · ${variant.label}` : "Harga manual",
       };
     });
-    return { lineId: line.id ?? `${line.modelCode}`, modelCount: line.count, materials };
+    return { lineId: line.id ?? `${line.modelCode}`, modelCode: line.modelCode, modelCount: line.count, materials };
   }), [accessoryDetail, budgetDetails, catalog, draft.lines, draft.prices, glassDetail, results]);
 
   const recap = useMemo(() => aggregateMaterials(
-    resolvedLines.map(({ materials, modelCount }) => ({ materials, modelCount })),
+    resolvedLines.map(({ materials, modelCount, lineId, modelCode }) => ({ materials, modelCount, lineId, modelCode })),
     draft.prices,
   ), [draft.prices, resolvedLines]);
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
@@ -246,6 +246,46 @@ export function CalculatorPage() {
     setDraft((current) => ({
       ...current,
       lines: current.lines.map((line, index) => (line.id ?? `${line.modelCode}-${index}`) === lineId ? updated : line),
+    }));
+    setMessage(null);
+  }, []);
+
+  const applyMasterItemSelection = useCallback((row: import("../recap/aggregateMaterials").MaterialRecapRow, option: MasterItemOption) => {
+    setDraft((current) => ({
+      ...current,
+      lines: current.lines.map((line, index) => {
+        const lineId = line.id ?? `${line.modelCode}-${index}`;
+        const source = row.sources.find((item) => item.lineId === lineId);
+        if (!source) return line;
+        const existing = line.materialItems ?? [];
+        const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === row.materialCode);
+        const price = option.unitPrice;
+        const next = {
+          id: previous?.id ?? createMaterialItemId(),
+          sourceType: "formula" as const,
+          formulaMaterialCode: row.materialCode,
+          masterItemId: option.itemId,
+          selectedBrandId: option.brandId,
+          selectedVariantId: option.variantId,
+          quantity: source.quantity,
+          unitSnapshot: option.unitOverride.trim() || row.unit,
+          itemNameSnapshot: option.itemLabel,
+          groupNameSnapshot: option.groupLabel,
+          brandNameSnapshot: option.brandLabel,
+          variantNameSnapshot: option.variantLabel,
+          unitPriceSnapshot: typeof price === "number" && Number.isFinite(price) && price >= 0 ? price : null,
+          priceVersionSnapshot: option.priceVersion,
+          priceIsSet: typeof price === "number" && Number.isFinite(price) && price >= 0,
+          position: previous?.position ?? existing.length,
+        };
+        return {
+          ...line,
+          materialItems: [
+            ...existing.filter((item) => !(item.sourceType === "formula" && item.formulaMaterialCode === row.materialCode)),
+            next,
+          ],
+        };
+      }),
     }));
     setMessage(null);
   }, []);
@@ -397,8 +437,6 @@ export function CalculatorPage() {
               onRemove={removeLine}
               budgetCatalogs={budgetCatalogs}
               budgetDetails={budgetDetails}
-              masterItemOptions={masterItemOptions}
-              loadingMasterItems={loadingMasterItems}
             />
           ) : (
             <div className="empty-models"><strong>Belum ada model</strong><p>Tambahkan setidaknya satu model pintu untuk mulai menghitung.</p></div>
@@ -410,6 +448,9 @@ export function CalculatorPage() {
           <MaterialRecap
             rows={recap}
             total={total}
+            masterItemOptions={masterItemOptions}
+            loadingMasterItems={loadingMasterItems}
+            onMasterItemChange={applyMasterItemSelection}
             onPriceChange={(priceKey, unitPrice) => setDraft((current) => ({
               ...current,
               prices: unitPrice === undefined
