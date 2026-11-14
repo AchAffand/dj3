@@ -1,3 +1,509 @@
+-- Additive normalized Master Item schema and legacy catalogue import.
+-- Legacy catalogues remain untouched; ambiguous combined HPM/INKA/DACON prices
+-- are deliberately not assigned to any one of those three brands.
+-- Formula quantities and existing meter formulas are not modified.
+
+create table if not exists public.master_item_groups (
+  id uuid primary key default gen_random_uuid(),
+  group_key text not null unique,
+  label text not null,
+  group_type text not null check (group_type in ('product','material','supporting')),
+  position integer not null default 0,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.master_brands (
+  id uuid primary key default gen_random_uuid(),
+  brand_key text not null unique,
+  label text not null,
+  active boolean not null default true,
+  position integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.master_items (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references public.master_item_groups(id) on delete restrict,
+  item_key text not null unique,
+  label text not null,
+  unit text not null default '',
+  description text,
+  legacy_catalog_id uuid references public.budget_catalogs(id) on delete set null,
+  legacy_component_id uuid unique references public.budget_components(id) on delete set null,
+  legacy_source_label text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.master_item_variants (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid not null references public.master_items(id) on delete cascade,
+  variant_key text not null,
+  label text not null,
+  attributes jsonb not null default '{}'::jsonb,
+  position integer not null default 0,
+  legacy_variant_id uuid references public.budget_variants(id) on delete set null,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (item_id, variant_key),
+  unique (id, item_id)
+);
+
+create table if not exists public.master_item_brand_options (
+  item_id uuid not null references public.master_items(id) on delete cascade,
+  brand_id uuid not null references public.master_brands(id) on delete restrict,
+  brand_item_code text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  primary key (item_id, brand_id)
+);
+
+create table if not exists public.master_item_prices (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid not null references public.master_items(id) on delete restrict,
+  brand_id uuid,
+  variant_id uuid,
+  amount numeric check (amount is null or amount >= 0),
+  expression text,
+  source_cell text,
+  source_formula text,
+  source_value text,
+  version integer not null check (version > 0),
+  is_current boolean not null default true,
+  source_label text,
+  updated_by uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  foreign key (item_id, brand_id)
+    references public.master_item_brand_options(item_id, brand_id) on delete restrict,
+  foreign key (variant_id, item_id)
+    references public.master_item_variants(id, item_id) on delete restrict
+);
+
+create unique index if not exists master_item_prices_item_brand_variant_version_uidx
+  on public.master_item_prices (item_id, brand_id, variant_id, version) nulls not distinct;
+
+create unique index if not exists master_item_prices_one_current_uidx
+  on public.master_item_prices (item_id, brand_id, variant_id) nulls not distinct
+  where is_current;
+
+create table if not exists public.formula_material_item_options (
+  id uuid primary key default gen_random_uuid(),
+  material_code integer not null references public.materials(code) on delete restrict,
+  model_code integer references public.door_models(code) on delete cascade,
+  item_id uuid not null references public.master_items(id) on delete cascade,
+  brand_id uuid,
+  variant_id uuid,
+  unit_override text not null default '',
+  is_default boolean not null default false,
+  position integer not null default 0,
+  legacy_mapping_id uuid references public.budget_material_mappings(id) on delete set null,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  foreign key (item_id, brand_id)
+    references public.master_item_brand_options(item_id, brand_id) on delete restrict,
+  foreign key (variant_id, item_id)
+    references public.master_item_variants(id, item_id) on delete restrict
+);
+
+create unique index if not exists formula_material_item_options_identity_uidx
+  on public.formula_material_item_options (
+    material_code,
+    (coalesce(model_code, -1)),
+    item_id,
+    (coalesce(brand_id, '00000000-0000-0000-0000-000000000000'::uuid)),
+    (coalesce(variant_id, '00000000-0000-0000-0000-000000000000'::uuid)),
+    unit_override
+  );
+
+create unique index if not exists project_model_lines_id_project_id_uidx
+  on public.project_model_lines (id, project_id);
+
+create table if not exists public.project_line_material_items (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  project_model_line_id uuid not null,
+  source_type text not null check (source_type in ('formula','manual')),
+  formula_material_code integer references public.materials(code) on delete restrict,
+  master_item_id uuid references public.master_items(id) on delete restrict,
+  selected_brand_id uuid references public.master_brands(id) on delete set null,
+  selected_variant_id uuid references public.master_item_variants(id) on delete set null,
+  quantity numeric not null check (quantity >= 0),
+  unit_snapshot text not null,
+  item_name_snapshot text not null,
+  group_name_snapshot text,
+  brand_name_snapshot text,
+  variant_name_snapshot text,
+  unit_price_snapshot numeric check (unit_price_snapshot is null or unit_price_snapshot >= 0),
+  price_version_snapshot integer check (price_version_snapshot is null or price_version_snapshot > 0),
+  price_is_set boolean not null default false,
+  position integer not null default 0 check (position >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  foreign key (project_model_line_id, project_id)
+    references public.project_model_lines(id, project_id) on delete cascade,
+  check (
+    (source_type = 'formula' and formula_material_code is not null)
+    or
+    (source_type = 'manual' and formula_material_code is null and master_item_id is not null)
+  ),
+  check (price_is_set = (unit_price_snapshot is not null))
+);
+
+create unique index if not exists project_line_material_items_formula_identity_uidx
+  on public.project_line_material_items (project_model_line_id, formula_material_code)
+  where source_type = 'formula';
+
+create index if not exists project_line_material_items_project_id_idx
+  on public.project_line_material_items (project_id);
+create index if not exists project_line_material_items_model_line_id_idx
+  on public.project_line_material_items (project_model_line_id);
+create index if not exists project_line_material_items_master_item_id_idx
+  on public.project_line_material_items (master_item_id);
+create index if not exists formula_material_item_options_material_active_idx
+  on public.formula_material_item_options (material_code, active, position);
+create index if not exists master_item_prices_item_current_idx
+  on public.master_item_prices (item_id, is_current);
+
+-- Seed the flexible groups and brand directory. HPM/INKA/DACON are separate
+-- brand records, but legacy combined-catalog prices are not attributed to them.
+insert into public.master_item_groups (group_key, label, group_type, position)
+values
+  ('pintu', 'Pintu', 'product', 10),
+  ('kusen', 'Kusen', 'product', 20),
+  ('jendela', 'Jendela', 'product', 30),
+  ('aluminium', 'Aluminium', 'material', 40),
+  ('kayu', 'Kayu', 'material', 50),
+  ('kaca', 'Kaca', 'supporting', 60),
+  ('aksesoris', 'Aksesoris', 'supporting', 70),
+  ('finishing-pekerjaan-tambahan', 'Finishing dan pekerjaan tambahan', 'supporting', 80),
+  ('pekerjaan-awal', 'Pekerjaan awal', 'supporting', 90)
+on conflict (group_key) do nothing;
+
+insert into public.master_brands (brand_key, label, position)
+values
+  ('alexindo', 'Alexindo', 10),
+  ('hpm', 'HPM', 20),
+  ('inka', 'INKA', 30),
+  ('dacon', 'DACON', 40),
+  ('ykk', 'YKK', 50)
+on conflict (brand_key) do nothing;
+
+-- Import each active legacy component as its own traceable master item. This
+-- deliberately avoids merging similarly named but not yet proven equivalent
+-- products from different legacy workbooks.
+insert into public.master_items (
+  group_id, item_key, label, unit, legacy_catalog_id, legacy_component_id,
+  legacy_source_label, active
+)
+select
+  grp.id,
+  'legacy:' || catalog.slug || ':' || component.component_key,
+  component.label,
+  component.unit,
+  catalog.id,
+  component.id,
+  catalog.label,
+  component.active
+from public.budget_components component
+join public.budget_catalogs catalog on catalog.id = component.catalog_id
+join public.master_item_groups grp
+  on grp.group_key = case
+    when component.category in ('Aksesori', 'Aksesoris') then 'aksesoris'
+    when component.category = 'Kaca' then 'kaca'
+    when component.category = 'Daun pintu' then 'pintu'
+    when component.category = 'Pintu dan jendela' and component.label ilike '%jendela%' then 'jendela'
+    when component.category = 'Pintu dan jendela' and component.label ilike '%kaca%' then 'kaca'
+    when component.category = 'Pintu dan jendela' then 'pintu'
+    when component.category = 'Profil aluminium' and component.label ilike '%kayu%' then 'kayu'
+    when component.category = 'Profil aluminium' then 'aluminium'
+    when component.category = 'Pekerjaan awal' and component.label ilike '%kusen%' then 'kusen'
+    when component.category = 'Pekerjaan awal' and component.label ilike '%tapin%' then 'kusen'
+    when component.category = 'Pekerjaan awal'
+      and (component.label ilike '%tatapan%' or component.label ilike '%hollow%') then 'aluminium'
+    when component.category = 'Pekerjaan awal' then 'pekerjaan-awal'
+    when component.category = 'Finishing dan pekerjaan tambahan' then 'finishing-pekerjaan-tambahan'
+    else 'pekerjaan-awal'
+  end
+where catalog.active = true
+on conflict (legacy_component_id) do nothing;
+
+-- Only explicit single-brand legacy catalogues create brand options. The
+-- combined HPM/INKA/DACON catalogue remains unassigned pending source proof.
+insert into public.master_item_brand_options (item_id, brand_id, brand_item_code)
+select item.id, brand.id, component.component_key
+from public.master_items item
+join public.budget_components component on component.id = item.legacy_component_id
+join public.budget_catalogs catalog on catalog.id = item.legacy_catalog_id
+join public.master_brands brand
+  on brand.brand_key = catalog.slug
+where catalog.slug in ('alexindo','ykk')
+on conflict (item_id, brand_id) do nothing;
+
+insert into public.master_item_variants (
+  item_id, variant_key, label, attributes, position, legacy_variant_id
+)
+select
+  item.id,
+  variant.variant_key,
+  variant.label,
+  case
+    when variant.variant_key in ('brown','cream','coating','base')
+      then jsonb_build_object('finish', variant.label)
+    else jsonb_build_object('type', variant.label)
+  end,
+  variant.position,
+  variant.id
+from public.master_items item
+join public.budget_variants variant on variant.catalog_id = item.legacy_catalog_id
+on conflict (item_id, variant_key) do nothing;
+
+-- Import immutable legacy price history, then fill any current legacy rows
+-- that intentionally have no history (including empty placeholders).
+with price_rows as (
+  select
+    history.component_id,
+    history.variant_id,
+    history.version,
+    history.amount,
+    history.expression,
+    history.changed_by as updated_by,
+    history.created_at,
+    current_price.source_cell,
+    current_price.source_formula,
+    current_price.source_value,
+    current_price.updated_at,
+    (current_price.version = history.version) as is_current
+  from public.budget_price_versions history
+  left join public.budget_prices current_price
+    on current_price.component_id = history.component_id
+   and current_price.variant_id = history.variant_id
+   and current_price.version = history.version
+
+  union all
+
+  select
+    current_price.component_id,
+    current_price.variant_id,
+    current_price.version,
+    current_price.amount,
+    current_price.expression,
+    current_price.updated_by,
+    current_price.updated_at as created_at,
+    current_price.source_cell,
+    current_price.source_formula,
+    current_price.source_value,
+    current_price.updated_at,
+    true as is_current
+  from public.budget_prices current_price
+  where not exists (
+    select 1
+    from public.budget_price_versions history
+    where history.component_id = current_price.component_id
+      and history.variant_id = current_price.variant_id
+      and history.version = current_price.version
+  )
+)
+insert into public.master_item_prices (
+  item_id, brand_id, variant_id, amount, expression,
+  source_cell, source_formula, source_value, version, is_current,
+  source_label, updated_by, created_at, updated_at
+)
+select
+  item.id,
+  brand_option.brand_id,
+  item_variant.id,
+  price_rows.amount,
+  price_rows.expression,
+  price_rows.source_cell,
+  price_rows.source_formula,
+  price_rows.source_value,
+  price_rows.version,
+  price_rows.is_current,
+  catalog.label,
+  price_rows.updated_by,
+  coalesce(price_rows.created_at, now()),
+  coalesce(price_rows.updated_at, price_rows.created_at, now())
+from price_rows
+join public.master_items item
+  on item.legacy_component_id = price_rows.component_id
+join public.budget_components component on component.id = item.legacy_component_id
+join public.budget_catalogs catalog on catalog.id = component.catalog_id
+join public.master_item_variants item_variant
+  on item_variant.item_id = item.id
+ and item_variant.legacy_variant_id = price_rows.variant_id
+left join public.master_item_brand_options brand_option on brand_option.item_id = item.id
+on conflict do nothing;
+
+-- Convert existing explicit formula-to-component mappings into selectable
+-- options. The source mapping's exact material name/unit is retained; no
+-- heuristic matching or formula/QTY edits are performed.
+insert into public.formula_material_item_options (
+  material_code, model_code, item_id, brand_id, variant_id,
+  unit_override, is_default, position, legacy_mapping_id, active
+)
+select distinct
+  material.code,
+  null,
+  item.id,
+  brand_option.brand_id,
+  item_variant.id,
+  mapping.material_unit,
+  false,
+  0,
+  mapping.id,
+  true
+from public.budget_material_mappings mapping
+join public.materials material
+  on lower(regexp_replace(trim(material.name), '[[:space:]]+', ' ', 'g')) =
+     lower(regexp_replace(trim(mapping.material_name), '[[:space:]]+', ' ', 'g'))
+ and lower(trim(material.unit)) = lower(trim(mapping.material_unit))
+join public.master_items item on item.legacy_component_id = mapping.component_id
+left join public.master_item_brand_options brand_option on brand_option.item_id = item.id
+left join public.master_item_variants item_variant on item_variant.item_id = item.id
+where mapping.active
+  and mapping.component_id is not null
+  and item.active
+on conflict do nothing;
+
+-- New master tables are exposed only to authenticated users. RLS grants
+-- active reads and reserves mutations for catalog admins.
+alter table public.master_item_groups enable row level security;
+alter table public.master_brands enable row level security;
+alter table public.master_items enable row level security;
+alter table public.master_item_variants enable row level security;
+alter table public.master_item_brand_options enable row level security;
+alter table public.master_item_prices enable row level security;
+alter table public.formula_material_item_options enable row level security;
+alter table public.project_line_material_items enable row level security;
+
+create policy "authenticated read active master item groups"
+  on public.master_item_groups for select to authenticated
+  using (active or (select private.is_catalog_admin()));
+create policy "catalog admins manage master item groups"
+  on public.master_item_groups for all to authenticated
+  using ((select private.is_catalog_admin()))
+  with check ((select private.is_catalog_admin()));
+
+create policy "authenticated read active master brands"
+  on public.master_brands for select to authenticated
+  using (active or (select private.is_catalog_admin()));
+create policy "catalog admins manage master brands"
+  on public.master_brands for all to authenticated
+  using ((select private.is_catalog_admin()))
+  with check ((select private.is_catalog_admin()));
+
+create policy "authenticated read active master items"
+  on public.master_items for select to authenticated
+  using (active or (select private.is_catalog_admin()));
+create policy "catalog admins manage master items"
+  on public.master_items for all to authenticated
+  using ((select private.is_catalog_admin()))
+  with check ((select private.is_catalog_admin()));
+
+create policy "authenticated read active master item variants"
+  on public.master_item_variants for select to authenticated
+  using (active or (select private.is_catalog_admin()));
+create policy "catalog admins manage master item variants"
+  on public.master_item_variants for all to authenticated
+  using ((select private.is_catalog_admin()))
+  with check ((select private.is_catalog_admin()));
+
+create policy "authenticated read active item brand options"
+  on public.master_item_brand_options for select to authenticated
+  using (
+    active
+    and exists (select 1 from public.master_items item where item.id = item_id and item.active)
+    or (select private.is_catalog_admin())
+  );
+create policy "catalog admins manage item brand options"
+  on public.master_item_brand_options for all to authenticated
+  using ((select private.is_catalog_admin()))
+  with check ((select private.is_catalog_admin()));
+
+create policy "authenticated read active master item prices"
+  on public.master_item_prices for select to authenticated
+  using (
+    exists (select 1 from public.master_items item where item.id = item_id and item.active)
+    or (select private.is_catalog_admin())
+  );
+create policy "catalog admins manage master item prices"
+  on public.master_item_prices for all to authenticated
+  using ((select private.is_catalog_admin()))
+  with check ((select private.is_catalog_admin()));
+
+create policy "authenticated read active formula material options"
+  on public.formula_material_item_options for select to authenticated
+  using (
+    active
+    and exists (select 1 from public.master_items item where item.id = item_id and item.active)
+    or (select private.is_catalog_admin())
+  );
+create policy "catalog admins manage formula material options"
+  on public.formula_material_item_options for all to authenticated
+  using ((select private.is_catalog_admin()))
+  with check ((select private.is_catalog_admin()));
+
+create policy "project owners and admins read line material items"
+  on public.project_line_material_items for select to authenticated
+  using (
+    exists (
+      select 1 from public.projects project
+      where project.id = project_id
+        and (project.user_id = (select auth.uid()) or (select private.is_catalog_admin()))
+    )
+  );
+create policy "project owners and admins insert line material items"
+  on public.project_line_material_items for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.projects project
+      where project.id = project_id
+        and (project.user_id = (select auth.uid()) or (select private.is_catalog_admin()))
+    )
+  );
+create policy "project owners and admins update line material items"
+  on public.project_line_material_items for update to authenticated
+  using (
+    exists (
+      select 1 from public.projects project
+      where project.id = project_id
+        and (project.user_id = (select auth.uid()) or (select private.is_catalog_admin()))
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.projects project
+      where project.id = project_id
+        and (project.user_id = (select auth.uid()) or (select private.is_catalog_admin()))
+    )
+  );
+create policy "project owners and admins delete line material items"
+  on public.project_line_material_items for delete to authenticated
+  using (
+    exists (
+      select 1 from public.projects project
+      where project.id = project_id
+        and (project.user_id = (select auth.uid()) or (select private.is_catalog_admin()))
+    )
+  );
+
+revoke all on public.master_item_groups, public.master_brands, public.master_items,
+  public.master_item_variants, public.master_item_brand_options, public.master_item_prices,
+  public.formula_material_item_options, public.project_line_material_items
+from public, anon;
+
+grant select, insert, update, delete on public.master_item_groups, public.master_brands,
+  public.master_items, public.master_item_variants, public.master_item_brand_options,
+  public.master_item_prices, public.formula_material_item_options,
+  public.project_line_material_items to authenticated;
+
 -- Preserve TYPE-level material selections and snapshots when saving a project.
 -- This RPC replaces the legacy delete-and-recreate line flow for this client.
 -- Existing RPCs remain available for older deployed clients.
