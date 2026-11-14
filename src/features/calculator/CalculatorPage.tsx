@@ -254,8 +254,10 @@ export function CalculatorPage() {
     setDraft((current) => ({
       ...current,
       lines: current.lines.map((line) => {
+        const sourceLineId = line.id ?? `${line.modelCode}`;
+        if (!row.sources.some((source) => source.lineId === sourceLineId)) return line;
         if (option.modelCode !== null && option.modelCode !== line.modelCode) return line;
-        const sourceMaterial = results.get(line.id ?? `${line.modelCode}`)?.items.find((item) => item.materialCode === row.materialCode);
+        const sourceMaterial = results.get(sourceLineId)?.items.find((item) => item.materialCode === row.materialCode);
         if (!sourceMaterial) return line;
         const existing = line.materialItems ?? [];
         const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === row.materialCode);
