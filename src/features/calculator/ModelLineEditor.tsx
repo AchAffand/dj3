@@ -349,7 +349,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                         onChange(lineId, selectionForOption(line, material, option, materialIndex));
                       };
                       return (
-                        <div className="normalized-item-row" key={material.code}>
+                        <div className="normalized-item-row" key={material.materialCode}>
                           <strong>{normalizeMaterialDisplayName(material.name)}</strong>
                           <label className="dimension-field">
                             <span>Master Item</span>
