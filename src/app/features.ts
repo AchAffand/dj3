@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import { CalculatorPage } from "../features/calculator/CalculatorPage";
 import { FormulaMasterPage } from "../features/formula-master/FormulaMasterPage";
 import { ProjectsPage } from "../features/projects/ProjectsPage";
-import { BudgetWorkspacePage } from "../features/budgets/BudgetWorkspacePage";
+import { MasterHargaPage } from "../features/budgets/MasterHargaPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 
 export type FeatureDefinition = {
@@ -42,7 +42,7 @@ export const featureRegistry: readonly FeatureDefinition[] = [
     label: "Master Harga",
     path: "/master-harga",
     icon: "▦",
-    component: BudgetWorkspacePage,
+    component: MasterHargaPage,
   },
   {
     id: "settings",
