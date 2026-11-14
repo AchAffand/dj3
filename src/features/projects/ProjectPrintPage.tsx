@@ -120,7 +120,7 @@ export function ProjectPrintPage() {
         const selectedWindowPrice = /^jendela$/i.test(displayName.trim()) && windowColumn
           ? budgetPriceForMaterial(detail, material.materialCode, displayName, material.unit, line.priceVariantId, null, null, windowColumn)
           : null;
-        const selectedWindowComponent = windowColumn
+        const selectedWindowComponent = /^jendela$/i.test(displayName.trim()) && windowColumn
           ? detail?.components.find((component) => component.sourceColumn === windowColumn)
           : undefined;
         const currentMasterPrice = selectedDoorLeafPrice?.unitPrice
