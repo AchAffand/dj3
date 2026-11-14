@@ -9,7 +9,7 @@ import type {
   ProjectInput,
   ProjectSummary,
 } from "../../domain/projects/types";
-import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping } from "../../domain/budgets/types";
+import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping, MasterItemOption } from "../../domain/budgets/types";
 
 type ModelRow = {
   code: number;
@@ -389,6 +389,94 @@ export function createSupabaseRepository(client: SupabaseClient) {
         createdBy: typeof row.created_by === "string" ? row.created_by : null,
         createdAt: String(row.created_at),
       }));
+    },
+
+    async listMasterItemOptions(): Promise<MasterItemOption[]> {
+      const optionRows: Record<string, unknown>[] = [];
+      const pageSize = 1000;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await client
+          .from("formula_material_item_options")
+          .select("id,material_code,model_code,item_id,brand_id,variant_id,is_default,position,active")
+          .eq("active", true)
+          .order("material_code")
+          .order("position")
+          .range(offset, offset + pageSize - 1);
+        throwIfError(error);
+        const page = (data ?? []) as unknown as Record<string, unknown>[];
+        optionRows.push(...page);
+        if (page.length < pageSize) break;
+      }
+      if (!optionRows.length) return [];
+
+      const itemIds = [...new Set(optionRows.map((row) => String(row.item_id)))];
+      const brandIds = [...new Set(optionRows.map((row) => typeof row.brand_id === "string" ? row.brand_id : null).filter((id): id is string => Boolean(id)))];
+      const variantIds = [...new Set(optionRows.map((row) => typeof row.variant_id === "string" ? row.variant_id : null).filter((id): id is string => Boolean(id)))];
+
+      const [itemResult, brandResult, variantResult, priceResult] = await Promise.all([
+        client.from("master_items")
+          .select("id,item_key,label,unit,active,master_item_groups(label)")
+          .in("id", itemIds)
+          .eq("active", true),
+        brandIds.length
+          ? client.from("master_brands").select("id,label").in("id", brandIds)
+          : Promise.resolve({ data: [], error: null }),
+        variantIds.length
+          ? client.from("master_item_variants").select("id,item_id,label,active").in("id", variantIds).eq("active", true)
+          : Promise.resolve({ data: [], error: null }),
+        client.from("master_item_prices")
+          .select("item_id,brand_id,variant_id,amount,expression,version")
+          .in("item_id", itemIds)
+          .eq("is_current", true),
+      ]);
+      throwIfError(itemResult.error);
+      throwIfError(brandResult.error);
+      throwIfError(variantResult.error);
+      throwIfError(priceResult.error);
+
+      const items = new Map<string, Record<string, unknown>>();
+      for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) items.set(String(row.id), row);
+      const brands = new Map<string, string>();
+      for (const row of (brandResult.data ?? []) as unknown as Record<string, unknown>[]) brands.set(String(row.id), String(row.label));
+      const variants = new Map<string, Record<string, unknown>>();
+      for (const row of (variantResult.data ?? []) as unknown as Record<string, unknown>[]) variants.set(String(row.id), row);
+      const priceKey = (itemId: unknown, brandId: unknown, variantId: unknown) =>
+        `${String(itemId)}:${typeof brandId === "string" ? brandId : ""}:${typeof variantId === "string" ? variantId : ""}`;
+      const prices = new Map<string, Record<string, unknown>>();
+      for (const row of (priceResult.data ?? []) as unknown as Record<string, unknown>[]) {
+        prices.set(priceKey(row.item_id, row.brand_id, row.variant_id), row);
+      }
+
+      return optionRows.flatMap((row): MasterItemOption[] => {
+        const item = items.get(String(row.item_id));
+        if (!item) return [];
+        const groupRelation = Array.isArray(item.master_item_groups) ? item.master_item_groups[0] : item.master_item_groups;
+        const brandId = typeof row.brand_id === "string" ? row.brand_id : null;
+        const variantId = typeof row.variant_id === "string" ? row.variant_id : null;
+        const variant = variantId ? variants.get(variantId) : null;
+        const price = prices.get(priceKey(item.id, brandId, variantId));
+        return [{
+          id: String(row.id),
+          materialCode: Number(row.material_code),
+          modelCode: typeof row.model_code === "number" ? row.model_code : null,
+          itemId: String(item.id),
+          itemKey: String(item.item_key),
+          itemLabel: String(item.label),
+          unit: String(item.unit ?? ""),
+          groupLabel: typeof (groupRelation as Record<string, unknown> | null)?.label === "string"
+            ? String((groupRelation as Record<string, unknown>).label)
+            : null,
+          brandId,
+          brandLabel: brandId ? brands.get(brandId) ?? null : null,
+          variantId,
+          variantLabel: variant ? String(variant.label) : null,
+          unitPrice: typeof price?.amount === "number" ? price.amount : null,
+          priceExpression: typeof price?.expression === "string" ? price.expression : null,
+          priceVersion: typeof price?.version === "number" ? price.version : null,
+          isDefault: Boolean(row.is_default),
+          position: Number(row.position ?? 0),
+        }];
+      });
     },
 
     async listBudgetCatalogs(): Promise<BudgetCatalog[]> {
