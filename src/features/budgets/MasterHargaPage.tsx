@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { AppPageState } from "../../app/AppPageState";
 import { useAppServices } from "../../app/AppServices";
 import type { MasterPriceGroup, MasterPriceWorkbookPayload } from "../../domain/budgets/types";
@@ -54,7 +54,7 @@ export function MasterHargaPage() {
     });
   }, [activeGroup, search]);
 
-  const importWorkbook = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importWorkbook = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !repository) return;
