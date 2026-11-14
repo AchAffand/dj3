@@ -197,7 +197,13 @@ export function CalculatorPage() {
             && option.itemId === selectedMaterialItem!.masterItemId
             && option.brandId === selectedMaterialItem!.selectedBrandId
             && option.variantId === selectedMaterialItem!.selectedVariantId
-            && (option.modelCode === null || option.modelCode === line.modelCode),
+            && option.modelCode === line.modelCode,
+          ) ?? masterItemOptions.find((option) =>
+            option.materialCode === material.materialCode
+            && option.itemId === selectedMaterialItem!.masterItemId
+            && option.brandId === selectedMaterialItem!.selectedBrandId
+            && option.variantId === selectedMaterialItem!.selectedVariantId
+            && option.modelCode === null,
           )
         : undefined;
       const normalizedPriceKey = hasNormalizedSelection
