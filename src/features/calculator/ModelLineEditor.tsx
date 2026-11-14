@@ -152,7 +152,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const inputKey = "__budgetAccessory_" + material.code;
                       const selected = line.inputs[inputKey];
                       const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected) ?? options[0];
-                      return <label className="dimension-field" key={material.materialCode}>
+                      return <label className="dimension-field" key={material.code}>
                         <span>{normalizeMaterialDisplayName(material.name)} · Variasi</span>
                         <select aria-label={"Variasi " + material.name + " " + material.code} value={selectedOption.sourceColumn}
                           onChange={(event) => {
@@ -178,7 +178,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const inputKey = "__budgetGlass_" + material.code;
                       const selected = line.inputs[inputKey];
                       const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected);
-                      return <label className="dimension-field" key={material.materialCode}>
+                      return <label className="dimension-field" key={material.code}>
                         <span>{normalizeMaterialDisplayName(material.name)} · Jenis kaca</span>
                         <select aria-label={"Jenis kaca " + material.name + " " + material.code}
                           value={selectedOption?.sourceColumn ?? ""}
@@ -204,7 +204,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const inputKey = "__budgetTatapan_" + material.code;
                       const selected = line.inputs[inputKey];
                       const selectedColumn = typeof selected === "number" ? excelColumnFromNumber(selected) : "";
-                      return <label className="dimension-field" key={material.materialCode}>
+                      return <label className="dimension-field" key={material.code}>
                         <span>{normalizeMaterialDisplayName(material.name)} · Jenis tatapan</span>
                         <select aria-label={"Jenis tatapan " + material.name + " " + material.code}
                           value={selectedColumn}
@@ -373,7 +373,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                               <span>Brand</span>
                               <select
                                 aria-label={`Brand ${material.name} ${material.materialCode}`}
-                                value={selectedBrandId}
+                                value={selectedBrandId ?? ""}
                                 onChange={(event) => {
                                   const next = selectedItemOptions.find((option) => option.brandId === event.target.value && option.isDefault)
                                     ?? selectedItemOptions.find((option) => option.brandId === event.target.value);
@@ -390,7 +390,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                               <span>Varian / finishing</span>
                               <select
                                 aria-label={`Varian ${material.name} ${material.materialCode}`}
-                                value={selectedVariantId}
+                                value={selectedVariantId ?? ""}
                                 disabled={needsBrandChoice}
                                 onChange={(event) => applyOption(brandScopedOptions.find((option) => option.variantId === event.target.value))}
                               >
