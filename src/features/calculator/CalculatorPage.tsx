@@ -24,6 +24,14 @@ function makeLine(modelCode: number): ProjectLineDraft {
   };
 }
 
+function createMaterialItemId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
+}
+
 function priceMap(project: Project): Record<string, number | null | undefined> {
   const result: Record<string, number | null | undefined> = {};
   for (const price of project.prices) {
@@ -135,76 +143,78 @@ export function CalculatorPage() {
   const accessoryDetail = accessoryCatalog ? budgetDetails.get(accessoryCatalog.id) : undefined;
   const glassDetail = glassCatalog ? budgetDetails.get(glassCatalog.id) : undefined;
 
+  const resolvedLines = useMemo(() => draft.lines.map((line) => {
+    const materials = (results.get(line.id ?? `${line.modelCode}`)?.items ?? []).map((material) => {
+      const formulaMaterial = catalog.get(line.modelCode)?.materials.find((item) => item.code === material.materialCode);
+      const brandDetail = line.priceCatalogId ? budgetDetails.get(line.priceCatalogId) : undefined;
+      const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
+        ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
+        : null;
+      const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
+      const accessoryColumn = typeof accessoryColumnValue === "number"
+        ? excelColumnFromNumber(accessoryColumnValue)
+        : accessoryPriceOptions(accessoryDetail, material.name)[0]?.sourceColumn ?? null;
+      const glassColumnValue = line.inputs[`__budgetGlass_${material.materialCode}`];
+      const glassColumn = typeof glassColumnValue === "number" ? excelColumnFromNumber(glassColumnValue) : null;
+      const tatapanColumnValue = line.inputs[`__budgetTatapan_${material.materialCode}`];
+      const tatapanColumn = typeof tatapanColumnValue === "number" ? excelColumnFromNumber(tatapanColumnValue) : null;
+      const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
+        ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
+        : null;
+      const useGlassCatalog = Boolean(formulaMaterial && isGlassMaterial(formulaMaterial) && glassColumn && glassDetail);
+      const useAccessoryCatalog = Boolean(formulaMaterial && isAccessoryMaterial(formulaMaterial)
+        && accessoryDetail && accessoryPriceOptions(accessoryDetail, material.name).length);
+      const priceDetail = useGlassCatalog ? glassDetail
+        : useAccessoryCatalog ? accessoryDetail
+        : brandDetail;
+      const sharedVariantId = priceDetail?.catalog.slug === "kaca-umum" || priceDetail?.catalog.slug === "aksesoris-umum"
+        ? priceDetail.variants[0]?.id
+        : line.priceVariantId;
+      const mapped = budgetPriceForMaterial(
+        priceDetail,
+        material.materialCode,
+        material.name,
+        material.unit,
+        sharedVariantId,
+        formulaMaterial && isDoorLeafMaterial(formulaMaterial) ? doorLeafColumn : null,
+        useAccessoryCatalog ? accessoryColumn : null,
+        /^jendela$/i.test(material.name.trim()) ? windowColumn : null,
+        useGlassCatalog ? glassColumn : null,
+        formulaMaterial && isTatapanMaterial(formulaMaterial) ? tatapanColumn : null,
+      );
+      const variant = priceDetail?.variants.find((item) => item.id === sharedVariantId);
+      const legacyPriceKey = brandDetail && line.priceVariantId
+        ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
+        : `manual:${material.materialCode}`;
+      const legacyOverride = draft.prices[legacyPriceKey];
+      const hasExplicitComponentSelection = Boolean(
+        (formulaMaterial && isAccessoryMaterial(formulaMaterial) && typeof accessoryColumnValue === "number")
+        || (formulaMaterial && isGlassMaterial(formulaMaterial) && typeof glassColumnValue === "number")
+        || (formulaMaterial && isDoorLeafMaterial(formulaMaterial) && typeof line.inputs.__doorLeafSourceColumn === "number")
+        || (formulaMaterial && isTatapanMaterial(formulaMaterial) && typeof tatapanColumnValue === "number")
+        || (/^jendela$/i.test(material.name.trim()) && typeof line.inputs.__windowSourceColumn === "number")
+      );
+      const preserveLegacyOverride = !hasExplicitComponentSelection
+        && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
+      return {
+        ...material,
+        priceKey: mapped?.priceKey ?? legacyPriceKey,
+        catalogId: priceDetail && variant ? priceDetail.catalog.id : null,
+        variantId: variant?.id ?? null,
+        unitPrice: preserveLegacyOverride ? legacyOverride : mapped?.unitPrice ?? null,
+        priceVersion: mapped?.priceVersion ?? null,
+        expressionSnapshot: mapped?.expressionSnapshot ?? null,
+        componentId: mapped?.componentId ?? null,
+        priceSourceLabel: priceDetail && variant ? `${priceDetail.catalog.label} · ${variant.label}` : "Harga manual",
+      };
+    });
+    return { lineId: line.id ?? `${line.modelCode}`, modelCount: line.count, materials };
+  }), [accessoryDetail, budgetDetails, catalog, draft.lines, draft.prices, glassDetail, results]);
+
   const recap = useMemo(() => aggregateMaterials(
-    draft.lines.map((line) => ({
-      materials: (results.get(line.id ?? `${line.modelCode}`)?.items ?? []).map((material) => {
-        const formulaMaterial = catalog.get(line.modelCode)?.materials.find((item) => item.code === material.materialCode);
-        const brandDetail = line.priceCatalogId ? budgetDetails.get(line.priceCatalogId) : undefined;
-        const doorLeafColumn = typeof line.inputs.__doorLeafSourceColumn === "number"
-          ? String.fromCharCode(64 + line.inputs.__doorLeafSourceColumn)
-          : null;
-        const accessoryColumnValue = line.inputs[`__budgetAccessory_${material.materialCode}`];
-        const accessoryColumn = typeof accessoryColumnValue === "number"
-          ? excelColumnFromNumber(accessoryColumnValue)
-          : accessoryPriceOptions(accessoryDetail, material.name)[0]?.sourceColumn ?? null;
-        const glassColumnValue = line.inputs[`__budgetGlass_${material.materialCode}`];
-        const glassColumn = typeof glassColumnValue === "number" ? excelColumnFromNumber(glassColumnValue) : null;
-        const tatapanColumnValue = line.inputs[`__budgetTatapan_${material.materialCode}`];
-        const tatapanColumn = typeof tatapanColumnValue === "number" ? excelColumnFromNumber(tatapanColumnValue) : null;
-        const windowColumn = typeof line.inputs.__windowSourceColumn === "number"
-          ? excelColumnFromNumber(line.inputs.__windowSourceColumn)
-          : null;
-        const useGlassCatalog = Boolean(formulaMaterial && isGlassMaterial(formulaMaterial) && glassColumn && glassDetail);
-        const useAccessoryCatalog = Boolean(formulaMaterial && isAccessoryMaterial(formulaMaterial)
-          && accessoryDetail && accessoryPriceOptions(accessoryDetail, material.name).length);
-        const priceDetail = useGlassCatalog ? glassDetail
-          : useAccessoryCatalog ? accessoryDetail
-          : brandDetail;
-        const sharedVariantId = priceDetail?.catalog.slug === "kaca-umum" || priceDetail?.catalog.slug === "aksesoris-umum"
-          ? priceDetail.variants[0]?.id
-          : line.priceVariantId;
-        const mapped = budgetPriceForMaterial(
-          priceDetail,
-          material.materialCode,
-          material.name,
-          material.unit,
-          sharedVariantId,
-          formulaMaterial && isDoorLeafMaterial(formulaMaterial) ? doorLeafColumn : null,
-          useAccessoryCatalog ? accessoryColumn : null,
-          /^jendela$/i.test(material.name.trim()) ? windowColumn : null,
-          useGlassCatalog ? glassColumn : null,
-          formulaMaterial && isTatapanMaterial(formulaMaterial) ? tatapanColumn : null,
-        );
-        const variant = priceDetail?.variants.find((item) => item.id === sharedVariantId);
-        const legacyPriceKey = brandDetail && line.priceVariantId
-          ? `${brandDetail.catalog.id}:${line.priceVariantId}:${material.materialCode}`
-          : `manual:${material.materialCode}`;
-        const legacyOverride = draft.prices[legacyPriceKey];
-        const hasExplicitComponentSelection = Boolean(
-          (formulaMaterial && isAccessoryMaterial(formulaMaterial) && typeof accessoryColumnValue === "number")
-          || (formulaMaterial && isGlassMaterial(formulaMaterial) && typeof glassColumnValue === "number")
-          || (formulaMaterial && isDoorLeafMaterial(formulaMaterial) && typeof line.inputs.__doorLeafSourceColumn === "number")
-          || (formulaMaterial && isTatapanMaterial(formulaMaterial) && typeof tatapanColumnValue === "number")
-          || (/^jendela$/i.test(material.name.trim()) && typeof line.inputs.__windowSourceColumn === "number")
-        );
-        const preserveLegacyOverride = !hasExplicitComponentSelection
-          && typeof legacyOverride === "number" && Number.isFinite(legacyOverride);
-        return {
-          ...material,
-          priceKey: mapped?.priceKey ?? legacyPriceKey,
-          catalogId: priceDetail && variant ? priceDetail.catalog.id : null,
-          variantId: variant?.id ?? null,
-          unitPrice: preserveLegacyOverride ? legacyOverride : mapped?.unitPrice ?? null,
-          priceVersion: mapped?.priceVersion ?? null,
-          expressionSnapshot: mapped?.expressionSnapshot ?? null,
-          componentId: mapped?.componentId ?? null,
-          priceSourceLabel: priceDetail && variant ? `${priceDetail.catalog.label} · ${variant.label}` : "Harga manual",
-        };
-      }),
-      modelCount: line.count,
-    })),
+    resolvedLines.map(({ materials, modelCount }) => ({ materials, modelCount })),
     draft.prices,
-  ), [accessoryDetail, budgetDetails, catalog, draft.lines, draft.prices, glassDetail, results]);
+  ), [draft.prices, resolvedLines]);
   const total = recap.reduce((sum, row) => sum + (row.subtotal ?? 0), 0);
 
   const updateLine = useCallback((lineId: string, updated: ProjectLineDraft) => {
@@ -233,7 +243,33 @@ export function CalculatorPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const saved = await projectService.saveProject({ ...draft, recap });
+      const lines = draft.lines.map((line) => {
+        const resolved = resolvedLines.find((item) => item.lineId === (line.id ?? `${line.modelCode}`));
+        const existing = line.materialItems ?? [];
+        const formulaItems = (resolved?.materials ?? []).map((material, position) => {
+          const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode);
+          return {
+            id: previous?.id ?? createMaterialItemId(),
+            sourceType: "formula" as const,
+            formulaMaterialCode: material.materialCode,
+            masterItemId: previous?.masterItemId ?? null,
+            selectedBrandId: previous?.selectedBrandId ?? null,
+            selectedVariantId: previous?.selectedVariantId ?? null,
+            quantity: material.quantity,
+            unitSnapshot: material.unit,
+            itemNameSnapshot: material.name,
+            groupNameSnapshot: previous?.groupNameSnapshot ?? null,
+            brandNameSnapshot: previous?.brandNameSnapshot ?? null,
+            variantNameSnapshot: previous?.variantNameSnapshot ?? null,
+            unitPriceSnapshot: material.unitPrice,
+            priceVersionSnapshot: material.priceVersion,
+            priceIsSet: typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice),
+            position,
+          };
+        });
+        return { ...line, materialItems: [...formulaItems, ...existing.filter((item) => item.sourceType === "manual")] };
+      });
+      const saved = await projectService.saveProject({ ...draft, lines, recap });
       setDraft({
         id: saved.project.id,
         name: saved.project.name,
@@ -257,8 +293,7 @@ export function CalculatorPage() {
 
   if (loadingCatalog || loadingProject) {
     return <AppPageState title={loadingProject ? "Membuka proyek" : "Memuat katalog"} detail="Sebentar, data ruang kerja sedang disiapkan." />;
-  }
-  if (catalogError) {
+  }  if (catalogError) {
     return <AppPageState title="Katalog belum dapat dimuat" detail={catalogError} actionLabel="Coba lagi" onAction={() => void reloadCatalog()} tone="error" />;
   }
 
