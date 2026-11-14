@@ -51,6 +51,7 @@ export type MasterItemOption = {
   brandId: string | null;
   brandLabel: string | null;
   variantId: string | null;
+  variantKey: string | null;
   variantLabel: string | null;
   unitPrice: number | null;
   priceExpression: string | null;

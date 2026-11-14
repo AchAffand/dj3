@@ -2,8 +2,8 @@ import { modelGroupLabel, type DoorModel, type InputVariableName, type InputVari
 import type { ProjectLineDraft } from "../projects/projectService";
 import type { ProjectResultSnapshot } from "../../domain/projects/types";
 import { MaterialResults } from "./MaterialResults";
-import type { BudgetCatalog, BudgetCatalogDetail, MasterItemOption } from "../../domain/budgets/types";
-import { accessoryPriceOptions, excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, isTatapanMaterial, normalizeMaterialDisplayName, tatapanPriceOptions, windowPriceOptions } from "../../domain/budgets/pricing";
+import type { BudgetCatalog, BudgetCatalogDetail } from "../../domain/budgets/types";
+import { excelColumnFromNumber, excelColumnToNumber, glassPriceOptions, isDoorLeafMaterial, isGlassMaterial, isTatapanMaterial, normalizeMaterialDisplayName, tatapanPriceOptions, windowPriceOptions } from "../../domain/budgets/pricing";
 
 const inputLabels: Partial<Record<InputVariableName, string>> = {
   T1: "T1 · mm",
@@ -24,65 +24,9 @@ type ModelLineEditorProps = {
   onRemove(lineId: string): void;
   budgetCatalogs?: readonly BudgetCatalog[];
   budgetDetails?: ReadonlyMap<string, BudgetCatalogDetail>;
-  masterItemOptions?: readonly MasterItemOption[];
-  loadingMasterItems?: boolean;
 };
 
-function createMaterialSelectionId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
-    const random = Math.floor(Math.random() * 16);
-    return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
-  });
-}
-
-function uniqueOptions(options: readonly MasterItemOption[], key: (option: MasterItemOption) => string | null): MasterItemOption[] {
-  const unique = new Map<string, MasterItemOption>();
-  for (const option of options) {
-    const value = key(option);
-    if (value && !unique.has(value)) unique.set(value, option);
-  }
-  return [...unique.values()].sort((a, b) => a.position - b.position || a.itemLabel.localeCompare(b.itemLabel, "id"));
-}
-
-function selectionForOption(
-  line: ProjectLineDraft,
-  material: { materialCode: number; name: string; unit: string; quantity: number },
-  option: MasterItemOption,
-  position: number,
-): ProjectLineDraft {
-  const existing = line.materialItems ?? [];
-  const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode);
-  const unit = option.unitOverride.trim() || material.unit;
-  const price = option.unitPrice;
-  const next = {
-    id: previous?.id ?? createMaterialSelectionId(),
-    sourceType: "formula" as const,
-    formulaMaterialCode: material.materialCode,
-    masterItemId: option.itemId,
-    selectedBrandId: option.brandId,
-    selectedVariantId: option.variantId,
-    quantity: material.quantity,
-    unitSnapshot: unit,
-    itemNameSnapshot: option.itemLabel,
-    groupNameSnapshot: option.groupLabel,
-    brandNameSnapshot: option.brandLabel,
-    variantNameSnapshot: option.variantLabel,
-    unitPriceSnapshot: typeof price === "number" && Number.isFinite(price) && price >= 0 ? price : null,
-    priceVersionSnapshot: option.priceVersion,
-    priceIsSet: typeof price === "number" && Number.isFinite(price) && price >= 0,
-    position,
-  };
-  return {
-    ...line,
-    materialItems: [
-      ...existing.filter((item) => !(item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode)),
-      next,
-    ],
-  };
-}
-
-export function ModelLineEditor({ lines, models, results, onChange, onRemove, budgetCatalogs = [], budgetDetails = new Map(), masterItemOptions = [], loadingMasterItems = false }: ModelLineEditorProps) {
+export function ModelLineEditor({ lines, models, results, onChange, onRemove, budgetCatalogs = [], budgetDetails = new Map() }: ModelLineEditorProps) {
   return (
     <div className="model-line-list">
       {lines.map((line, index) => {
@@ -125,48 +69,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
 
             {model && (
               <>
-                {budgetCatalogs.length > 0 && <div className="budget-source-fields">
-                  <label className="dimension-field"><span>Merek aluminium</span><select value={line.priceCatalogId ?? ""} onChange={(event) => {
-                    const priceCatalogId = event.target.value || null;
-                    const variants = priceCatalogId ? budgetDetails.get(priceCatalogId)?.variants ?? [] : [];
-                    const defaultVariant = variants.find((variant) => variant.key === "brown") ?? variants[0];
-                    onChange(lineId, { ...line, priceCatalogId, priceVariantId: defaultVariant?.id ?? null });
-                  }}><option value="">Pilih merek aluminium</option>{budgetCatalogs.filter((item) => !["kaca-umum", "aksesoris-umum"].includes(item.slug)).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-                  {line.priceCatalogId && <label className="dimension-field"><span>Warna / varian harga</span><select value={line.priceVariantId ?? ""} onChange={(event) => onChange(lineId, { ...line, priceVariantId: event.target.value || null })}><option value="">Pilih varian</option>{(budgetDetails.get(line.priceCatalogId)?.variants ?? []).map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}</select></label>}
-                </div>}
                 {model.status === "incomplete" && <div className="model-incomplete-tag">Sebagian rumus model ini belum tersedia</div>}
-                {(() => {
-                  const accessories = model.materials.filter((material) => {
-                    const name = material.name.toLocaleLowerCase("id-ID");
-                    const unit = material.unit.trim().toLocaleLowerCase("id-ID");
-                    if (/^handle$/.test(name) && !["pcs", "set"].includes(unit)) return false;
-                    return /engsel kupu|^(handel|handle)\s*\+\s*kunci$|^handle$|kunci sliding/i.test(name);
-                  });
-                  const accessoryCatalog = budgetCatalogs.find((item) => item.slug === "aksesoris-umum");
-                  const detail = (accessoryCatalog ? budgetDetails.get(accessoryCatalog.id) : undefined)
-                    ?? budgetDetails.get(line.priceCatalogId ?? "");
-                  return accessories.length ? <div className="budget-source-fields accessory-source-fields">
-                    {accessories.map((material) => {
-                      const options = accessoryPriceOptions(detail, material.name);
-                      if (options.length < 2) return null;
-                      const inputKey = "__budgetAccessory_" + material.code;
-                      const selected = line.inputs[inputKey];
-                      const selectedOption = options.find((item) => excelColumnToNumber(item.sourceColumn) === selected) ?? options[0];
-                      return <label className="dimension-field" key={material.code}>
-                        <span>{normalizeMaterialDisplayName(material.name)} · Variasi</span>
-                        <select aria-label={"Variasi " + material.name + " " + material.code} value={selectedOption.sourceColumn}
-                          onChange={(event) => {
-                            const component = options.find((item) => item.sourceColumn === event.target.value);
-                            if (!component) return;
-                            const inputs: InputVariables = { ...line.inputs, [inputKey]: excelColumnToNumber(component.sourceColumn) };
-                            onChange(lineId, { ...line, inputs });
-                          }}>
-                          {options.map((item) => <option key={item.id} value={item.sourceColumn}>{item.label}</option>)}
-                        </select>
-                      </label>;
-                    })}
-                  </div> : null;
-                })()}
                 {(() => {
                   const glassCatalog = budgetCatalogs.find((item) => item.slug === "kaca-umum");
                   const glassDetail = glassCatalog ? budgetDetails.get(glassCatalog.id) : undefined;
@@ -304,128 +207,6 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                         </label>
                       );
                     })}
-                  </div>
-                )}
-                {model.materials.length > 0 && (
-                  <div className="budget-source-fields normalized-item-source-fields">
-                    <div className="dimension-field normalized-item-heading">
-                      <span>Material Master Item per baris model</span>
-                      <small>Pilihan item, brand, dan varian akan disimpan bersama proyek.</small>
-                    </div>
-                    {result.items.map((material, materialIndex) => {
-                      const options = masterItemOptions.filter((option) =>
-                        option.materialCode === material.materialCode
-                        && (option.modelCode === null || option.modelCode === model.code),
-                      );
-                      if (!options.length) return null;
-                      const saved = line.materialItems?.find((item) =>
-                        item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode,
-                      );
-                      const itemOptions = uniqueOptions(options, (option) => option.itemId);
-                      const selectedItemId = saved?.masterItemId && itemOptions.some((option) => option.itemId === saved.masterItemId)
-                        ? saved.masterItemId
-                        : "";
-                      const selectedItemOptions = selectedItemId ? options.filter((option) => option.itemId === selectedItemId) : [];
-                      const brandOptions = uniqueOptions(selectedItemOptions, (option) => option.brandId);
-                      const selectedBrandId = saved?.selectedBrandId && brandOptions.some((option) => option.brandId === saved.selectedBrandId)
-                        ? saved.selectedBrandId
-                        : (brandOptions.length === 1 ? (brandOptions[0].brandId ?? "") : "");
-                      const brandScopedOptions = selectedBrandId
-                        ? selectedItemOptions.filter((option) => option.brandId === selectedBrandId)
-                        : selectedItemOptions;
-                      const variantOptions = uniqueOptions(brandScopedOptions, (option) => option.variantId);
-                      const selectedVariantId = saved?.selectedVariantId && variantOptions.some((option) => option.variantId === saved.selectedVariantId)
-                        ? saved.selectedVariantId
-                        : (variantOptions.length === 1 ? (variantOptions[0].variantId ?? "") : "");
-                      const needsBrandChoice = brandOptions.length > 1 && !selectedBrandId;
-                      const needsVariantChoice = variantOptions.length > 1 && !selectedVariantId;
-                      const selectedOption = needsBrandChoice || needsVariantChoice
-                        ? undefined
-                        : brandScopedOptions.find((option) => option.variantId === selectedVariantId)
-                          ?? brandScopedOptions.find((option) => option.isDefault)
-                          ?? brandScopedOptions[0];
-                      const applyOption = (option: MasterItemOption | undefined) => {
-                        if (!option) return;
-                        onChange(lineId, selectionForOption(line, material, option, materialIndex));
-                      };
-                      return (
-                        <div className="normalized-item-row" key={material.materialCode}>
-                          <strong>{normalizeMaterialDisplayName(material.name)}</strong>
-                          <label className="dimension-field">
-                            <span>Master Item</span>
-                            <select
-                              aria-label={`Master Item ${material.name} ${material.materialCode}`}
-                              value={selectedItemId}
-                              onChange={(event) => {
-                                const nextOptions = options.filter((option) => option.itemId === event.target.value);
-                                if (!nextOptions.length) return;
-                                const nextBrands = uniqueOptions(nextOptions, (option) => option.brandId);
-                                const nextVariants = uniqueOptions(nextOptions, (option) => option.variantId);
-                                const next = nextOptions.find((option) => option.isDefault) ?? nextOptions[0];
-                                if (nextBrands.length > 1) {
-                                  applyOption({ ...next, brandId: null, brandLabel: null, variantId: null, variantLabel: null, unitPrice: null, priceVersion: null });
-                                } else if (nextVariants.length > 1) {
-                                  applyOption({ ...next, variantId: null, variantLabel: null, unitPrice: null, priceVersion: null });
-                                } else {
-                                  applyOption(next);
-                                }
-                              }}
-                            >
-                              <option value="">Pilih item Master</option>
-                              {itemOptions.map((option) => (
-                                <option key={option.itemId} value={option.itemId}>{option.itemLabel}{option.unit ? ` · ${option.unit}` : ""}</option>
-                              ))}
-                            </select>
-                          </label>
-                          {brandOptions.length > 0 && (
-                            <label className="dimension-field">
-                              <span>Brand</span>
-                              <select
-                                aria-label={`Brand ${material.name} ${material.materialCode}`}
-                                value={selectedBrandId ?? ""}
-                                onChange={(event) => {
-                                  const brandScoped = selectedItemOptions.filter((option) => option.brandId === event.target.value);
-                                  const next = brandScoped.find((option) => option.isDefault) ?? brandScoped[0];
-                                  if (next && uniqueOptions(brandScoped, (option) => option.variantId).length > 1) {
-                                    applyOption({ ...next, variantId: null, variantLabel: null, unitPrice: null, priceVersion: null });
-                                  } else {
-                                    applyOption(next);
-                                  }
-                                }}
-                              >
-                                <option value="">Pilih brand</option>
-                                {brandOptions.map((option) => <option key={option.brandId} value={option.brandId ?? ""}>{option.brandLabel}</option>)}
-                              </select>
-                            </label>
-                          )}
-                          {variantOptions.length > 1 && (
-                            <label className="dimension-field">
-                              <span>Varian / finishing</span>
-                              <select
-                                aria-label={`Varian ${material.name} ${material.materialCode}`}
-                                value={selectedVariantId ?? ""}
-                                disabled={needsBrandChoice}
-                                onChange={(event) => applyOption(brandScopedOptions.find((option) => option.variantId === event.target.value))}
-                              >
-                                <option value="">Pilih varian</option>
-                                {variantOptions.map((option) => <option key={option.variantId} value={option.variantId ?? ""}>{option.variantLabel}</option>)}
-                              </select>
-                            </label>
-                          )}
-                          {selectedOption && (
-                            <small className="normalized-item-price">
-                              {selectedOption.unitPrice !== null
-                                ? `Harga master: Rp ${new Intl.NumberFormat("id-ID").format(selectedOption.unitPrice)} / ${selectedOption.unitOverride || material.unit}`
-                                : selectedOption.priceExpression
-                                  ? "Harga menggunakan ekspresi master; perlu pemetaan perhitungan lanjutan."
-                                  : "Harga belum diisi pada Master Harga."}
-                            </small>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {loadingMasterItems && <small>Memuat pilihan Master Item…</small>}
-                    {!loadingMasterItems && masterItemOptions.length === 0 && <small>Belum ada opsi Master Item yang dapat dipilih untuk material ini.</small>}
                   </div>
                 )}
                 <MaterialResults result={result} />

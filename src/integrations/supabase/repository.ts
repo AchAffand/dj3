@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DoorModel, InputVariableName } from "../../domain/catalog/types";
 import { parseFormula } from "../../domain/formulas/parser";
+import { calculateExpression } from "../../domain/formulas/evaluate";
 import type { ExpressionNode } from "../../domain/formulas/ast";
 import type {
   FormulaChange,
@@ -190,6 +191,62 @@ function mapBudgetDetail(catalog: BudgetCatalog, rows: Record<string, unknown>[]
     };
   });
   return { catalog, components, variants: [], rules: [], mappings: [] };
+}
+
+type MasterPriceEntry = { itemId: string; brandId: string | null; variantId: string | null; amount: number | null; expression: string | null; version: number | null };
+
+function resolveMasterItemPrice(
+  itemId: string,
+  brandId: string | null,
+  variantId: string | null,
+  entries: readonly MasterPriceEntry[],
+  itemKeys: ReadonlyMap<string, string>,
+  variantKeys: ReadonlyMap<string, string>,
+  stack = new Set<string>(),
+): number | null {
+  const exact = entries.find((entry) => entry.itemId === itemId && entry.brandId === brandId && entry.variantId === variantId);
+  const generic = entries.find((entry) => entry.itemId === itemId && entry.brandId === null && entry.variantId === variantId);
+  const fallback = entries.find((entry) => entry.itemId === itemId && entry.brandId === brandId && entry.variantId === null)
+    ?? entries.find((entry) => entry.itemId === itemId && entry.brandId === null && entry.variantId === null);
+  const entry = exact ?? generic ?? fallback;
+  if (!entry) return null;
+  if (typeof entry.amount === "number" && Number.isFinite(entry.amount)) return entry.amount;
+  if (!entry.expression) return null;
+  const key = `${entry.itemId}:${entry.brandId ?? ""}:${entry.variantId ?? ""}`;
+  if (stack.has(key)) throw new Error("Rumus harga Master Item mengandung referensi berulang.");
+  const nextStack = new Set(stack).add(key);
+  const variables = new Proxy<Record<string, number | undefined>>({}, {
+    get: (_target, property) => {
+      if (typeof property !== "string" || !property.startsWith("price_")) return undefined;
+      const contextItemKey = itemKeys.get(entry.itemId) ?? "";
+      const contextPrefix = contextItemKey.includes(":") ? contextItemKey.slice(0, contextItemKey.lastIndexOf(":")) : "";
+      for (const candidate of entries) {
+        const candidateItemKey = itemKeys.get(candidate.itemId);
+        const itemAlias = candidateItemKey?.split(":").at(-1);
+        const candidatePrefix = candidateItemKey?.includes(":") ? candidateItemKey.slice(0, candidateItemKey.lastIndexOf(":")) : "";
+        const variantKey = candidate.variantId ? variantKeys.get(candidate.variantId) : null;
+        if (!itemAlias || !variantKey || (contextPrefix && candidatePrefix !== contextPrefix)) continue;
+        const variablePrefix = `price_${itemAlias}_`;
+        if (!property.startsWith(variablePrefix)) continue;
+        const requestedVariantKey = property.slice(variablePrefix.length);
+        const hasBaseVariant = entries.some((item) =>
+          item.itemId === candidate.itemId
+          && item.variantId !== null
+          && variantKeys.get(item.variantId) === "base",
+        );
+        const resolvedVariantKey = requestedVariantKey === "base" && !hasBaseVariant ? "brown" : requestedVariantKey;
+        if (variantKey !== resolvedVariantKey) continue;
+        const preferred = entries.find((item) => item.itemId === candidate.itemId && item.brandId === brandId && item.variantId === candidate.variantId)
+          ?? entries.find((item) => item.itemId === candidate.itemId && item.brandId === null && item.variantId === candidate.variantId)
+          ?? candidate;
+        return resolveMasterItemPrice(preferred.itemId, preferred.brandId, preferred.variantId, entries, itemKeys, variantKeys, nextStack) ?? undefined;
+      }
+      return undefined;
+    },
+  });
+  const value = calculateExpression(entry.expression, variables);
+  if (!Number.isFinite(value) || value < 0) throw new Error("Harga Master Item menghasilkan nilai yang tidak valid.");
+  return value;
 }
 
 export function createSupabaseRepository(client: SupabaseClient) {
@@ -409,24 +466,20 @@ export function createSupabaseRepository(client: SupabaseClient) {
       }
       if (!optionRows.length) return [];
 
-      const itemIds = [...new Set(optionRows.map((row) => String(row.item_id)))];
       const brandIds = [...new Set(optionRows.map((row) => typeof row.brand_id === "string" ? row.brand_id : null).filter((id): id is string => Boolean(id)))];
-      const variantIds = [...new Set(optionRows.map((row) => typeof row.variant_id === "string" ? row.variant_id : null).filter((id): id is string => Boolean(id)))];
 
       const [itemResult, brandResult, variantResult, priceResult] = await Promise.all([
         client.from("master_items")
           .select("id,item_key,label,unit,active,master_item_groups(label)")
-          .in("id", itemIds)
           .eq("active", true),
         brandIds.length
           ? client.from("master_brands").select("id,label").in("id", brandIds)
           : Promise.resolve({ data: [], error: null }),
-        variantIds.length
-          ? client.from("master_item_variants").select("id,item_id,label,position,active").in("id", variantIds).eq("active", true)
-          : Promise.resolve({ data: [], error: null }),
+        client.from("master_item_variants")
+          .select("id,item_id,variant_key,label,position,active")
+          .eq("active", true),
         client.from("master_item_prices")
           .select("item_id,brand_id,variant_id,amount,expression,version")
-          .in("item_id", itemIds)
           .eq("is_current", true),
       ]);
       throwIfError(itemResult.error);
@@ -435,17 +488,27 @@ export function createSupabaseRepository(client: SupabaseClient) {
       throwIfError(priceResult.error);
 
       const items = new Map<string, Record<string, unknown>>();
-      for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) items.set(String(row.id), row);
+      const itemKeys = new Map<string, string>();
+      for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) {
+        items.set(String(row.id), row);
+        itemKeys.set(String(row.id), String(row.item_key));
+      }
       const brands = new Map<string, string>();
       for (const row of (brandResult.data ?? []) as unknown as Record<string, unknown>[]) brands.set(String(row.id), String(row.label));
       const variants = new Map<string, Record<string, unknown>>();
-      for (const row of (variantResult.data ?? []) as unknown as Record<string, unknown>[]) variants.set(String(row.id), row);
-      const priceKey = (itemId: unknown, brandId: unknown, variantId: unknown) =>
-        `${String(itemId)}:${typeof brandId === "string" ? brandId : ""}:${typeof variantId === "string" ? variantId : ""}`;
-      const prices = new Map<string, Record<string, unknown>>();
-      for (const row of (priceResult.data ?? []) as unknown as Record<string, unknown>[]) {
-        prices.set(priceKey(row.item_id, row.brand_id, row.variant_id), row);
+      const variantKeys = new Map<string, string>();
+      for (const row of (variantResult.data ?? []) as unknown as Record<string, unknown>[]) {
+        variants.set(String(row.id), row);
+        variantKeys.set(String(row.id), String(row.variant_key));
       }
+      const priceEntries: MasterPriceEntry[] = ((priceResult.data ?? []) as unknown as Record<string, unknown>[]).map((row) => ({
+        itemId: String(row.item_id),
+        brandId: typeof row.brand_id === "string" ? row.brand_id : null,
+        variantId: typeof row.variant_id === "string" ? row.variant_id : null,
+        amount: typeof row.amount === "number" ? row.amount : typeof row.amount === "string" && row.amount.trim() !== "" && Number.isFinite(Number(row.amount)) ? Number(row.amount) : null,
+        expression: typeof row.expression === "string" ? row.expression : null,
+        version: typeof row.version === "number" ? row.version : null,
+      }));
 
       return optionRows.flatMap((row): MasterItemOption[] => {
         const item = items.get(String(row.item_id));
@@ -454,7 +517,16 @@ export function createSupabaseRepository(client: SupabaseClient) {
         const brandId = typeof row.brand_id === "string" ? row.brand_id : null;
         const variantId = typeof row.variant_id === "string" ? row.variant_id : null;
         const variant = variantId ? variants.get(variantId) : null;
-        const price = prices.get(priceKey(item.id, brandId, variantId));
+        const price = priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === brandId && entry.variantId === variantId)
+          ?? priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === null && entry.variantId === variantId)
+          ?? priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === brandId && entry.variantId === null)
+          ?? priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === null && entry.variantId === null);
+        let unitPrice: number | null = null;
+        try {
+          unitPrice = resolveMasterItemPrice(String(item.id), brandId, variantId, priceEntries, itemKeys, variantKeys);
+        } catch {
+          unitPrice = null;
+        }
         return [{
           id: String(row.id),
           materialCode: Number(row.material_code),
@@ -470,8 +542,9 @@ export function createSupabaseRepository(client: SupabaseClient) {
           brandId,
           brandLabel: brandId ? brands.get(brandId) ?? null : null,
           variantId,
+          variantKey: variantId ? variantKeys.get(variantId) ?? null : null,
           variantLabel: variant ? String(variant.label) : null,
-          unitPrice: typeof price?.amount === "number" ? price.amount : null,
+          unitPrice,
           priceExpression: typeof price?.expression === "string" ? price.expression : null,
           priceVersion: typeof price?.version === "number" ? price.version : null,
           isDefault: Boolean(row.is_default),
