@@ -47,8 +47,25 @@ export function MasterHargaPage() {
         // Aluminium must be sourced only from the ALMUNIUM worksheet. Do not
         // mix in the separate Pintu/Kaca sheets just because their item types
         // share legacy group keys.
+        const aluminiumItemNames = [
+          "KUSEN 4", "KUSEN 3", "HOLLOW TENGAH", "CANAL U KACA", "TAPIN",
+          "TATAPAN SLIDING", "TATAPAN PIVOT", "PINTU", "LOUVER KECIL",
+          "SPANDRELL", "RELL ATAS", "RELL BAWAH", "JENDELA CASEMENT",
+          "JENDELA SLIDING", "DAUN JENDELA PIVOT", "CANAL U LOUVER", "ACP INTERIOR",
+        ];
+        const normalizeItemName = (label: string) => label
+          .normalize("NFKD")
+          .replace(/[’']/g, "")
+          .replace(/\\s*\\/\\s*.*$/, "")
+          .replace(/[^A-Z0-9]+/g, " ")
+          .trim()
+          .toUpperCase();
         const items = groups.flatMap((group) => group.items)
-          .filter((item) => item.sourceSheet?.trim().toUpperCase() === "ALMUNIUM")
+          .filter((item) => {
+            if (item.sourceSheet?.trim().toUpperCase() !== "ALMUNIUM") return false;
+            const normalized = normalizeItemName(item.label);
+            return aluminiumItemNames.some((name) => normalized === name || normalized.startsWith(name + " "));
+          })
           .sort((a, b) => excelColumnNumber(a.sourceCell) - excelColumnNumber(b.sourceCell));
         return { ...base, items };
       })()
