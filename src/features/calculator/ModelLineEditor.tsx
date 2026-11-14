@@ -336,7 +336,7 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                       const variantOptions = uniqueOptions(brandScopedOptions, (option) => option.variantId);
                       const selectedVariantId = saved?.selectedVariantId && variantOptions.some((option) => option.variantId === saved.selectedVariantId)
                         ? saved.selectedVariantId
-                        : (variantOptions.length === 1 ? (variantOptions[0].variantId ?? "") : (variantOptions.find((option) => option.isDefault)?.variantId ?? ""));
+                        : (variantOptions.length === 1 ? (variantOptions[0].variantId ?? "") : "");
                       const needsBrandChoice = brandOptions.length > 1 && !selectedBrandId;
                       const needsVariantChoice = variantOptions.length > 1 && !selectedVariantId;
                       const selectedOption = needsBrandChoice || needsVariantChoice
@@ -358,8 +358,17 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                               value={selectedItemId}
                               onChange={(event) => {
                                 const nextOptions = options.filter((option) => option.itemId === event.target.value);
+                                if (!nextOptions.length) return;
+                                const nextBrands = uniqueOptions(nextOptions, (option) => option.brandId);
+                                const nextVariants = uniqueOptions(nextOptions, (option) => option.variantId);
                                 const next = nextOptions.find((option) => option.isDefault) ?? nextOptions[0];
-                                applyOption(next);
+                                if (nextBrands.length > 1) {
+                                  applyOption({ ...next, brandId: null, brandLabel: null, variantId: null, variantLabel: null, unitPrice: null, priceVersion: null });
+                                } else if (nextVariants.length > 1) {
+                                  applyOption({ ...next, variantId: null, variantLabel: null, unitPrice: null, priceVersion: null });
+                                } else {
+                                  applyOption(next);
+                                }
                               }}
                             >
                               <option value="">Pilih item Master</option>
@@ -375,9 +384,13 @@ export function ModelLineEditor({ lines, models, results, onChange, onRemove, bu
                                 aria-label={`Brand ${material.name} ${material.materialCode}`}
                                 value={selectedBrandId ?? ""}
                                 onChange={(event) => {
-                                  const next = selectedItemOptions.find((option) => option.brandId === event.target.value && option.isDefault)
-                                    ?? selectedItemOptions.find((option) => option.brandId === event.target.value);
-                                  applyOption(next);
+                                  const brandScoped = selectedItemOptions.filter((option) => option.brandId === event.target.value);
+                                  const next = brandScoped.find((option) => option.isDefault) ?? brandScoped[0];
+                                  if (next && uniqueOptions(brandScoped, (option) => option.variantId).length > 1) {
+                                    applyOption({ ...next, variantId: null, variantLabel: null, unitPrice: null, priceVersion: null });
+                                  } else {
+                                    applyOption(next);
+                                  }
                                 }}
                               >
                                 <option value="">Pilih brand</option>
