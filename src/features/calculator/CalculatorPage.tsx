@@ -248,8 +248,12 @@ export function CalculatorPage() {
         const existing = line.materialItems ?? [];
         const formulaItems = (resolved?.materials ?? []).map((material, position) => {
           const previous = existing.find((item) => item.sourceType === "formula" && item.formulaMaterialCode === material.materialCode);
-          const unitPriceSnapshot = typeof material.unitPrice === "number" && Number.isFinite(material.unitPrice) && material.unitPrice >= 0
-            ? material.unitPrice
+          const configuredPrice = draft.prices[material.priceKey];
+          const effectiveUnitPrice = typeof configuredPrice === "number" && Number.isFinite(configuredPrice)
+            ? configuredPrice
+            : material.unitPrice;
+          const unitPriceSnapshot = typeof effectiveUnitPrice === "number" && Number.isFinite(effectiveUnitPrice) && effectiveUnitPrice >= 0
+            ? effectiveUnitPrice
             : null;
           return {
             id: previous?.id ?? createMaterialItemId(),
