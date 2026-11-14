@@ -350,7 +350,7 @@ insert into public.formula_material_item_options (
 )
 select distinct
   material.code,
-  null,
+  null::integer,
   item.id,
   brand_option.brand_id,
   item_variant.id,
