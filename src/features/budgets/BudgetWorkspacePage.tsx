@@ -4,6 +4,10 @@ import { AppPageState } from "../../app/AppPageState";
 import { useAppServices } from "../../app/AppServices";
 import type { BudgetCatalog } from "../../domain/budgets/types";
 
+function catalogDisplayLabel(catalog: BudgetCatalog): string {
+  return catalog.slug === "hpm-inka-dacon" ? "HPM" : catalog.label;
+}
+
 export function BudgetWorkspacePage() {
   const { repository, isCatalogAdmin } = useAppServices();
   const navigate = useNavigate();
@@ -78,13 +82,13 @@ export function BudgetWorkspacePage() {
       const glassCatalog = catalogs.find((catalog) => catalog.slug === "kaca-umum");
       const accessoryCatalog = catalogs.find((catalog) => catalog.slug === "aksesoris-umum");
       const groups = [
-        { key: "aluminium", title: "Aluminium", description: "Kelola harga berdasarkan merek aluminium: Alexindo, HPM / INKA / DACON, dan YKK.", catalogs: aluminiumCatalogs },
+        { key: "aluminium", title: "Aluminium", description: "Kelola harga berdasarkan merek aluminium: Alexindo, HPM, dan YKK.", catalogs: aluminiumCatalogs },
         { key: "accessories", title: "Aksesoris", description: "Satu kelompok harga aksesoris yang digunakan lintas merek dan dipilih per TYPE.", catalogs: accessoryCatalog ? [accessoryCatalog] : [] },
         { key: "glass", title: "Kaca", description: "Satu kelompok harga kaca yang digunakan lintas merek dan dipilih per TYPE.", catalogs: glassCatalog ? [glassCatalog] : [] },
       ];
       return <div className="budget-catalog-grid budget-main-groups">{groups.map((group) => <article className="budget-catalog-card budget-main-group-card" key={group.key}>
         <div><p className="eyebrow">KELOMPOK MASTER HARGA</p><h2>{group.title}</h2><p>{group.description}</p></div>
-        {group.key === "aluminium" ? <div className="budget-card-actions budget-brand-actions">{group.catalogs.map((catalog) => <button className="secondary-button" type="button" key={catalog.id} onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>{catalog.label}</button>)}</div>
+        {group.key === "aluminium" ? <div className="budget-card-actions budget-brand-actions">{group.catalogs.map((catalog) => <button className="secondary-button" type="button" key={catalog.id} onClick={() => navigate(`/master-harga/${catalog.slug}?mode=prices`)}>{catalogDisplayLabel(catalog)}</button>)}</div>
           : group.catalogs.length ? <div className="budget-card-actions"><button className="primary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=prices`)}>Kelola {group.title}</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=items`)}>Tambah / Hapus Item</button><button className="secondary-button" type="button" onClick={() => navigate(`/master-harga/${group.catalogs[0].slug}?mode=mappings`)}>Pemetaan item</button></div>
           : <p className="notice-banner">Katalog {group.title} belum tersedia.</p>}
       </article>)}</div>;
@@ -94,8 +98,8 @@ export function BudgetWorkspacePage() {
         <p className="eyebrow">KONFIRMASI ARSIP</p>
         <h2 id="confirm-delete-catalog-title">Arsipkan merek terpilih?</h2>
         <p>Merek berikut akan disembunyikan dari daftar Master Harga aktif:</p>
-        <ul className="budget-delete-list">{catalogs.filter((catalog) => selectedCatalogIds.includes(catalog.id)).map((catalog) => <li key={catalog.id}>{catalog.label}</li>)}</ul>
-        <p className="budget-delete-help">Katalog hanya diarsipkan, bukan dihapus permanen. Riwayat perkiraan dan referensi proyek lama tetap aman. Nomor lembar yang sudah tidak aktif dapat digunakan kembali oleh merek baru. Template HPM / INKA / DACON dilindungi.</p>
+        <ul className="budget-delete-list">{catalogs.filter((catalog) => selectedCatalogIds.includes(catalog.id)).map((catalog) => <li key={catalog.id}>{catalogDisplayLabel(catalog)}</li>)}</ul>
+        <p className="budget-delete-help">Katalog hanya diarsipkan, bukan dihapus permanen. Riwayat perkiraan dan referensi proyek lama tetap aman. Nomor lembar yang sudah tidak aktif dapat digunakan kembali oleh merek baru. Template HPM dilindungi.</p>
         <div className="budget-modal-actions">
           <button className="secondary-button" type="button" disabled={deletingCatalogs} onClick={() => setConfirmDeleteOpen(false)}>Batal</button>
           <button className="budget-bulk-delete-button" type="button" disabled={deletingCatalogs} onClick={() => void deleteSelectedCatalogs()}>{deletingCatalogs ? "Mengarsipkan…" : "Ya, arsipkan merek"}</button>
@@ -106,7 +110,7 @@ export function BudgetWorkspacePage() {
       <form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="new-budget-brand-title" onSubmit={(event) => void createBrand(event)}>
         <p className="eyebrow">MASTER HARGA</p>
         <h2 id="new-budget-brand-title">Tambah merk baru</h2>
-        <p>Masukkan nama merk yang ingin kamu gunakan. Item, kategori, varian, rumus, dan pemetaan akan disalin dari template HPM / INKA / DACON. Harga tiap item tetap kosong agar bisa kamu isi sesuai merk baru.</p>
+        <p>Masukkan nama merk yang ingin kamu gunakan. Item, kategori, varian, rumus, dan pemetaan akan disalin dari template HPM. Harga tiap item tetap kosong agar bisa kamu isi sesuai merk baru.</p>
         <label htmlFor="new-budget-brand-name">Nama merk</label>
         <input id="new-budget-brand-name" autoFocus value={newBrandName} onChange={(event) => setNewBrandName(event.target.value)} placeholder="Masukkan nama merk" maxLength={80} required />
         {brandError && <div className="notice-banner" role="alert">{brandError}</div>}
