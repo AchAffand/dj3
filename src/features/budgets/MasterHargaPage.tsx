@@ -34,7 +34,7 @@ export function MasterHargaPage() {
   useEffect(() => { void load(); }, [load]);
 
   const excelColumnNumber = (sourceCell: string | null): number => {
-    const match = sourceCell?.match(/([A-Z]+)\$?\d+$/i);
+    const match = sourceCell?.match(/\$?([A-Z]+)\$?\d+$/i);
     if (!match) return Number.MAX_SAFE_INTEGER;
     return match[1].toUpperCase().split("").reduce((value, letter) => value * 26 + letter.charCodeAt(0) - 64, 0);
   };
@@ -60,7 +60,7 @@ export function MasterHargaPage() {
   if (error) return <AppPageState title="Master Harga belum dapat dimuat" detail={error} tone="error" actionLabel="Coba lagi" onAction={() => void load()} />;
 
   const homeGroups = [
-    { key: "aluminium", title: "Aluminium", description: "Kelola harga aluminium mengikuti susunan merek dan finishing pada Excel.", dataKeys: ["aluminium", "jendela", "pintu"], actions: ["Kelola Item", "Hapus Kelompok"] },
+    { key: "aluminium", title: "Aluminium", description: "Kelola harga aluminium mengikuti susunan merek dan finishing pada Excel.", dataKeys: ["aluminium", "jendela", "pintu", "kusen"], actions: ["Kelola Item", "Hapus Kelompok"] },
     { key: "aksesoris", title: "Aksesoris", description: "Satu kelompok harga aksesoris yang digunakan lintas merek dan dipilih per TYPE.", dataKeys: ["aksesoris"], actions: ["Kelola Aksesoris", "Tambah / Hapus Item", "Pemetaan item"] },
     { key: "kaca", title: "Kaca", description: "Satu kelompok harga kaca yang digunakan lintas merek dan dipilih per TYPE.", dataKeys: ["kaca"], actions: ["Kelola Kaca", "Tambah / Hapus Item", "Pemetaan item"] },
   ];
