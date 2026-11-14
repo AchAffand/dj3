@@ -253,7 +253,7 @@ export function CalculatorPage() {
   const applyMasterItemSelection = useCallback((row: import("../recap/aggregateMaterials").MaterialRecapRow, option: MasterItemOption) => {
     setDraft((current) => ({
       ...current,
-      lines: current.lines.map((line, index) => {
+      lines: current.lines.map((line) => {
         if (option.modelCode !== null && option.modelCode !== line.modelCode) return line;
         const sourceMaterial = results.get(line.id ?? `${line.modelCode}`)?.items.find((item) => item.materialCode === row.materialCode);
         if (!sourceMaterial) return line;
