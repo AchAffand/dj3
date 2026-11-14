@@ -9,7 +9,7 @@ import type {
   ProjectInput,
   ProjectSummary,
 } from "../../domain/projects/types";
-import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping } from "../../domain/budgets/types";
+import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping, MasterPriceGroup, MasterPriceWorkbookPayload } from "../../domain/budgets/types";
 
 type ModelRow = {
   code: number;
@@ -432,6 +432,73 @@ export function createSupabaseRepository(client: SupabaseClient) {
       const { data, error } = await client.rpc("save_budget_price_change", { p_component_id: componentId, p_variant_id: variantId, p_amount: amount, p_expression: expression });
       throwIfError(error);
       return Number(data);
+    },
+
+    async listMasterPriceGroups(): Promise<MasterPriceGroup[]> {
+      const [groupResult, itemResult, brandResult, variantResult, priceResult] = await Promise.all([
+        client.from("master_item_groups").select("id,group_key,label,group_type,position").eq("active", true).order("position"),
+        client.from("master_items").select("id,group_id,item_key,label,unit,source_sheet,source_cell").eq("active", true).order("label"),
+        client.from("master_brands").select("id,brand_key,label,position").eq("active", true).order("position"),
+        client.from("master_item_variants").select("id,item_id,variant_key,label,position").eq("active", true).order("position"),
+        client.from("master_item_prices").select("id,item_id,brand_id,variant_id,amount,expression,source_cell,source_formula,source_value,version").eq("is_current", true),
+      ]);
+      throwIfError(groupResult.error);
+      throwIfError(itemResult.error);
+      throwIfError(brandResult.error);
+      throwIfError(variantResult.error);
+      throwIfError(priceResult.error);
+
+      const groups = (groupResult.data ?? []) as unknown as Record<string, unknown>[];
+      const items = (itemResult.data ?? []) as unknown as Record<string, unknown>[];
+      const brands = (brandResult.data ?? []) as unknown as Record<string, unknown>[];
+      const variants = (variantResult.data ?? []) as unknown as Record<string, unknown>[];
+      const prices = (priceResult.data ?? []) as unknown as Record<string, unknown>[];
+      const brandById = new Map(brands.map((row) => [String(row.id), row]));
+      const variantById = new Map(variants.map((row) => [String(row.id), row]));
+      const itemsByGroup = new Map<string, MasterPriceGroup["items"]>();
+
+      for (const item of items) {
+        const itemId = String(item.id);
+        const itemPrices = prices.filter((price) => String(price.item_id) === itemId).map((price) => {
+          const brand = typeof price.brand_id === "string" ? brandById.get(price.brand_id) : undefined;
+          const variant = typeof price.variant_id === "string" ? variantById.get(price.variant_id) : undefined;
+          return {
+            id: String(price.id),
+            brandKey: brand ? String(brand.brand_key) : null,
+            brandLabel: brand ? String(brand.label) : null,
+            variantId: variant ? String(variant.id) : null,
+            variantKey: variant ? String(variant.variant_key) : null,
+            variantLabel: variant ? String(variant.label) : null,
+            amount: typeof price.amount === "number" ? price.amount : price.amount === null ? null : Number(price.amount),
+            expression: typeof price.expression === "string" ? price.expression : null,
+            sourceCell: typeof price.source_cell === "string" ? price.source_cell : null,
+            sourceFormula: typeof price.source_formula === "string" ? price.source_formula : null,
+            sourceValue: typeof price.source_value === "string" ? price.source_value : null,
+            version: Number(price.version ?? 1),
+          };
+        });
+        const groupId = String(item.group_id);
+        const list = itemsByGroup.get(groupId) ?? [];
+        list.push({
+          id: itemId, key: String(item.item_key), label: String(item.label), unit: String(item.unit ?? ""),
+          sourceSheet: typeof item.source_sheet === "string" ? item.source_sheet : null,
+          sourceCell: typeof item.source_cell === "string" ? item.source_cell : null,
+          prices: itemPrices,
+        });
+        itemsByGroup.set(groupId, list);
+      }
+
+      return groups.map((group) => ({
+        id: String(group.id), key: String(group.group_key), label: String(group.label),
+        groupType: String(group.group_type) as MasterPriceGroup["groupType"], position: Number(group.position),
+        items: itemsByGroup.get(String(group.id)) ?? [],
+      }));
+    },
+
+    async importMasterHargaWorkbook(payload: MasterPriceWorkbookPayload): Promise<Record<string, unknown>> {
+      const { data, error } = await client.rpc("import_master_harga_workbook", { p_payload: payload });
+      throwIfError(error);
+      return (data ?? {}) as Record<string, unknown>;
     },
 
     async listBudgetEstimates(): Promise<(Pick<BudgetEstimate, "id" | "projectName" | "location" | "floor" | "grandTotal"> & { updatedAt: string; catalogLabel: string })[]> {
