@@ -254,7 +254,7 @@ export function CalculatorPage() {
     setDraft((current) => ({
       ...current,
       lines: current.lines.map((line, index) => {
-        const lineId = line.id ?? `${line.modelCode}-${index}`;
+        if (option.modelCode !== null && option.modelCode !== line.modelCode) return line;
         const sourceMaterial = results.get(line.id ?? `${line.modelCode}`)?.items.find((item) => item.materialCode === row.materialCode);
         if (!sourceMaterial) return line;
         const existing = line.materialItems ?? [];
