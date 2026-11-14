@@ -422,7 +422,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
           ? client.from("master_brands").select("id,label").in("id", brandIds)
           : Promise.resolve({ data: [], error: null }),
         variantIds.length
-          ? client.from("master_item_variants").select("id,item_id,label,active").in("id", variantIds).eq("active", true)
+          ? client.from("master_item_variants").select("id,item_id,label,position,active").in("id", variantIds).eq("active", true)
           : Promise.resolve({ data: [], error: null }),
         client.from("master_item_prices")
           .select("item_id,brand_id,variant_id,amount,expression,version")
@@ -475,7 +475,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
           priceExpression: typeof price?.expression === "string" ? price.expression : null,
           priceVersion: typeof price?.version === "number" ? price.version : null,
           isDefault: Boolean(row.is_default),
-          position: Number(row.position ?? 0),
+          position: variant ? Number(variant.position ?? row.position ?? 0) : Number(row.position ?? 0),
         }];
       });
     },
