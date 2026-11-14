@@ -464,9 +464,10 @@ export function createSupabaseRepository(client: SupabaseClient) {
         brandIds.length
           ? client.from("master_brands").select("id,label").in("id", brandIds)
           : Promise.resolve({ data: [], error: null }),
-        variantIds.length
-          ? client.from("master_item_variants").select("id,item_id,label,position,active").in("id", variantIds).eq("active", true)
-          : Promise.resolve({ data: [], error: null }),
+        client.from("master_item_variants")
+          .select("id,item_id,variant_key,label,position,active")
+          .in("item_id", itemIds)
+          .eq("active", true),
         client.from("master_item_prices")
           .select("item_id,brand_id,variant_id,amount,expression,version")
           .in("item_id", itemIds)
@@ -478,17 +479,27 @@ export function createSupabaseRepository(client: SupabaseClient) {
       throwIfError(priceResult.error);
 
       const items = new Map<string, Record<string, unknown>>();
-      for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) items.set(String(row.id), row);
+      const itemKeys = new Map<string, string>();
+      for (const row of (itemResult.data ?? []) as unknown as Record<string, unknown>[]) {
+        items.set(String(row.id), row);
+        itemKeys.set(String(row.id), String(row.item_key));
+      }
       const brands = new Map<string, string>();
       for (const row of (brandResult.data ?? []) as unknown as Record<string, unknown>[]) brands.set(String(row.id), String(row.label));
       const variants = new Map<string, Record<string, unknown>>();
-      for (const row of (variantResult.data ?? []) as unknown as Record<string, unknown>[]) variants.set(String(row.id), row);
-      const priceKey = (itemId: unknown, brandId: unknown, variantId: unknown) =>
-        `${String(itemId)}:${typeof brandId === "string" ? brandId : ""}:${typeof variantId === "string" ? variantId : ""}`;
-      const prices = new Map<string, Record<string, unknown>>();
-      for (const row of (priceResult.data ?? []) as unknown as Record<string, unknown>[]) {
-        prices.set(priceKey(row.item_id, row.brand_id, row.variant_id), row);
+      const variantKeys = new Map<string, string>();
+      for (const row of (variantResult.data ?? []) as unknown as Record<string, unknown>[]) {
+        variants.set(String(row.id), row);
+        variantKeys.set(String(row.id), String(row.variant_key));
       }
+      const priceEntries: MasterPriceEntry[] = ((priceResult.data ?? []) as unknown as Record<string, unknown>[]).map((row) => ({
+        itemId: String(row.item_id),
+        brandId: typeof row.brand_id === "string" ? row.brand_id : null,
+        variantId: typeof row.variant_id === "string" ? row.variant_id : null,
+        amount: typeof row.amount === "number" ? row.amount : null,
+        expression: typeof row.expression === "string" ? row.expression : null,
+        version: typeof row.version === "number" ? row.version : null,
+      }));
 
       return optionRows.flatMap((row): MasterItemOption[] => {
         const item = items.get(String(row.item_id));
@@ -497,7 +508,16 @@ export function createSupabaseRepository(client: SupabaseClient) {
         const brandId = typeof row.brand_id === "string" ? row.brand_id : null;
         const variantId = typeof row.variant_id === "string" ? row.variant_id : null;
         const variant = variantId ? variants.get(variantId) : null;
-        const price = prices.get(priceKey(item.id, brandId, variantId));
+        const price = priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === brandId && entry.variantId === variantId)
+          ?? priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === null && entry.variantId === variantId)
+          ?? priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === brandId && entry.variantId === null)
+          ?? priceEntries.find((entry) => entry.itemId === String(item.id) && entry.brandId === null && entry.variantId === null);
+        let unitPrice: number | null = null;
+        try {
+          unitPrice = resolveMasterItemPrice(String(item.id), brandId, variantId, priceEntries, itemKeys, variantKeys);
+        } catch {
+          unitPrice = null;
+        }
         return [{
           id: String(row.id),
           materialCode: Number(row.material_code),
@@ -513,8 +533,9 @@ export function createSupabaseRepository(client: SupabaseClient) {
           brandId,
           brandLabel: brandId ? brands.get(brandId) ?? null : null,
           variantId,
+          variantKey: variantId ? variantKeys.get(variantId) ?? null : null,
           variantLabel: variant ? String(variant.label) : null,
-          unitPrice: typeof price?.amount === "number" ? price.amount : null,
+          unitPrice,
           priceExpression: typeof price?.expression === "string" ? price.expression : null,
           priceVersion: typeof price?.version === "number" ? price.version : null,
           isDefault: Boolean(row.is_default),
