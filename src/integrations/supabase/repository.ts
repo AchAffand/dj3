@@ -397,7 +397,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
       for (let offset = 0; ; offset += pageSize) {
         const { data, error } = await client
           .from("formula_material_item_options")
-          .select("id,material_code,model_code,item_id,brand_id,variant_id,is_default,position,active")
+          .select("id,material_code,model_code,item_id,brand_id,variant_id,unit_override,is_default,position,active")
           .eq("active", true)
           .order("material_code")
           .order("position")
@@ -463,6 +463,7 @@ export function createSupabaseRepository(client: SupabaseClient) {
           itemKey: String(item.item_key),
           itemLabel: String(item.label),
           unit: String(item.unit ?? ""),
+          unitOverride: String(row.unit_override ?? ""),
           groupLabel: typeof (groupRelation as Record<string, unknown> | null)?.label === "string"
             ? String((groupRelation as Record<string, unknown>).label)
             : null,
