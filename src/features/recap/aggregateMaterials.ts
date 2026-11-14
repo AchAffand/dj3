@@ -18,8 +18,8 @@ export type RecapMaterialSource = { lineId: string; modelCode: number; quantity:
 export type RecapLineInput = {
   materials: readonly RecapInputMaterial[];
   modelCount: number;
-  lineId: string;
-  modelCode: number;
+  lineId?: string;
+  modelCode?: number;
 };
 
 export type MaterialRecapRow = {
@@ -51,7 +51,7 @@ export function aggregateMaterials(
       const identity = `${material.materialCode}\u0000${material.unit}\u0000${priceKey}`;
       const row = totals.get(identity);
       const quantity = material.quantity * line.modelCount;
-      if (row) { row.quantity += quantity; row.sources.push({ lineId: line.lineId, modelCode: line.modelCode, quantity: material.quantity }); }
+      if (row) { row.quantity += quantity; if (line.lineId) row.sources.push({ lineId: line.lineId, modelCode: line.modelCode ?? 0, quantity: material.quantity }); }
       else totals.set(identity, {
         materialCode: material.materialCode,
         name: material.name,
@@ -64,7 +64,7 @@ export function aggregateMaterials(
         expressionSnapshot: material.expressionSnapshot ?? null,
         componentId: material.componentId ?? null,
         priceSourceLabel: material.priceSourceLabel ?? "Harga manual",
-        sources: [{ lineId: line.lineId, modelCode: line.modelCode, quantity: material.quantity }],
+        sources: line.lineId ? [{ lineId: line.lineId, modelCode: line.modelCode ?? 0, quantity: material.quantity }] : [],
         // Older project snapshots can contain an explicit NULL from when a master-price
         // mapping was missing. Treat that as "no saved override" and fall back to the
         // currently resolved master price. A real numeric project override still wins.
