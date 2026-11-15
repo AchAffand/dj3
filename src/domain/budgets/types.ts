@@ -33,7 +33,8 @@ export type BudgetEstimate = {
   snapshot: Record<string, unknown>;
   lines: BudgetLine[];
 };
-export type BudgetCatalogDetail = { catalog: BudgetCatalog; components: BudgetComponent[]; variants: BudgetVariant[]; rules: BudgetRule[]; mappings: BudgetMaterialMapping[] };
+export type BudgetComponentGroup = { id: string; name: string; position: number };
+export type BudgetCatalogDetail = { catalog: BudgetCatalog; components: BudgetComponent[]; groups: BudgetComponentGroup[]; variants: BudgetVariant[]; rules: BudgetRule[]; mappings: BudgetMaterialMapping[] };
 export type BudgetComponentResult = { componentId: string; quantity: number; unitRate: number | null; amount: number | null; error?: string };
 export type BudgetLineResult = { position: number; subtotal: number; components: BudgetComponentResult[]; errors: string[] };
 export type BudgetCalculation = { lines: BudgetLineResult[]; grandTotal: number; errors: string[] };
