@@ -31,6 +31,10 @@ export function BudgetEstimatePage() {
   const [editing, setEditing] = useState<{ componentId: string; variantKey: string; amount: string; expression: string } | null>(null);
   const [componentEditor, setComponentEditor] = useState<{ id?: string; key?: string; label: string; unit: string; category: string; groupLabel: string } | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
+  const [groupDraft, setGroupDraft] = useState<{ id?: string; name: string } | null>(null);
+  const [groupSelectionMode, setGroupSelectionMode] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [confirmGroupDelete, setConfirmGroupDelete] = useState(false);
   const pricesMode = searchParams.get("mode") === "prices";
   const mappingsMode = searchParams.get("mode") === "mappings";
   const itemsMode = searchParams.get("mode") === "items";
@@ -116,6 +120,32 @@ export function BudgetEstimatePage() {
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Item tidak dapat disimpan."); }
     finally { setSaving(false); }
   };
+  const saveGroup = async () => {
+    if (!repository || !groupDraft) return;
+    const name = groupDraft.name.trim();
+    if (!name) { setMessage("Nama kelompok wajib diisi."); return; }
+    setSaving(true); setMessage(null);
+    try {
+      if (groupDraft.id) await repository.renameBudgetComponentGroup(detail.catalog.id, groupDraft.id, name);
+      else await repository.createBudgetComponentGroup(detail.catalog.id, name);
+      setGroupDraft(null);
+      await load(false); await reloadBudgets?.();
+      setMessage(groupDraft.id ? "Nama kelompok berhasil diperbarui." : "Kelompok baru berhasil dibuat.");
+    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Kelompok gagal disimpan."); }
+    finally { setSaving(false); }
+  };
+  const deleteSelectedGroups = async () => {
+    if (!repository || !selectedGroupIds.length || saving) return;
+    setSaving(true); setMessage(null);
+    try {
+      const deletedItems = await repository.deleteBudgetComponentGroups(detail.catalog.id, selectedGroupIds);
+      const deletedGroups = selectedGroupIds.length;
+      setSelectedGroupIds([]); setGroupSelectionMode(false); setConfirmGroupDelete(false);
+      await load(false); await reloadBudgets?.();
+      setMessage(`${deletedGroups} kelompok dan ${deletedItems} item beserta harga terkait berhasil dihapus permanen dari database. Snapshot proyek lama tetap tersimpan.`);
+    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Kelompok gagal dihapus."); }
+    finally { setSaving(false); }
+  };
   const archiveComponent = async (componentId: string) => {
     if (!repository) return;
     setSaving(true); setMessage(null);
@@ -133,7 +163,10 @@ export function BudgetEstimatePage() {
     : catalogSlug === "aksesoris-umum"
       ? isAccessoryMaterial(item)
       : !isGlassMaterial(item) && !isAccessoryMaterial(item));
-  const categories = [...new Set(visibleComponents.map((item) => item.category))];
+  const categories = [...new Set([
+    ...detail.groups.map((group) => group.name).filter((name) => isSharedMaterialGroup || !["Kaca", "Aksesori"].includes(name)),
+    ...visibleComponents.map((item) => item.category),
+  ])];
   const saveMapping = async (item: { key: string; name: string; unit: string }, componentId: string | null) => {
     if (!repository) return;
     setSaving(true); setMessage(null);
@@ -147,17 +180,31 @@ export function BudgetEstimatePage() {
   };
   return <section className="page-content budget-page">
     <div className="page-heading-row"><div className="page-intro"><p className="eyebrow">MASTER HARGA · {detail.catalog.label.toUpperCase()}</p><h1>{mappingsMode ? "Pemetaan material" : itemsMode ? "Kelola item harga" : pricesMode ? "Atur harga komponen" : "Perkiraan pekerjaan"}</h1><p className="page-description">{mappingsMode ? "Tentukan komponen di lembar harga yang dipakai untuk setiap item kalkulator. Pemetaan bisa berbeda untuk tiap sumber harga." : itemsMode ? "Tambah, ubah, atau keluarkan item dari daftar aktif. Harga dan varian dikelola terpisah." : pricesMode ? "Ubah harga atau rumus. Perubahan disimpan sebagai versi baru dan dipakai oleh perhitungan selanjutnya." : "Masukkan jumlah tiap item pekerjaan. Total mengikuti pilihan varian harga dan aturan di lembar Excel."}</p></div>{!(pricesMode || mappingsMode || itemsMode) && <button className="secondary-button" onClick={() => navigate("/master-harga")} type="button">Kembali</button>}</div>
-    {(pricesMode || mappingsMode || itemsMode) && <div className="budget-estimate-toolbar budget-mode-actions"><span>{detail.catalog.label}</span><div><button className="secondary-button" type="button" onClick={() => navigate("/master-harga")}>Kembali</button>{pricesMode && <button className="budget-danger-button" type="button" onClick={() => navigate(`/master-harga/${catalogSlug}?mode=items`)}>Tambah / Hapus Item</button>}{itemsMode && <button className="budget-danger-button" disabled={!isCatalogAdmin} type="button" onClick={() => { setComponentEditor({
-            label: "",
-            unit: "pcs",
-            category: catalogSlug === "kaca-umum" ? "Kaca" : catalogSlug === "aksesoris-umum" ? "Aksesori" : categories[0] ?? "Profil aluminium",
+    {(pricesMode || mappingsMode || itemsMode) && <div className="budget-estimate-toolbar budget-mode-actions"><span>{detail.catalog.label}</span><div><button className="secondary-button" type="button" onClick={() => navigate("/master-harga")}>Kembali</button>{pricesMode && <button className="budget-danger-button" type="button" onClick={() => navigate(`/master-harga/${catalogSlug}?mode=items`)}>Tambah / Hapus Item</button>}{itemsMode && isCatalogAdmin && <>
+          <button className="budget-group-button budget-group-create" type="button" onClick={() => setGroupDraft({ name: "" })}>＋ BUAT KELOMPOK BARU</button>
+          <button className="budget-group-button budget-group-delete" type="button" onClick={() => {
+            if (groupSelectionMode && selectedGroupIds.length) setConfirmGroupDelete(true);
+            else { setGroupSelectionMode((current) => !current); setSelectedGroupIds([]); }
+          }}>{groupSelectionMode && selectedGroupIds.length ? `HAPUS (${selectedGroupIds.length})` : groupSelectionMode ? "BATAL PILIH" : "HAPUS KELOMPOK"}</button>
+          <button className="budget-danger-button" type="button" onClick={() => { setComponentEditor({
+            label: "", unit: "pcs",
+            category: categories[0] ?? "Material",
             groupLabel: catalogSlug === "kaca-umum" ? "KACA UMUM" : catalogSlug === "aksesoris-umum" ? "AKSESORIS UMUM" : "",
-          }); setMessage(null); }}>Tambah item</button>}<button className="primary-button" type="button" onClick={() => navigate("/calculator")}>Gunakan di kalkulator</button></div></div>}
+          }); setMessage(null); }}>Tambah item</button>
+        </>}<button className="primary-button" type="button" onClick={() => navigate("/calculator")}>Gunakan di kalkulator</button></div></div>}
     {itemsMode ? <>
       {!isCatalogAdmin && <div className="notice-banner">Akun ini hanya dapat melihat item. Perubahan memerlukan hak admin katalog.</div>}
       {message && <div className="notice-banner" role="status">{message}</div>}
       <p className="budget-items-description">Setiap item mempunyai harga sendiri untuk semua varian katalog.</p>
-      <div className="budget-price-groups budget-items-list">{categories.map((category) => <section className="budget-price-group" key={category}><h2>{category}</h2><div className="budget-price-table-wrap"><table className="budget-price-table"><thead><tr><th>Item</th><th>Satuan</th><th>Kelompok</th><th>Tindakan</th></tr></thead><tbody>{visibleComponents.filter((component) => component.category === category).map((component) => <tr key={component.id}><td><strong>{component.label}</strong><small>{component.sourceColumn}</small></td><td>{component.unit || "-"}</td><td>{component.groupLabel || category}</td><td className="budget-item-actions"><button className="secondary-button" disabled={!isCatalogAdmin || saving} onClick={() => { setComponentEditor({ id: component.id, key: component.key, label: component.label, unit: component.unit, category: component.category, groupLabel: component.groupLabel ?? "" }); setMessage(null); }} type="button">Ubah</button><button className="budget-danger-button budget-item-delete" disabled={!isCatalogAdmin || saving} onClick={() => setArchiveTarget(component.id)} type="button">Hapus</button></td></tr>)}</tbody></table></div></section>)}</div>
+      <div className="budget-price-groups budget-items-list">{categories.map((category) => {
+        const group = detail.groups.find((item) => item.name === category);
+        const itemCount = visibleComponents.filter((component) => component.category === category).length;
+        return <section className="budget-price-group" key={category}>
+          <div className="budget-category-heading">
+            <div>{groupSelectionMode && group && <input aria-label={`Pilih kelompok ${category}`} type="checkbox" checked={selectedGroupIds.includes(group.id)} onChange={(event) => setSelectedGroupIds((current) => event.target.checked ? [...current, group.id] : current.filter((id) => id !== group.id))} />}<h2>{category}</h2><span>{itemCount} item</span></div>
+            {isCatalogAdmin && group && <button className="budget-group-edit" type="button" onClick={() => setGroupDraft({ id: group.id, name: group.name })}>EDIT NAMA</button>}
+          </div>
+          <div className="budget-price-table-wrap"><table className="budget-price-table"><thead><tr><th>Item</th><th>Satuan</th><th>Kelompok</th><th>Tindakan</th></tr></thead><tbody>{visibleComponents.filter((component) => component.category === category).map((component) => <tr key={component.id}><td><strong>{component.label}</strong><small>{component.sourceColumn}</small></td><td>{component.unit || "-"}</td><td>{component.groupLabel || category}</td><td className="budget-item-actions"><button className="secondary-button" disabled={!isCatalogAdmin || saving} onClick={() => { setComponentEditor({ id: component.id, key: component.key, label: component.label, unit: component.unit, category: component.category, groupLabel: component.groupLabel ?? "" }); setMessage(null); }} type="button">Ubah</button><button className="budget-danger-button budget-item-delete" disabled={!isCatalogAdmin || saving} onClick={() => setArchiveTarget(component.id)} type="button">Hapus</button></td></tr>)}</tbody></table></div></section>)}</div>
       {archiveTarget && <div className="formula-modal-backdrop formula-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setArchiveTarget(null); }}>
         <section className="formula-create-modal formula-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="archive-budget-item-title" aria-describedby="archive-budget-item-description">
           <p className="eyebrow">KELOLA ITEM HARGA</p>
@@ -169,7 +216,22 @@ export function BudgetEstimatePage() {
           </div>
         </section>
       </div>}
-      {componentEditor && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComponentEditor(null); }}><form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="budget-component-title" onSubmit={(event) => { event.preventDefault(); void saveComponent(); }}><p className="eyebrow">{componentEditor.id ? "UBAH ITEM" : "ITEM BARU"}</p><h2 id="budget-component-title">{componentEditor.id ? "Ubah item harga" : "Tambah item harga"}</h2><label className="budget-input"><span>Nama item</span><input autoFocus required value={componentEditor.label} onChange={(event) => setComponentEditor({ ...componentEditor, label: event.target.value })} placeholder="Contoh: Rambuncis" /></label><label className="budget-input"><span>Satuan</span><input required value={componentEditor.unit} onChange={(event) => setComponentEditor({ ...componentEditor, unit: event.target.value })} placeholder="Contoh: pcs" /></label><label className="budget-input"><span>Kelompok item</span><input required value={componentEditor.category} onChange={(event) => setComponentEditor({ ...componentEditor, category: event.target.value })} placeholder="Contoh: Aksesori" /></label><label className="budget-input"><span>Judul kelompok di Excel</span><input value={componentEditor.groupLabel} onChange={(event) => setComponentEditor({ ...componentEditor, groupLabel: event.target.value })} placeholder="Contoh: ASSESORIS / PCS" /></label><div className="budget-modal-actions"><button className="secondary-button" onClick={() => setComponentEditor(null)} type="button">Batal</button><button className="primary-button" disabled={saving} type="submit">{saving ? <><span className="button-spinner" />Menyimpan…</> : "Simpan item"}</button></div></form></div>}
+      {groupDraft && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setGroupDraft(null); }}>
+        <form className="budget-modal budget-group-modal" role="dialog" aria-modal="true" aria-labelledby="budget-group-title" onSubmit={(event) => { event.preventDefault(); void saveGroup(); }}>
+          <p className="eyebrow">KELOLA KELOMPOK</p><h2 id="budget-group-title">{groupDraft.id ? "Edit nama kelompok" : "Buat kelompok baru"}</h2>
+          <label className="budget-input"><span>Nama kelompok</span><input autoFocus required maxLength={80} value={groupDraft.name} onChange={(event) => setGroupDraft({ ...groupDraft, name: event.target.value })} placeholder="Contoh: Material Utama" /></label>
+          <div className="budget-modal-actions"><button className="secondary-button" type="button" disabled={saving} onClick={() => setGroupDraft(null)}>Batal</button><button className="primary-button" type="submit" disabled={saving}>{saving ? "Menyimpan…" : "Simpan kelompok"}</button></div>
+        </form>
+      </div>}
+      {confirmGroupDelete && <div className="formula-modal-backdrop formula-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setConfirmGroupDelete(false); }}>
+        <section className="formula-create-modal formula-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-budget-groups-title">
+          <p className="eyebrow">HAPUS PERMANEN</p><h2 id="delete-budget-groups-title">Hapus {selectedGroupIds.length} kelompok?</h2>
+          <p>Semua item di kelompok terpilih dan harga, aturan, serta riwayat harga terkait akan dihapus permanen dari database. Snapshot harga proyek yang sudah tersimpan tetap dipertahankan. Tindakan ini tidak dapat dibatalkan.</p>
+          <ul className="budget-group-delete-list">{detail.groups.filter((group) => selectedGroupIds.includes(group.id)).map((group) => <li key={group.id}>{group.name} <span>({detail.components.filter((component) => component.category === group.name).length} item)</span></li>)}</ul>
+          <div className="formula-modal-actions formula-confirm-actions"><button className="secondary-button" type="button" disabled={saving} onClick={() => setConfirmGroupDelete(false)}>Batal</button><button className="primary-button formula-danger-button" type="button" disabled={saving} onClick={() => void deleteSelectedGroups()}>{saving ? "Menghapus…" : "Hapus permanen"}</button></div>
+        </section>
+      </div>}
+      {componentEditor && <div className="budget-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setComponentEditor(null); }}><form className="budget-modal" role="dialog" aria-modal="true" aria-labelledby="budget-component-title" onSubmit={(event) => { event.preventDefault(); void saveComponent(); }}><p className="eyebrow">{componentEditor.id ? "UBAH ITEM" : "ITEM BARU"}</p><h2 id="budget-component-title">{componentEditor.id ? "Ubah item harga" : "Tambah item harga"}</h2><label className="budget-input"><span>Nama item</span><input autoFocus required value={componentEditor.label} onChange={(event) => setComponentEditor({ ...componentEditor, label: event.target.value })} placeholder="Contoh: Rambuncis" /></label><label className="budget-input"><span>Satuan</span><input required value={componentEditor.unit} onChange={(event) => setComponentEditor({ ...componentEditor, unit: event.target.value })} placeholder="Contoh: pcs" /></label><label className="budget-input"><span>Kelompok item</span><select required value={componentEditor.category} onChange={(event) => setComponentEditor({ ...componentEditor, category: event.target.value })}>{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label><label className="budget-input"><span>Judul kelompok di Excel</span><input value={componentEditor.groupLabel} onChange={(event) => setComponentEditor({ ...componentEditor, groupLabel: event.target.value })} placeholder="Contoh: ASSESORIS / PCS" /></label><div className="budget-modal-actions"><button className="secondary-button" onClick={() => setComponentEditor(null)} type="button">Batal</button><button className="primary-button" disabled={saving} type="submit">{saving ? <><span className="button-spinner" />Menyimpan…</> : "Simpan item"}</button></div></form></div>}
     </> : mappingsMode ? <>
       {!isCatalogAdmin && <div className="notice-banner">Akun ini hanya dapat melihat pemetaan. Perubahan memerlukan hak admin katalog.</div>}
       {message && <div className="notice-banner" role="status">{message}</div>}
