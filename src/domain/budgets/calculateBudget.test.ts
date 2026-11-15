@@ -11,6 +11,7 @@ function makeDetail(includeBaseVariant = false): BudgetCatalogDetail {
   ];
   return {
     catalog: { id: "catalog-1", slug: "hpm-inka-dacon", label: "HPM / INKA / DACON", position: 1, active: true },
+    groups: [],
     variants,
     rules: [],
     mappings: [],
