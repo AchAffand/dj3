@@ -4,6 +4,7 @@ import type { BudgetCatalogDetail } from "./types";
 
 const detail: BudgetCatalogDetail = {
   catalog: { id: "catalog-1", slug: "hpm-inka-dacon", label: "HPM / INKA / DACON", position: 1, active: true },
+    groups: [],
   variants: [
     { id: "brown-id", key: "brown", label: "Brown", position: 1 },
     { id: "cream-id", key: "cream", label: "Putih / Cream", position: 2 },
@@ -129,6 +130,7 @@ describe("model accessory price mapping", () => {
 describe("independent glass and accessory catalog selection", () => {
   const glassDetail: BudgetCatalogDetail = {
     catalog: { id: "glass-catalog", slug: "kaca-umum", label: "Kaca", position: 4, active: true },
+    groups: [],
     variants: [{ id: "glass-standard", key: "standar", label: "Standar", position: 1 }],
     rules: [],
     mappings: [],
@@ -140,6 +142,7 @@ describe("independent glass and accessory catalog selection", () => {
 
   const accessoryDetail: BudgetCatalogDetail = {
     catalog: { id: "accessory-catalog", slug: "aksesoris-umum", label: "Aksesoris", position: 5, active: true },
+    groups: [],
     variants: [{ id: "accessory-standard", key: "standar", label: "Standar", position: 1 }],
     rules: [],
     mappings: [],
