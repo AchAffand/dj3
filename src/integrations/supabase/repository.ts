@@ -9,7 +9,7 @@ import type {
   ProjectInput,
   ProjectSummary,
 } from "../../domain/projects/types";
-import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping } from "../../domain/budgets/types";
+import type { BudgetCatalog, BudgetCatalogDetail, BudgetEstimate, BudgetVariant, BudgetComponent, BudgetRule, BudgetMaterialMapping, BudgetComponentGroup } from "../../domain/budgets/types";
 
 type ModelRow = {
   code: number;
@@ -168,7 +168,7 @@ function mapBudgetDetail(catalog: BudgetCatalog, rows: Record<string, unknown>[]
       groupLabel: String(row.group_label ?? ""), position: Number(row.position), prices,
     };
   });
-  return { catalog, components, variants: [], rules: [], mappings: [] };
+  return { catalog, components, groups: [], variants: [], rules: [], mappings: [] };
 }
 
 export function createSupabaseRepository(client: SupabaseClient) {
@@ -394,6 +394,11 @@ export function createSupabaseRepository(client: SupabaseClient) {
       ]);
       throwIfError(componentError); throwIfError(variantError); throwIfError(ruleError);
       const mapped = mapBudgetDetail(catalog, (componentData ?? []) as unknown as Record<string, unknown>[]);
+      const { data: groupData, error: groupError } = await client.from("budget_component_groups").select("id,name,position").eq("catalog_id", catalog.id).order("position");
+      throwIfError(groupError);
+      mapped.groups = ((groupData ?? []) as unknown as Record<string, unknown>[]).map((row): BudgetComponentGroup => ({
+        id: String(row.id), name: String(row.name), position: Number(row.position),
+      }));
       mapped.variants = ((variantData ?? []) as unknown as Record<string, unknown>[]).map((row): BudgetVariant => ({
         id: String(row.id), key: String(row.variant_key), label: String(row.label), position: Number(row.position),
       }));
@@ -406,6 +411,22 @@ export function createSupabaseRepository(client: SupabaseClient) {
         materialKey: String(row.material_key), materialName: String(row.material_name), materialUnit: String(row.material_unit ?? ""), componentId: typeof row.component_id === "string" ? row.component_id : null, active: Boolean(row.active),
       }));
       return mapped;
+    },
+
+    async createBudgetComponentGroup(catalogId: string, name: string): Promise<void> {
+      const { error } = await client.rpc("create_budget_component_group", { p_catalog_id: catalogId, p_name: name });
+      throwIfError(error);
+    },
+
+    async renameBudgetComponentGroup(catalogId: string, groupId: string, name: string): Promise<void> {
+      const { error } = await client.rpc("rename_budget_component_group", { p_catalog_id: catalogId, p_group_id: groupId, p_name: name });
+      throwIfError(error);
+    },
+
+    async deleteBudgetComponentGroups(catalogId: string, groupIds: string[]): Promise<number> {
+      const { data, error } = await client.rpc("delete_budget_component_groups", { p_catalog_id: catalogId, p_group_ids: groupIds });
+      throwIfError(error);
+      return Number(data ?? 0);
     },
 
     async saveBudgetMaterialMapping(catalogId: string, materialKey: string, materialName: string, materialUnit: string, componentId: string | null): Promise<void> {
